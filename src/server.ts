@@ -2,7 +2,7 @@ import { RowDataPacket } from "mysql2";
 import app from "./app";
 import db from "./config/db";
 
-console.log(db);
+// console.log(db);
 
 const sql = `select * from user_info`;
 

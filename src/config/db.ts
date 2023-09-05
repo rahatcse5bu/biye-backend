@@ -3,7 +3,7 @@ import mysql, { ConnectionOptions } from "mysql2";
 const access: ConnectionOptions = {
 	user: "root",
 	password: "",
-	database: "pncmatrimony",
+	database: "pnc_matrimony",
 	multipleStatements: true,
 };
 

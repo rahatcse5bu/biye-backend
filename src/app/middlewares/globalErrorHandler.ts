@@ -1,35 +1,21 @@
-import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
-const handleGlobalError = (
-	err: ErrorRequestHandler,
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
-	err?.statusCode = err?.statusCode || 500;
-	err.status = err.status || "error";
+import {  NextFunction, Request, Response } from "express";
+import ApiError from "./ApiError";
 
-	if (process.env.NODE_ENV === "development") {
-		// In development, send detailed error information
-		res.status(err.statusCode).json({
-			status: err.status,
-			message: err.message,
-			stack: err.stack,
-		});
+const GlobalErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+	console.error("anis",err); // Log the error for debugging purposes
+  
+	// Handle different types of errors
+	if (err instanceof ApiError) {
+	  // Handle custom errors with specific status codes and error messages
+	  return res.status(err.statusCode).json({ status: err.status, statusCode: err.statusCode, error: err.message });
+	} else if (err instanceof SyntaxError) {
+	  // Handle JSON parsing errors
+	  return res.status(400).json({ error: 'Invalid JSON' });
 	} else {
-		// In production, send a more generic message
-		if (err.isOperational) {
-			res.status(err.statusCode).json({
-				status: err.status,
-				message: err.message,
-			});
-		} else {
-			console.error("Error:", err);
-			res.status(500).json({
-				status: "error",
-				message: "Something went wrong!",
-			});
-		}
+	  // Handle other unexpected errors with a 500 status code
+	  return res.status(500).json({ error: 'Internal Server Error' });
 	}
-};
 
-module.exports = handleGlobalError;
+	
+  }
+export default GlobalErrorHandler;
