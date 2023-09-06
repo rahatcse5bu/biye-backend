@@ -10,6 +10,7 @@ import GeneralInfoRouter from "./app/modules/general_info/general_info.route";
 import FamilyStatusRouter from "./app/modules/family_status/family_status.route";
 import ExpectedLifePartnerRouter from "./app/modules/expected_lifepartner/expected_lifepartner.route";
 import EducationalQualificationRouter from "./app/modules/educational_qualification/educational_qualification.route";
+import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
 const app = express();
 
 app.use(express.json());
@@ -27,6 +28,7 @@ app.use("/api/v1/general-info", GeneralInfoRouter);
 app.use("/api/v1/family-status", FamilyStatusRouter);
 app.use("/api/v1/expected-life-partner", ExpectedLifePartnerRouter);
 app.use("/api/v1/educational-qualification", EducationalQualificationRouter);
+app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
