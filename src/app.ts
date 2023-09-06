@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import morgan from "morgan";
 import userRouter from "./app/modules/user_info/user_info.route";
 import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
+import personalInfoRouter from "./app/modules/personal_info/personal_info.route";
 const app = express();
 
 app.use(express.json());
@@ -11,6 +12,7 @@ app.get("/", async (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/user-info", userRouter);
+app.use("/api/v1/personal-info", personalInfoRouter);
 app.use(GlobalErrorHandler)
 
 export default app;
