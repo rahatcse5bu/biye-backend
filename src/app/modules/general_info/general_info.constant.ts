@@ -1,0 +1,16 @@
+export const GeneralInfoFields: string[] = [
+  "user_id",
+  "bio_type",
+  "isMarriageDone",
+  "date_of_birth",
+  "height",
+  "gender",
+  "weight",
+  "blood_group",
+  "nationality",
+  "status",
+  "views_count",
+  "purchases_count",
+  "isFbPosted",
+  "isFeatured",
+];
