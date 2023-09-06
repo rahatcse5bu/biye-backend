@@ -9,6 +9,7 @@ import MaritalInfoRouter from "./app/modules/marital_info/marital_info.route";
 import GeneralInfoRouter from "./app/modules/general_info/general_info.route";
 import FamilyStatusRouter from "./app/modules/family_status/family_status.route";
 import ExpectedLifePartnerRouter from "./app/modules/expected_lifepartner/expected_lifepartner.route";
+import EducationalQualificationRouter from "./app/modules/educational_qualification/educational_qualification.route";
 const app = express();
 
 app.use(express.json());
@@ -25,6 +26,7 @@ app.use("/api/v1/marital-info", MaritalInfoRouter);
 app.use("/api/v1/general-info", GeneralInfoRouter);
 app.use("/api/v1/family-status", FamilyStatusRouter);
 app.use("/api/v1/expected-life-partner", ExpectedLifePartnerRouter);
+app.use("/api/v1/educational-qualification", EducationalQualificationRouter);
 app.use(GlobalErrorHandler);
 
 export default app;

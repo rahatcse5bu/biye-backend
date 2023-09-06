@@ -1,0 +1,17 @@
+export const EducationalQualificationFields: string[] = [
+  "user_id",
+  "education_medium",
+  "highest_edu_level",
+  "ssc_year",
+  "ssc_group",
+  "ssc_result",
+  "after_ssc",
+  "after_ssc_year",
+  "after_ssc_group",
+  "after_ssc_result",
+  "hons_sub",
+  "hons_inst",
+  "hons_year",
+  "others_edu",
+  "deeni_edu",
+];
