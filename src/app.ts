@@ -13,9 +13,9 @@ import EducationalQualificationRouter from "./app/modules/educational_qualificat
 import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
 import AddressRouter from "./app/modules/address/address.route";
 import ContactRouter from "./app/modules/contact/contact.route";
-import FavoritesRouter from "./app/modules/favorites/favourites.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
-import FavouritesRouter from "./app/modules/favorites/favourites.route";
+import FavouritesRouter from "./app/modules/favourites/favourites.route";
+import BioDataRouter from "./app/modules/bio_data/bio_data.route";
 const app = express();
 
 app.use(express.json());
@@ -38,6 +38,7 @@ app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
 app.use("/api/v1/favorites", FavouritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
+app.use("/api/v1/bio-data", BioDataRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
