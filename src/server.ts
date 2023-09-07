@@ -6,11 +6,11 @@ import db from "./config/db";
 
 const sql = `select * from user_info`;
 
-db.query(sql, (_err, rows) => {
-	console.log(rows);
-	console.log(_err?.message);
-});
+// db.query(sql, (_err, rows) => {
+// 	console.log(rows);
+// 	console.log(_err?.message);
+// });
 
 app.listen(3000, () => {
-	console.log("Server is running");
+  console.log("Server is running");
 });

@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GeneralInfoFields = void 0;
+exports.GeneralInfoFields = [
+    "user_id",
+    "bio_type",
+    "isMarriageDone",
+    "date_of_birth",
+    "height",
+    "gender",
+    "weight",
+    "blood_group",
+    "nationality",
+    "status",
+    "views_count",
+    "purchases_count",
+    "isFbPosted",
+    "isFeatured",
+];
