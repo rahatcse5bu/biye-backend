@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const morgan_1 = __importDefault(require("morgan"));
+const cors_1 = __importDefault(require("cors"));
 const user_info_route_1 = __importDefault(require("./app/modules/user_info/user_info.route"));
 const globalErrorHandler_1 = __importDefault(require("./app/middlewares/globalErrorHandler"));
 const personal_info_route_1 = __importDefault(require("./app/modules/personal_info/personal_info.route"));
@@ -33,6 +34,10 @@ const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_dat
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
+app.use((0, cors_1.default)({
+    origin: ["*"],
+    optionsSuccessStatus: 200,
+}));
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("hello world!");
 }));
