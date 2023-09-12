@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import morgan from "morgan";
+import cors from "cors";
 import userRouter from "./app/modules/user_info/user_info.route";
 import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
 import personalInfoRouter from "./app/modules/personal_info/personal_info.route";
@@ -20,6 +21,12 @@ const app = express();
 
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(
+  cors({
+    origin: ["*"],
+    optionsSuccessStatus: 200,
+  })
+);
 app.get("/", async (req: Request, res: Response) => {
   res.send("hello world!");
 });
