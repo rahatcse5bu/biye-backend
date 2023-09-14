@@ -7,6 +7,7 @@ export const GeneralInfoFields: string[] = [
   "gender",
   "weight",
   "blood_group",
+  "screen_color",
   "nationality",
   "status",
   "views_count",

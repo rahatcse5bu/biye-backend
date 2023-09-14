@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import db from '../../../config/db';
 import { RowDataPacket } from 'mysql2';
 import { sendSuccess } from '../../../shared/SendSuccess';
+import { PersonalInfoFields } from './personal_info.constant';
+import { generatePlaceholders } from '../../../utils/generatePlaceholders';
 
 const getPersonalInfo = (req: Request, res: Response) => {
   const sql = 'SELECT * FROM personal_info';
@@ -45,72 +47,16 @@ const createPersonalInfo = (req: Request, res: Response) => {
   const data = req.body;
   // Insert personal information into the database
   const insertSql = `INSERT INTO personal_info (
-    user_id,
-    outside_clothings,
-    isBeard,
-    from_beard,
-    isTakhnu,
-    isDailyFive,
-    isDailyFiveJamaat,
-    daily_five_jamaat_from,
-    daily_five_from,
-    qadha_weekly,
-    mahram_non_mahram,
-    quran_tilawat,
-    fiqh,
-    aqidah,
-    natok_cinema,
-    physical_problem,
-    mental_problem,
-    special_deeni_mehnot,
-    mazar,
-    islamic_books,
-    islamic_scholars,
-    my_categories,
-    about_me,
-    my_phone,
-    my_email,
-    photo,
-    isNeshaDrobbo,
-    isSunnotiBiya,
-    devorced_reason,
-    children_details
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`;
+    ${PersonalInfoFields.join(",")}
+) VALUES (${generatePlaceholders(PersonalInfoFields.length)})`;
 
+const personalInfo: string[] = [];
+PersonalInfoFields.forEach((field) => {
+  personalInfo.push(data[field]);
+});
   db.query(
     insertSql,
-    [
-      data.user_id,
-      data.outside_clothings,
-      data.isBeard,
-      data.from_beard,
-      data.isTakhnu,
-      data.isDailyFive,
-      data.isDailyFiveJamaat,
-      data.daily_five_jamaat_from,
-      data.daily_five_from,
-      data.qadha_weekly,
-      data.mahram_non_mahram,
-      data.quran_tilawat,
-      data.fiqh,
-      data.aqidah,
-      data.natok_cinema,
-      data.physical_problem,
-      data.mental_problem,
-      data.special_deeni_mehnot,
-      data.mazar,
-      data.islamic_books,
-      data.islamic_scholars,
-      data.my_categories,
-      data.about_me,
-      data.my_phone,
-      data.my_email,
-      data.photo,
-      data.isNeshaDrobbo,
-      data.isSunnotiBiya,
-      data.devorced_reason,
-      data.children_details,
-    ],
+    personalInfo,
     (err, results) => {
       if (err) {
         console.error('Error inserting personal info:', err);
