@@ -8,6 +8,8 @@ exports.AddressFields = [
     "grown_up",
     "zilla",
     "upzilla",
+    "present_area",
+    'permanent_area',
     "division",
     "city",
     "zip",
