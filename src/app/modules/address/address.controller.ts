@@ -54,7 +54,7 @@ const getSingleAddress = (req: Request, res: Response) => {
 const createAddress = (req: Request, res: Response) => {
   const data = req.body;
   // Insert bio_choice_datarmation into the database
-  const insertSql = `INSERT INTO bio_choice_data (
+  const insertSql = `INSERT INTO address (
     	${AddressFields.join(",")}
   ) VALUES (${generatePlaceholders(AddressFields.length)})`;
 
@@ -68,7 +68,7 @@ const createAddress = (req: Request, res: Response) => {
       console.error("Error inserting Address:", err);
       res
         .status(500)
-        .json({ success: false, message: "Internal Server Error" });
+        .json({ success: false, message: "Internal Server Error",error:err });
     } else {
       res.status(201).json({
         success: true,
