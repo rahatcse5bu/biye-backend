@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PersonalInfoController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
+const personal_info_constant_1 = require("./personal_info.constant");
+const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const getPersonalInfo = (req, res) => {
     const sql = 'SELECT * FROM personal_info';
     db_1.default.query(sql, (err, rows) => {
@@ -41,69 +43,13 @@ const createPersonalInfo = (req, res) => {
     const data = req.body;
     // Insert personal information into the database
     const insertSql = `INSERT INTO personal_info (
-    user_id,
-    outside_clothings,
-    isBeard,
-    from_beard,
-    isTakhnu,
-    isDailyFive,
-    isDailyFiveJamaat,
-    daily_five_jamaat_from,
-    daily_five_from,
-    qadha_weekly,
-    mahram_non_mahram,
-    quran_tilawat,
-    fiqh,
-    aqidah,
-    natok_cinema,
-    physical_problem,
-    mental_problem,
-    special_deeni_mehnot,
-    mazar,
-    islamic_books,
-    islamic_scholars,
-    my_categories,
-    about_me,
-    my_phone,
-    my_email,
-    photo,
-    isNeshaDrobbo,
-    isSunnotiBiya,
-    devorced_reason,
-    children_details
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`;
-    db_1.default.query(insertSql, [
-        data.user_id,
-        data.outside_clothings,
-        data.isBeard,
-        data.from_beard,
-        data.isTakhnu,
-        data.isDailyFive,
-        data.isDailyFiveJamaat,
-        data.daily_five_jamaat_from,
-        data.daily_five_from,
-        data.qadha_weekly,
-        data.mahram_non_mahram,
-        data.quran_tilawat,
-        data.fiqh,
-        data.aqidah,
-        data.natok_cinema,
-        data.physical_problem,
-        data.mental_problem,
-        data.special_deeni_mehnot,
-        data.mazar,
-        data.islamic_books,
-        data.islamic_scholars,
-        data.my_categories,
-        data.about_me,
-        data.my_phone,
-        data.my_email,
-        data.photo,
-        data.isNeshaDrobbo,
-        data.isSunnotiBiya,
-        data.devorced_reason,
-        data.children_details,
-    ], (err, results) => {
+    ${personal_info_constant_1.PersonalInfoFields.join(",")}
+) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(personal_info_constant_1.PersonalInfoFields.length)})`;
+    const personalInfo = [];
+    personal_info_constant_1.PersonalInfoFields.forEach((field) => {
+        personalInfo.push(data[field]);
+    });
+    db_1.default.query(insertSql, personalInfo, (err, results) => {
         if (err) {
             console.error('Error inserting personal info:', err);
             res.status(500).json({ success: false, message: 'Internal Server Error' });

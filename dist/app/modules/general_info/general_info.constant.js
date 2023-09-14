@@ -10,6 +10,7 @@ exports.GeneralInfoFields = [
     "gender",
     "weight",
     "blood_group",
+    "screen_color",
     "nationality",
     "status",
     "views_count",
