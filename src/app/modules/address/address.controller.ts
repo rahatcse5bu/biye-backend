@@ -53,30 +53,54 @@ const getSingleAddress = (req: Request, res: Response) => {
 
 const createAddress = (req: Request, res: Response) => {
   const data = req.body;
-  // Insert bio_choice_datarmation into the database
-  const insertSql = `INSERT INTO address (
-    	${AddressFields.join(",")}
-  ) VALUES (${generatePlaceholders(AddressFields.length)})`;
+  const userId = data.user_id; // Assuming user_id is the field you want to check
 
-  const BioChoiceData: string[] = [];
-  AddressFields.forEach((field) => {
-    BioChoiceData.push(data[field]);
-  });
-
-  db.query(insertSql, BioChoiceData, (err, results) => {
-    if (err) {
-      console.error("Error inserting Address:", err);
-      res
+  // Check if the user_id already exists in the address table
+  const userExistsQuery = "SELECT COUNT(*) AS userCount FROM address WHERE user_id = ?";
+  db.query<RowDataPacket[]>(userExistsQuery, [userId], (userErr, userResults) => {
+    if (userErr) {
+      console.error("Error checking user existence in address table:", userErr);
+      return res
         .status(500)
-        .json({ success: false, message: "Internal Server Error",error:err });
-    } else {
-      res.status(201).json({
-        success: true,
-        message: "Address created successfully",
+        .json({ success: false, message: "Internal Server Error", error: userErr });
+    }
+
+    const userCount = userResults[0].userCount;
+
+    // If userCount is greater than 0, the user_id already exists in the address table
+    if (userCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User already has an address",
       });
     }
+
+    // If userCount is 0, the user_id doesn't exist, so you can proceed with the insertion
+    const insertSql = `INSERT INTO address (${AddressFields.join(",")}) VALUES (${generatePlaceholders(AddressFields.length)})`;
+
+    const addressData:string[] = [];
+    AddressFields.forEach((field) => {
+      addressData.push(data[field]);
+    });
+
+    db.query(insertSql, addressData, (err, results) => {
+      if (err) {
+        console.error("Error inserting Address:", err);
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+          error: err,
+        });
+      } else {
+        res.status(201).json({
+          success: true,
+          message: "Address created successfully",
+        });
+      }
+    });
   });
 };
+
 
 const updateAddress = (req: Request, res: Response) => {
   const data = req.body;
