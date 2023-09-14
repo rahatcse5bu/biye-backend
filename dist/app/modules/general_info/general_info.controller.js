@@ -51,7 +51,12 @@ const createGeneralInfo = (req, res) => {
   ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(general_info_constant_1.GeneralInfoFields.length)})`;
     const GeneralInfo = [];
     general_info_constant_1.GeneralInfoFields.forEach((field) => {
-        GeneralInfo.push(data[field]);
+        if (field === 'date_of_birth') {
+            GeneralInfo.push(`STR_TO_DATE(data[field], '%Y-%m-%dT%H:%i:%s.%fZ'`);
+        }
+        else {
+            GeneralInfo.push(data[field]);
+        }
     });
     db_1.default.query(insertSql, GeneralInfo, (err, results) => {
         if (err) {

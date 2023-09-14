@@ -12,6 +12,7 @@ const getPersonalInfo = (req: Request, res: Response) => {
       res.send({
         message: err?.message,
         success: false,
+        error:err
       });
     }
 
@@ -28,6 +29,7 @@ const getSinglePersonalInfo = (req: Request, res: Response) => {
       return res.status(500).json({
         message: err?.message,
         success: false,
+        error:err
       });
     }
 
@@ -60,7 +62,7 @@ PersonalInfoFields.forEach((field) => {
     (err, results) => {
       if (err) {
         console.error('Error inserting personal info:', err);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
+        res.status(500).json({ success: false, message: 'Internal Server Error',error:err });
       } else {
         res.status(201).json({ success: true, message: 'Personal info created successfully' });
       }

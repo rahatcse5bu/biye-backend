@@ -15,6 +15,7 @@ const getPersonalInfo = (req, res) => {
             res.send({
                 message: err === null || err === void 0 ? void 0 : err.message,
                 success: false,
+                error: err
             });
         }
         res.status(200).json((0, SendSuccess_1.sendSuccess)('All personal info retrieved successfully', rows));
@@ -28,6 +29,7 @@ const getSinglePersonalInfo = (req, res) => {
             return res.status(500).json({
                 message: err === null || err === void 0 ? void 0 : err.message,
                 success: false,
+                error: err
             });
         }
         if (rows.length === 0) {
@@ -52,7 +54,7 @@ const createPersonalInfo = (req, res) => {
     db_1.default.query(insertSql, personalInfo, (err, results) => {
         if (err) {
             console.error('Error inserting personal info:', err);
-            res.status(500).json({ success: false, message: 'Internal Server Error' });
+            res.status(500).json({ success: false, message: 'Internal Server Error', error: err });
         }
         else {
             res.status(201).json({ success: true, message: 'Personal info created successfully' });
