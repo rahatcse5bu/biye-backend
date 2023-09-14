@@ -53,35 +53,44 @@ const getSingleGeneralInfo = (req: Request, res: Response) => {
 
 const createGeneralInfo = (req: Request, res: Response) => {
   const data = req.body;
-  // Insert general_information into the database
-  const insertSql = `INSERT INTO general_info (
-    	${GeneralInfoFields.join(",")}
-  ) VALUES (${generatePlaceholders(GeneralInfoFields.length)})`;
+  const user_id = data.user_id; // Assuming user_id is the field you want to check
 
-  const GeneralInfo: string[] = [];
-  GeneralInfoFields.forEach((field) => {
-    if(field ==='date_of_birth'){
-      GeneralInfo.push(`STR_TO_DATE(${data[field]}, '%Y-%m-%dT%H:%i:%s.%fZ'`);
-    }else{
-
-      GeneralInfo.push(data[field]);
-    }
-  });
-
-  db.query(insertSql, GeneralInfo, (err, results) => {
+  // Check if the user_id already exists in the database
+  const checkSql = "SELECT COUNT(*) AS count FROM general_info WHERE user_id = ?";
+  db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
     if (err) {
-      console.error("Error inserting General info:", err);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error",error: err });
+      console.error("Error checking user_id:", err);
+      res.status(500).json({ success: false, message: "Internal Server Error", error: err });
     } else {
-      res.status(201).json({
-        success: true,
-        message: "General info created successfully",
-      });
+      const count = results[0].count;
+
+      if (count > 0) {
+        // User with this user_id already exists, return an error response
+        res.status(400).json({ success: false, message: "User with this user_id already exists" });
+      } else {
+        // Insert general_information into the database
+        const insertSql = `INSERT INTO general_info (${GeneralInfoFields.join(",")}) VALUES (${generatePlaceholders(GeneralInfoFields.length)})`;
+        const GeneralInfo:string[] = [];
+        GeneralInfoFields.forEach((field) => {
+          GeneralInfo.push(data[field]);
+        });
+
+        db.query(insertSql, GeneralInfo, (err, results) => {
+          if (err) {
+            console.error("Error inserting General info:", err);
+            res.status(500).json({ success: false, message: "Internal Server Error", error: err });
+          } else {
+            res.status(201).json({
+              success: true,
+              message: "General info created successfully",
+            });
+          }
+        });
+      }
     }
   });
 };
+
 
 const updateGeneralInfo = (req: Request, res: Response) => {
   const data = req.body;
@@ -95,7 +104,7 @@ const updateGeneralInfo = (req: Request, res: Response) => {
       console.error("Error starting transaction:", err);
       return res
         .status(500)
-        .json({ success: false, message: "Internal Server Error" });
+        .json({ success: false, message: "Internal Server Error",error:err });
     }
 
     // Check if General info for the user with the given ID exists
@@ -180,7 +189,7 @@ const deleteGeneralInfo = (req: Request, res: Response) => {
   db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
     if (err) {
       console.error("Error checking General info:", err);
-      return res.status(500).json({ success: false, message: err?.message });
+      return res.status(500).json({ success: false, message: err?.message,error:err });
     }
 
     const userCount = userResults[0].userCount;
@@ -199,7 +208,7 @@ const deleteGeneralInfo = (req: Request, res: Response) => {
         console.error("Error deleting General info:", err);
         res
           .status(500)
-          .json({ success: false, message: "Internal Server Error" });
+          .json({ success: false, message: "Internal Server Error",error:err });
       } else {
         res.status(200).json({
           success: true,
