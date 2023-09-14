@@ -45,25 +45,35 @@ const getSingleEducationalQualification = (req, res) => {
 };
 const createEducationalQualification = (req, res) => {
     const data = req.body;
-    // Insert educational_qualificationrmation into the database
-    const insertSql = `INSERT INTO educational_qualification (
-    	${educational_qualification_constant_1.EducationalQualificationFields.join(",")}
-  ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(educational_qualification_constant_1.EducationalQualificationFields.length)})`;
-    const EducationalQualification = [];
-    educational_qualification_constant_1.EducationalQualificationFields.forEach((field) => {
-        EducationalQualification.push(data[field]);
-    });
-    db_1.default.query(insertSql, EducationalQualification, (err, results) => {
-        if (err) {
-            console.error("Error inserting Educational qualification:", err);
-            res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error" });
+    // Check if user_id already exists in the educational_qualification table
+    const checkSql = `SELECT user_id FROM educational_qualification WHERE user_id = ?`;
+    db_1.default.query(checkSql, [data.user_id], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error("Error checking user_id:", checkErr);
+            res.status(500).json({ success: false, message: "Internal Server Error", error: checkErr });
+        }
+        else if (checkResults.length > 0) {
+            // If user_id exists, return an error response
+            res.status(400).json({ success: false, message: "User ID already exists" });
         }
         else {
-            res.status(201).json({
-                success: true,
-                message: "Educational qualification created successfully",
+            // Insert educational_qualification information into the database
+            const insertSql = `INSERT INTO educational_qualification (${educational_qualification_constant_1.EducationalQualificationFields.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(educational_qualification_constant_1.EducationalQualificationFields.length)})`;
+            const educationalQualificationData = [];
+            educational_qualification_constant_1.EducationalQualificationFields.forEach((field) => {
+                educationalQualificationData.push(data[field]);
+            });
+            db_1.default.query(insertSql, educationalQualificationData, (insertErr, results) => {
+                if (insertErr) {
+                    console.error("Error inserting Educational qualification:", insertErr);
+                    res.status(500).json({ success: false, message: "Internal Server Error" });
+                }
+                else {
+                    res.status(201).json({
+                        success: true,
+                        message: "Educational qualification created successfully",
+                    });
+                }
             });
         }
     });
