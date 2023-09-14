@@ -35,7 +35,7 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
 app.use((0, cors_1.default)({
-    origin: ["*"],
+    origin: ["http://localhost:5173", "https://mclabbu.xyz/"],
     optionsSuccessStatus: 200,
 }));
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
