@@ -61,7 +61,7 @@ const createGeneralInfo = (req: Request, res: Response) => {
   const GeneralInfo: string[] = [];
   GeneralInfoFields.forEach((field) => {
     if(field ==='date_of_birth'){
-      GeneralInfo.push(`STR_TO_DATE(data[field], '%Y-%m-%dT%H:%i:%s.%fZ'`);
+      GeneralInfo.push(`STR_TO_DATE(${data[field]}, '%Y-%m-%dT%H:%i:%s.%fZ'`);
     }else{
 
       GeneralInfo.push(data[field]);
