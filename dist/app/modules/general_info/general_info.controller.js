@@ -58,7 +58,7 @@ const createGeneralInfo = (req, res) => {
             console.error("Error inserting General info:", err);
             res
                 .status(500)
-                .json({ success: false, message: "Internal Server Error" });
+                .json({ success: false, message: "Internal Server Error", error: err });
         }
         else {
             res.status(201).json({
