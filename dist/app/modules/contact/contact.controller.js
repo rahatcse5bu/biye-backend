@@ -46,7 +46,7 @@ const getSingleContact = (req, res) => {
 const createContact = (req, res) => {
     const data = req.body;
     // Insert bio_choice_datarmation into the database
-    const insertSql = `INSERT INTO bio_choice_data (
+    const insertSql = `INSERT INTO contact (
     	${contact_constant_1.ContactFields.join(",")}
   ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(contact_constant_1.ContactFields.length)})`;
     const BioChoiceData = [];
