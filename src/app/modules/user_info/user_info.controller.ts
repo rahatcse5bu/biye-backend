@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
+import { UserInfoFields } from "./user_info.constant";
+import { generatePlaceholders } from "../../../utils/generatePlaceholders";
 
 const getUserInfo = (req: Request, res: Response) => {
 	const sql = `select * from user_info`;
@@ -54,7 +56,11 @@ const createUserInfo = (req: Request, res: Response) => {
 		(err, emailResults) => {
 			if (err) {
 				console.error("Error checking email:", err);
-				return res.send(err);
+				return res.send({
+					success: false,
+					message: "Something went wrong.",
+					error:err
+				});
 			}
 
 			const emailCount = emailResults[0].emailCount;
@@ -67,17 +73,33 @@ const createUserInfo = (req: Request, res: Response) => {
 			}
 
 			// If the email doesn't exist, proceed with the insertion
-			const insertSql =
-				"INSERT INTO user_info (username, password, email, phone) VALUES (?, ?, ?, ?)";
+
+			const insertSql = `INSERT INTO user_info (
+				${UserInfoFields.join(",")}
+		  ) VALUES (${generatePlaceholders(UserInfoFields.length)})`;
+		
+		  const UserInfoData: string[] = [];
+		  UserInfoFields.forEach((field) => {
+			UserInfoData.push(data[field]);
+		  });
+	
 			db.query(
 				insertSql,
-				[data.username, data.password, data.email, data.phone],
+				UserInfoData,
 				(err, results) => {
 					if (err) {
 						console.error("Error inserting data:", err);
-						res.send(err);
+						res.send({
+							success: false,
+							message: "Something went wrong",
+							error:err
+						});
+
 					} else {
-						res.send(results);
+						res.send({
+							success: true,
+							message: "User info created successfully",
+						});
 					}
 				}
 			);
@@ -98,28 +120,57 @@ const updateUserInfo = (req: Request, res: Response) => {
 	  (err, userResults) => {
 		if (err) {
 		  console.error("Error checking user:", err);
-		  return res.send(err);
+		  return res.status(500).json({ success: false, message: "Server error" });
 		}
   
 		const userCount = userResults[0].userCount;
   
 		// If the user doesn't exist, send an error response
 		if (userCount === 0) {
-		  return res.status(404).json({ success:false, message: "User not found" });
+		  return res.status(404).json({ success: false, message: "User not found" });
 		}
   
-		// If the user exists, proceed with the update
-		const updateSql =
-		  "UPDATE user_info SET username = ?, password = ?, email = ?, phone = ? WHERE id = ?";
+		// Generate the SQL update statement dynamically based on the provided fields
+		const updateFields = [];
+		const updateValues = [];
+  
+		if (data.username) {
+		  updateFields.push("username = ?");
+		  updateValues.push(data.username);
+		}
+  
+		if (data.password) {
+		  updateFields.push("password = ?");
+		  updateValues.push(data.password);
+		}
+  
+		if (data.email) {
+		  updateFields.push("email = ?");
+		  updateValues.push(data.email);
+		}
+  
+		if (data.phone) {
+		  updateFields.push("phone = ?");
+		  updateValues.push(data.phone);
+		}
+  
+		if (updateFields.length === 0) {
+		  // No fields to update
+		  return res.status(400).json({ success: false, message: "No update data provided" });
+		}
+  
+		const updateSql = `UPDATE user_info SET ${updateFields.join(", ")} WHERE id = ?`;
+		const updateParams = [...updateValues, userId];
+  
 		db.query(
 		  updateSql,
-		  [data.username, data.password, data.email, data.phone, userId],
+		  updateParams,
 		  (err, results) => {
 			if (err) {
 			  console.error("Error updating data:", err);
-			  res.send(err);
+			  res.status(500).json({ success: false, message: "Server error" });
 			} else {
-			  res.send(results);
+			  res.json({ success: true, message: "User information updated successfully" });
 			}
 		  }
 		);
