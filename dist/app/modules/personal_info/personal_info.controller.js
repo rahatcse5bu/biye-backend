@@ -43,26 +43,42 @@ const getSinglePersonalInfo = (req, res) => {
 };
 const createPersonalInfo = (req, res) => {
     const data = req.body;
-    // Insert personal information into the database
-    const insertSql = `INSERT INTO personal_info (
-    ${personal_info_constant_1.PersonalInfoFields.join(",")}
-) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(personal_info_constant_1.PersonalInfoFields.length)})`;
-    const personalInfo = [];
-    personal_info_constant_1.PersonalInfoFields.forEach((field) => {
-        if (data[field]) {
-            personalInfo.push(data[field]);
-        }
-        else {
-            personalInfo.push("");
-        }
-    });
-    db_1.default.query(insertSql, personalInfo, (err, results) => {
+    const user_id = data.user_id; // Assuming user_id is in the request body
+    // Check if user_id exists in the personal_info table
+    const checkIfExistsSql = `SELECT COUNT(*) AS count FROM personal_info WHERE user_id = ?`;
+    db_1.default.query(checkIfExistsSql, [user_id], (err, results) => {
         if (err) {
-            console.error('Error inserting personal info:', err);
+            console.error('Error checking user_id existence:', err);
             res.status(500).json({ success: false, message: 'Internal Server Error', error: err });
         }
         else {
-            res.status(201).json({ success: true, message: 'Personal info created successfully' });
+            const count = results[0].count;
+            if (count > 0) {
+                // User_id already exists, return an error response
+                res.status(400).json({ success: false, message: 'User_id already exists' });
+            }
+            else {
+                // User_id does not exist, proceed with inserting personal info
+                const insertSql = `INSERT INTO personal_info (${personal_info_constant_1.PersonalInfoFields.join(',')}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(personal_info_constant_1.PersonalInfoFields.length)})`;
+                const personalInfo = [];
+                personal_info_constant_1.PersonalInfoFields.forEach((field) => {
+                    if (data[field]) {
+                        personalInfo.push(data[field]);
+                    }
+                    else {
+                        personalInfo.push('');
+                    }
+                });
+                db_1.default.query(insertSql, personalInfo, (err, results) => {
+                    if (err) {
+                        console.error('Error inserting personal info:', err);
+                        res.status(500).json({ success: false, message: 'Internal Server Error', error: err });
+                    }
+                    else {
+                        res.status(201).json({ success: true, message: 'Personal info created successfully' });
+                    }
+                });
+            }
         }
     });
 };

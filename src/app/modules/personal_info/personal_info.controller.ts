@@ -47,31 +47,44 @@ const getSinglePersonalInfo = (req: Request, res: Response) => {
 
 const createPersonalInfo = (req: Request, res: Response) => {
   const data = req.body;
-  // Insert personal information into the database
-  const insertSql = `INSERT INTO personal_info (
-    ${PersonalInfoFields.join(",")}
-) VALUES (${generatePlaceholders(PersonalInfoFields.length)})`;
+  const user_id = data.user_id; // Assuming user_id is in the request body
 
-const personalInfo: string[] = [];
-PersonalInfoFields.forEach((field) => {
-  if(data[field]){
-    personalInfo.push(data[field]);
-  }else{
-    personalInfo.push("");
-  }
-});
-  db.query(
-    insertSql,
-    personalInfo,
-    (err, results) => {
-      if (err) {
-        console.error('Error inserting personal info:', err);
-        res.status(500).json({ success: false, message: 'Internal Server Error',error:err });
+  // Check if user_id exists in the personal_info table
+  const checkIfExistsSql = `SELECT COUNT(*) AS count FROM personal_info WHERE user_id = ?`;
+
+  db.query<RowDataPacket[]>(checkIfExistsSql, [user_id], (err, results) => {
+    if (err) {
+      console.error('Error checking user_id existence:', err);
+      res.status(500).json({ success: false, message: 'Internal Server Error', error: err });
+    } else {
+      const count = results[0].count;
+      if (count > 0) {
+        // User_id already exists, return an error response
+        res.status(400).json({ success: false, message: 'User_id already exists' });
       } else {
-        res.status(201).json({ success: true, message: 'Personal info created successfully' });
+        // User_id does not exist, proceed with inserting personal info
+        const insertSql = `INSERT INTO personal_info (${PersonalInfoFields.join(',')}) VALUES (${generatePlaceholders(PersonalInfoFields.length)})`;
+
+        const personalInfo:string[] = [];
+        PersonalInfoFields.forEach((field) => {
+          if (data[field]) {
+            personalInfo.push(data[field]);
+          } else {
+            personalInfo.push('');
+          }
+        });
+
+        db.query(insertSql, personalInfo, (err, results) => {
+          if (err) {
+            console.error('Error inserting personal info:', err);
+            res.status(500).json({ success: false, message: 'Internal Server Error', error: err });
+          } else {
+            res.status(201).json({ success: true, message: 'Personal info created successfully' });
+          }
+        });
       }
     }
-  );
+  });
 };
 
 const updatePersonalInfo = (req: Request, res: Response) => {
