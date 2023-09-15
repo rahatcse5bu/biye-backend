@@ -15,6 +15,7 @@ exports.PersonalInfoFields = [
     'qadha_weekly',
     'mahram_non_mahram',
     'quran_tilawat',
+    'takhnu_from',
     'fiqh',
     'aqidah',
     'natok_cinema',
