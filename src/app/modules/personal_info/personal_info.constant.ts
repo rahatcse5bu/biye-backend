@@ -6,6 +6,7 @@ export const PersonalInfoFields: string[] = [
     'isTakhnu',
     'isDailyFive',
     'isDailyFiveJamaat',
+    'porda_with_niqab_from',
     'daily_five_jamaat_from',
     'daily_five_from',
     'qadha_weekly',
