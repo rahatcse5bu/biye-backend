@@ -25,6 +25,32 @@ const getUserInfo = (req: Request, res: Response) => {
   });
 };
 
+const getUserInfoByEmail = (req: Request, res: Response) => {
+  const email = req.params.email; // Assuming you pass the user ID as a route parameter
+  const sql = `SELECT * FROM user_info WHERE email = ?`;
+
+  db.query<RowDataPacket[]>(sql, [email], (err, rows) => {
+    if (err) {
+      return res.status(500).json({
+        message: err?.message,
+        success: false,
+        error: err,
+      });
+    }
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    res
+      .status(200)
+      .json(sendSuccess<RowDataPacket[]>("single user retrieved", rows, 200));
+  });
+};
+
 const createUserForGoogleSignIn = (req: Request, res: Response) => {
   const data = req.body;
   const checkEmailSql =
@@ -308,4 +334,5 @@ export const UserInfoController = {
   deleteUserInfo,
   getSingleUserInfo,
   createUserForGoogleSignIn,
+  getUserInfoByEmail,
 };

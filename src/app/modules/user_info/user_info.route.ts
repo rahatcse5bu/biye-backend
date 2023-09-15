@@ -6,6 +6,7 @@ userRouter
   .route("/")
   .get(UserInfoController.getUserInfo)
   .post(UserInfoController.createUserInfo);
+userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter
   .route("/create-login-user")
   .post(UserInfoController.createUserForGoogleSignIn);

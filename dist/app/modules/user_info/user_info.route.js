@@ -10,6 +10,7 @@ userRouter
     .route("/")
     .get(user_info_controller_1.UserInfoController.getUserInfo)
     .post(user_info_controller_1.UserInfoController.createUserInfo);
+userRouter.route("/email/:email").get(user_info_controller_1.UserInfoController.getUserInfoByEmail);
 userRouter
     .route("/create-login-user")
     .post(user_info_controller_1.UserInfoController.createUserForGoogleSignIn);
