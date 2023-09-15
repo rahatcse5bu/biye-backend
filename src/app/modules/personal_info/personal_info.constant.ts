@@ -26,8 +26,5 @@ export const PersonalInfoFields: string[] = [
     'my_email',
     'photo',
     'isNeshaDrobbo',
-    'isSunnotiBiya',
-    'devorced_reason',
-    'children_details'
 ]
   

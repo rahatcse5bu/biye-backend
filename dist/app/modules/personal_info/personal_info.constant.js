@@ -29,7 +29,4 @@ exports.PersonalInfoFields = [
     'my_email',
     'photo',
     'isNeshaDrobbo',
-    'isSunnotiBiya',
-    'devorced_reason',
-    'children_details'
 ];
