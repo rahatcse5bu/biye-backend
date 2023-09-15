@@ -10,5 +10,12 @@ userRouter
     .route("/")
     .get(user_info_controller_1.UserInfoController.getUserInfo)
     .post(user_info_controller_1.UserInfoController.createUserInfo);
-userRouter.route("/:id").delete(user_info_controller_1.UserInfoController.deleteUserInfo).put(user_info_controller_1.UserInfoController.updateUserInfo).get(user_info_controller_1.UserInfoController.getSinleUserInfo);
+userRouter
+    .route("/create-login-user")
+    .post(user_info_controller_1.UserInfoController.createUserForGoogleSignIn);
+userRouter
+    .route("/:id")
+    .delete(user_info_controller_1.UserInfoController.deleteUserInfo)
+    .put(user_info_controller_1.UserInfoController.updateUserInfo)
+    .get(user_info_controller_1.UserInfoController.getSingleUserInfo);
 exports.default = userRouter;
