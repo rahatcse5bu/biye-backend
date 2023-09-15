@@ -49,7 +49,12 @@ const createPersonalInfo = (req, res) => {
 ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(personal_info_constant_1.PersonalInfoFields.length)})`;
     const personalInfo = [];
     personal_info_constant_1.PersonalInfoFields.forEach((field) => {
-        personalInfo.push(data[field]);
+        if (data[field]) {
+            personalInfo.push(data[field]);
+        }
+        else {
+            personalInfo.push("");
+        }
     });
     db_1.default.query(insertSql, personalInfo, (err, results) => {
         if (err) {

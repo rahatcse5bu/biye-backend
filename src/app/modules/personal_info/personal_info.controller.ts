@@ -54,7 +54,11 @@ const createPersonalInfo = (req: Request, res: Response) => {
 
 const personalInfo: string[] = [];
 PersonalInfoFields.forEach((field) => {
-  personalInfo.push(data[field]);
+  if(data[field]){
+    personalInfo.push(data[field]);
+  }else{
+    personalInfo.push("");
+  }
 });
   db.query(
     insertSql,

@@ -53,30 +53,41 @@ const getSingleFamilyStatus = (req: Request, res: Response) => {
 
 const createFamilyStatus = (req: Request, res: Response) => {
   const data = req.body;
-  // Insert family_statusrmation into the database
-  const insertSql = `INSERT INTO family_status (
-    	${FamilyStatusFields.join(",")}
-  ) VALUES (${generatePlaceholders(FamilyStatusFields.length)})`;
 
-  const FamilyStatus: string[] = [];
-  FamilyStatusFields.forEach((field) => {
-    FamilyStatus.push(data[field]);
-  });
+  // Check if user_id already exists in the family_status table
+  const checkSql = `SELECT user_id FROM family_status WHERE user_id = ?`;
 
-  db.query(insertSql, FamilyStatus, (err, results) => {
-    if (err) {
-      console.error("Error inserting Family status:", err);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
+  db.query<RowDataPacket[]>(checkSql, [data.user_id], (checkErr, checkResults) => {
+    if (checkErr) {
+      console.error("Error checking user_id:", checkErr);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    } else if (checkResults.length > 0) {
+      // If user_id exists, return an error response
+      res.status(400).json({ success: false, message: "User ID already exists" });
     } else {
-      res.status(201).json({
-        success: true,
-        message: "Family status created successfully",
+      // Insert family_status information into the database
+      const insertSql = `INSERT INTO family_status (${FamilyStatusFields.join(",")}) VALUES (${generatePlaceholders(FamilyStatusFields.length)})`;
+
+      const familyStatusData:string[] = [];
+      FamilyStatusFields.forEach((field) => {
+        familyStatusData.push(data[field]);
+      });
+
+      db.query(insertSql, familyStatusData, (insertErr, results) => {
+        if (insertErr) {
+          console.error("Error inserting Family status:", insertErr);
+          res.status(500).json({ success: false, message: "Internal Server Error" });
+        } else {
+          res.status(201).json({
+            success: true,
+            message: "Family status created successfully",
+          });
+        }
       });
     }
   });
 };
+
 
 const updateFamilyStatus = (req: Request, res: Response) => {
   const data = req.body;

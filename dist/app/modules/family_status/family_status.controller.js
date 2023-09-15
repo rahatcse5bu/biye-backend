@@ -45,25 +45,35 @@ const getSingleFamilyStatus = (req, res) => {
 };
 const createFamilyStatus = (req, res) => {
     const data = req.body;
-    // Insert family_statusrmation into the database
-    const insertSql = `INSERT INTO family_status (
-    	${family_status_constant_1.FamilyStatusFields.join(",")}
-  ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(family_status_constant_1.FamilyStatusFields.length)})`;
-    const FamilyStatus = [];
-    family_status_constant_1.FamilyStatusFields.forEach((field) => {
-        FamilyStatus.push(data[field]);
-    });
-    db_1.default.query(insertSql, FamilyStatus, (err, results) => {
-        if (err) {
-            console.error("Error inserting Family status:", err);
-            res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error" });
+    // Check if user_id already exists in the family_status table
+    const checkSql = `SELECT user_id FROM family_status WHERE user_id = ?`;
+    db_1.default.query(checkSql, [data.user_id], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error("Error checking user_id:", checkErr);
+            res.status(500).json({ success: false, message: "Internal Server Error" });
+        }
+        else if (checkResults.length > 0) {
+            // If user_id exists, return an error response
+            res.status(400).json({ success: false, message: "User ID already exists" });
         }
         else {
-            res.status(201).json({
-                success: true,
-                message: "Family status created successfully",
+            // Insert family_status information into the database
+            const insertSql = `INSERT INTO family_status (${family_status_constant_1.FamilyStatusFields.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(family_status_constant_1.FamilyStatusFields.length)})`;
+            const familyStatusData = [];
+            family_status_constant_1.FamilyStatusFields.forEach((field) => {
+                familyStatusData.push(data[field]);
+            });
+            db_1.default.query(insertSql, familyStatusData, (insertErr, results) => {
+                if (insertErr) {
+                    console.error("Error inserting Family status:", insertErr);
+                    res.status(500).json({ success: false, message: "Internal Server Error" });
+                }
+                else {
+                    res.status(201).json({
+                        success: true,
+                        message: "Family status created successfully",
+                    });
+                }
             });
         }
     });
