@@ -34,9 +34,22 @@ const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_dat
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:5173",
+//       "https://mclabbu.xyz/",
+//       "http://mclabbu.xyz/",
+//     ],
+//   })
+// );
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    next();
+});
 app.use((0, cors_1.default)({
-    origin: ["http://localhost:5173", "https://mclabbu.xyz/"],
-    optionsSuccessStatus: 200,
+    origin: "*",
 }));
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("hello world!");

@@ -21,13 +21,27 @@ const app = express();
 
 app.use(express.json());
 app.use(morgan("dev"));
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:5173",
+//       "https://mclabbu.xyz/",
+//       "http://mclabbu.xyz/",
+//     ],
+//   })
+// );
+
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
+});
+
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://mclabbu.xyz/"],
-    optionsSuccessStatus: 200,
+    origin: "*",
   })
 );
-
 
 app.get("/", async (req: Request, res: Response) => {
   res.send("hello world!");
