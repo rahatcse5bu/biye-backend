@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserInfoController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
+// @ts-ignore
 const uuid_1 = require("uuid");
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const user_info_constant_1 = require("./user_info.constant");

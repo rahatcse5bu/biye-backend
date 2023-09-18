@@ -4,6 +4,7 @@ import db from "../../../config/db";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import config from "../../../config";
+// @ts-ignore
 import { Secret } from "jsonwebtoken";
 
 const getUserToken = (req: Request, res: Response) => {

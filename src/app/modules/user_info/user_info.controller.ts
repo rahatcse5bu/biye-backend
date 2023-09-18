@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
+// @ts-ignore
 import { v4 as uuidv4 } from "uuid";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { UserInfoFields } from "./user_info.constant";
