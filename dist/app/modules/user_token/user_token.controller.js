@@ -8,9 +8,9 @@ const db_1 = __importDefault(require("../../../config/db"));
 const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../../config"));
 const getUserToken = (req, res) => {
-    const id = req.params.userId; // Assuming you pass the user ID as a route parameter
-    const sql = `SELECT * FROM user_info WHERE id = ?`;
-    db_1.default.query(sql, [id], (err, rows) => {
+    const tokenId = req.params.tokenId;
+    const sql = `SELECT * FROM user_info WHERE token_id = ?`;
+    db_1.default.query(sql, [tokenId], (err, rows) => {
         if (err) {
             return res.status(500).json({
                 message: err === null || err === void 0 ? void 0 : err.message,
@@ -26,7 +26,7 @@ const getUserToken = (req, res) => {
         }
         const user = rows[0];
         const userPayload = {
-            id: user.id,
+            token_id: user.token_id,
             user_role: user.user_role,
         };
         const token = jwtHelpers_1.jwtHelpers.createToken(userPayload, config_1.default.jwt_secret, "2d");

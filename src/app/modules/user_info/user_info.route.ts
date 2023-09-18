@@ -5,8 +5,7 @@ const userRouter = express.Router();
 userRouter
   .route("/")
   .get(UserInfoController.getUserInfo)
-  .post(UserInfoController.createUserInfo)
-  .put(UserInfoController.addUniqueId);
+  .post(UserInfoController.createUserInfo);
 
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter

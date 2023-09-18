@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_status_1 = __importDefault(require("http-status"));
-const ApiError_1 = __importDefault(require("./ApiError"));
 const jwtHelpers_1 = require("../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../config"));
 const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -21,19 +20,34 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         //get authorization token
         const token = req.headers.authorization;
         if (!token) {
-            throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
+            // throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
+            return res.send({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
         }
         // verify token
         let verifiedUser = null;
         verifiedUser = jwtHelpers_1.jwtHelpers.verifyToken(token, config_1.default.jwt_secret);
         req.user = verifiedUser; // role  , userid
         // role diye guard korar jnno
-        if (requiredRoles.length && !requiredRoles.includes(verifiedUser.role)) {
-            throw new ApiError_1.default(http_status_1.default.FORBIDDEN, "Forbidden");
+        if (requiredRoles.length &&
+            !requiredRoles.includes(verifiedUser.user_role)) {
+            // throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
+            res.send({
+                statusCode: http_status_1.default.FORBIDDEN,
+                message: "Forbidden",
+                success: false,
+            });
         }
         next();
     }
     catch (error) {
-        next(error);
+        res.send({
+            statusCode: 500,
+            error: error,
+            success: false,
+        });
     }
 });

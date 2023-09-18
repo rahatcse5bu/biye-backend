@@ -17,6 +17,7 @@ import ContactRouter from "./app/modules/contact/contact.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
 import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
+import userTokenRouter from "./app/modules/user_token/user_token.route";
 const app = express();
 
 app.use(express.json());
@@ -62,6 +63,7 @@ app.use("/api/v1/contact", ContactRouter);
 app.use("/api/v1/favorites", FavouritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
+app.use("/api/v1/token", userTokenRouter);
 app.use(GlobalErrorHandler);
 
 export default app;

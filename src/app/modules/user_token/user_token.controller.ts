@@ -7,10 +7,10 @@ import config from "../../../config";
 import { Secret } from "jsonwebtoken";
 
 const getUserToken = (req: Request, res: Response) => {
-  const id = req.params.userId; // Assuming you pass the user ID as a route parameter
-  const sql = `SELECT * FROM user_info WHERE id = ?`;
+  const tokenId = req.params.tokenId;
+  const sql = `SELECT * FROM user_info WHERE token_id = ?`;
 
-  db.query<RowDataPacket[]>(sql, [id], (err, rows) => {
+  db.query<RowDataPacket[]>(sql, [tokenId], (err, rows) => {
     if (err) {
       return res.status(500).json({
         message: err?.message,
@@ -28,7 +28,7 @@ const getUserToken = (req: Request, res: Response) => {
 
     const user = rows[0];
     const userPayload = {
-      id: user.id,
+      token_id: user.token_id,
       user_role: user.user_role,
     };
     const token = jwtHelpers.createToken(

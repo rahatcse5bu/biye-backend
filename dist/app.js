@@ -31,6 +31,7 @@ const contact_route_1 = __importDefault(require("./app/modules/contact/contact.r
 const payments_route_1 = __importDefault(require("./app/modules/payments/payments.route"));
 const favourites_route_1 = __importDefault(require("./app/modules/favourites/favourites.route"));
 const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_data.route"));
+const user_token_route_1 = __importDefault(require("./app/modules/user_token/user_token.route"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
@@ -69,5 +70,6 @@ app.use("/api/v1/contact", contact_route_1.default);
 app.use("/api/v1/favorites", favourites_route_1.default);
 app.use("/api/v1/payments", payments_route_1.default);
 app.use("/api/v1/bio-data", bio_data_route_1.default);
+app.use("/api/v1/token", user_token_route_1.default);
 app.use(globalErrorHandler_1.default);
 exports.default = app;
