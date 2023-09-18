@@ -19,6 +19,7 @@ import BioDataRouter from "./app/modules/bio_data/bio_data.route";
 import userTokenRouter from "./app/modules/user_token/user_token.route";
 // @ts-ignore
 import cors from "cors";
+import config from "./config";
 
 const app = express();
 

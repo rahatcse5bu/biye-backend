@@ -32,12 +32,12 @@ const getUserToken = (req: Request, res: Response) => {
       token_id: user.token_id,
       user_role: user.user_role,
     };
-    // const token = jwtHelpers.createToken(
-    //   userPayload,
-    //   config.jwt_secret as Secret,
-    //   "2d"
-    // );
-    const token = "09130";
+    const token = jwtHelpers.createToken(
+      userPayload,
+      config.jwt_secret as Secret,
+      "2d"
+    );
+    // const token = "09130";
 
     const result = {
       success: true,

@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserTokenControllers = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
+const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
+const config_1 = __importDefault(require("../../../config"));
 const getUserToken = (req, res) => {
     const tokenId = req.params.tokenId;
     const sql = `SELECT * FROM user_info WHERE token_id = ?`;
@@ -27,12 +29,8 @@ const getUserToken = (req, res) => {
             token_id: user.token_id,
             user_role: user.user_role,
         };
-        // const token = jwtHelpers.createToken(
-        //   userPayload,
-        //   config.jwt_secret as Secret,
-        //   "2d"
-        // );
-        const token = "09130";
+        const token = jwtHelpers_1.jwtHelpers.createToken(userPayload, config_1.default.jwt_secret, "2d");
+        // const token = "09130";
         const result = {
             success: true,
             message: "token created successfully",
