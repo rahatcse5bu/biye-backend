@@ -8,5 +8,5 @@ const user_token_controller_1 = require("./user_token.controller");
 const userTokenRouter = express_1.default.Router();
 userTokenRouter
     .route("/create-token/:tokenId")
-    .post(user_token_controller_1.UserTokenControllers.getUserToken);
+    .get(user_token_controller_1.UserTokenControllers.getUserToken);
 exports.default = userTokenRouter;

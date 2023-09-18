@@ -4,6 +4,6 @@ const userTokenRouter = express.Router();
 
 userTokenRouter
   .route("/create-token/:tokenId")
-  .post(UserTokenControllers.getUserToken);
+  .get(UserTokenControllers.getUserToken);
 
 export default userTokenRouter;
