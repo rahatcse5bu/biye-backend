@@ -3,7 +3,7 @@ import { UserTokenControllers } from "./user_token.controller";
 const userTokenRouter = express.Router();
 
 userTokenRouter
-  .route("/create-token/:userToken")
+  .route("/create-token/:tokenId")
   .post(UserTokenControllers.getUserToken);
 
 export default userTokenRouter;

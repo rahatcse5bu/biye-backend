@@ -7,6 +7,6 @@ const express_1 = __importDefault(require("express"));
 const user_token_controller_1 = require("./user_token.controller");
 const userTokenRouter = express_1.default.Router();
 userTokenRouter
-    .route("/create-token/:userToken")
+    .route("/create-token/:tokenId")
     .post(user_token_controller_1.UserTokenControllers.getUserToken);
 exports.default = userTokenRouter;
