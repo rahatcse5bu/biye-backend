@@ -9,7 +9,8 @@ const userRouter = express_1.default.Router();
 userRouter
     .route("/")
     .get(user_info_controller_1.UserInfoController.getUserInfo)
-    .post(user_info_controller_1.UserInfoController.createUserInfo);
+    .post(user_info_controller_1.UserInfoController.createUserInfo)
+    .put(user_info_controller_1.UserInfoController.addUniqueId);
 userRouter.route("/email/:email").get(user_info_controller_1.UserInfoController.getUserInfoByEmail);
 userRouter
     .route("/create-login-user")

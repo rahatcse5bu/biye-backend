@@ -1,9 +1,28 @@
 import { Request, Response } from "express";
 import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
+import { v4 as uuidv4 } from "uuid";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { UserInfoFields } from "./user_info.constant";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
+
+const addUniqueId = async (req: Request, res: Response) => {
+  const id = uuidv4();
+  const updateSql = `
+      UPDATE user_info
+      SET token_id = ?`;
+
+  // Specify the values you want to update in an array
+  const values = [id];
+
+  db.query(updateSql, values, (error, results) => {
+    if (error) {
+      res.send({ error: error });
+    } else {
+      res.send(results);
+    }
+  });
+};
 
 const getUserInfo = (req: Request, res: Response) => {
   const sql = `select * from user_info`;
@@ -335,4 +354,5 @@ export const UserInfoController = {
   getSingleUserInfo,
   createUserForGoogleSignIn,
   getUserInfoByEmail,
+  addUniqueId,
 };
