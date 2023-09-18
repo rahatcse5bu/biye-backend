@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const morgan_1 = __importDefault(require("morgan"));
-const cors_1 = __importDefault(require("cors"));
 const user_info_route_1 = __importDefault(require("./app/modules/user_info/user_info.route"));
 const globalErrorHandler_1 = __importDefault(require("./app/middlewares/globalErrorHandler"));
 const personal_info_route_1 = __importDefault(require("./app/modules/personal_info/personal_info.route"));
@@ -32,6 +31,8 @@ const payments_route_1 = __importDefault(require("./app/modules/payments/payment
 const favourites_route_1 = __importDefault(require("./app/modules/favourites/favourites.route"));
 const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_data.route"));
 const user_token_route_1 = __importDefault(require("./app/modules/user_token/user_token.route"));
+// @ts-ignore
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));

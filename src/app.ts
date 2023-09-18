@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import morgan from "morgan";
-import cors from "cors";
 import userRouter from "./app/modules/user_info/user_info.route";
 import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
 import personalInfoRouter from "./app/modules/personal_info/personal_info.route";
@@ -18,6 +17,9 @@ import PaymentsRouter from "./app/modules/payments/payments.route";
 import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
 import userTokenRouter from "./app/modules/user_token/user_token.route";
+// @ts-ignore
+import cors from "cors";
+
 const app = express();
 
 app.use(express.json());

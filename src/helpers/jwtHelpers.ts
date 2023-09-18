@@ -1,3 +1,4 @@
+// @ts-ignore
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 
 const createToken = (
