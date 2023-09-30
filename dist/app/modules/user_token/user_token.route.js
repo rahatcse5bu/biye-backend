@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const user_token_controller_1 = require("./user_token.controller");
 const userTokenRouter = express_1.default.Router();
+userTokenRouter.route("/verify-token").get(user_token_controller_1.verifyJWT);
 userTokenRouter
     .route("/create-token/:tokenId")
     .get(user_token_controller_1.UserTokenControllers.getUserToken);

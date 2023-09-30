@@ -4,233 +4,359 @@ import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { AddressFields } from "./address.constant";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
+import httpStatus from "http-status";
+import { rollbackAndRespond } from "../../../utils/response";
+import { JwtPayload } from "jsonwebtoken";
 
 const getAddress = (req: Request, res: Response) => {
-  const sql = "SELECT * FROM address";
-  db.query<RowDataPacket[]>(sql, (err, rows) => {
-    if (err) {
-      res.send({
-        message: err?.message,
-        success: false,
-      });
-    }
+	const sql = "SELECT * FROM address";
+	db.query<RowDataPacket[]>(sql, (err, rows) => {
+		if (err) {
+			res.send({
+				message: err?.message,
+				success: false,
+			});
+		}
 
-    res
-      .status(200)
-      .json(
-        sendSuccess<RowDataPacket[]>(
-          "All address  retrieved successfully",
-          rows
-        )
-      );
-  });
+		res
+			.status(200)
+			.json(
+				sendSuccess<RowDataPacket[]>(
+					"All address  retrieved successfully",
+					rows
+				)
+			);
+	});
 };
 
 const getSingleAddress = (req: Request, res: Response) => {
-  const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-  const sql = "SELECT * FROM address WHERE id = ?";
+	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
+	const sql = "SELECT * FROM address WHERE id = ?";
 
-  db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-    if (err) {
-      return res.status(500).json({
-        message: err?.message,
-        success: false,
-      });
-    }
+	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
+		if (err) {
+			return res.status(500).json({
+				message: err?.message,
+				success: false,
+			});
+		}
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        message: "address not found",
-        success: false,
-      });
-    }
+		if (rows.length === 0) {
+			return res.status(404).json({
+				message: "address not found",
+				success: false,
+			});
+		}
 
-    res
-      .status(200)
-      .json(sendSuccess<RowDataPacket[]>("address retrieved", rows, 200));
-  });
+		res
+			.status(200)
+			.json(sendSuccess<RowDataPacket[]>("address retrieved", rows, 200));
+	});
 };
 
 const createAddress = (req: Request, res: Response) => {
-  const data = req.body;
-  const userId = data.user_id; // Assuming user_id is the field you want to check
+	const data = req.body;
+	const token_id = req.user?.token_id;
+	const { user_form } = data;
 
-  // Check if the user_id already exists in the address table
-  const userExistsQuery = "SELECT COUNT(*) AS userCount FROM address WHERE user_id = ?";
-  db.query<RowDataPacket[]>(userExistsQuery, [userId], (userErr, userResults) => {
-    if (userErr) {
-      console.error("Error checking user existence in address table:", userErr);
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error", error: userErr });
-    }
+	let user_id: string | null = null;
+	// console.log(req.user);
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
 
-    const userCount = userResults[0].userCount;
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
+		}
 
-    // If userCount is greater than 0, the user_id already exists in the address table
-    if (userCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "User already has an address",
-      });
-    }
+		//! get user_id using token_id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//console.log(result);
 
-    // If userCount is 0, the user_id doesn't exist, so you can proceed with the insertion
-    const insertSql = `INSERT INTO address (${AddressFields.join(",")}) VALUES (${generatePlaceholders(AddressFields.length)})`;
+				user_id = result[0].id;
 
-    const addressData:string[] = [];
-    AddressFields.forEach((field) => {
-      addressData.push(data[field]);
-    });
+				//! Check if the user_id already exists in the database
 
-    db.query(insertSql, addressData, (err, results) => {
-      if (err) {
-        console.error("Error inserting Address:", err);
-        res.status(500).json({
-          success: false,
-          message: "Internal Server Error",
-          error: err,
-        });
-      } else {
-        res.status(201).json({
-          success: true,
-          message: "Address created successfully",
-        });
-      }
-    });
-  });
+				const checkSql =
+					"SELECT COUNT(*) AS count FROM address WHERE user_id = ?";
+
+				db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
+					if (err) {
+						console.error("Error checking User Id:", err);
+						return rollbackAndRespond(res, db, err);
+					}
+
+					const count = results[0].count;
+
+					if (count > 0) {
+						//! User with this user_id already exists, return an error response
+						return rollbackAndRespond(res, db, null, {
+							success: false,
+							message: "User with this user id already exists",
+						});
+					}
+
+					//! Insert address into the database
+					const insertSql = `INSERT INTO address (${AddressFields.join(
+						","
+					)}) VALUES (${generatePlaceholders(AddressFields.length)})`;
+					const AddressInfo: string[] = [];
+					AddressFields.forEach((field) => {
+						AddressInfo.push(data[field]);
+					});
+
+					//! Insert address information
+					db.query(insertSql, AddressInfo, (err, results) => {
+						if (err) {
+							console.error("Error inserting General info:", err);
+							return rollbackAndRespond(res, db, err);
+						}
+
+						//! Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
+						const updateUserInfoSql = `
+            UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
+          `;
+						db.query(updateUserInfoSql, [user_id], (err, results) => {
+							if (err) {
+								console.error("Error updating user_info:", err);
+								return rollbackAndRespond(res, db, err);
+							}
+
+							// Commit the transaction if everything is successful
+							db.commit((err) => {
+								if (err) {
+									console.error("Error committing transaction:", err);
+									return rollbackAndRespond(res, db, err);
+								}
+
+								res.status(201).json({
+									success: true,
+									message:
+										"General info created and user_info updated successfully",
+								});
+							});
+						});
+					});
+				});
+			}
+		);
+	});
 };
 
-
 const updateAddress = (req: Request, res: Response) => {
-  const data = req.body;
-  const userId = req.params.id; // Assuming you pass the user ID in the URL
+	const data = req.body;
+	const token_id = (req.user?.token_id as JwtPayload) ?? null;
+	let user_id: number | null = null;
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
 
-  console.log(data);
+	//! Begin a database transaction
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
+		}
+		// get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
 
-  // Begin a database transaction
-  db.beginTransaction((err) => {
-    if (err) {
-      console.error("Error starting transaction:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
-    }
+				console.log(result);
 
-    // Check if address for the user with the given ID exists
-    const checkUserSql = "SELECT * FROM address WHERE id = ?";
-    db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-      if (err) {
-        console.error("Error checking address:", err);
-        db.rollback(() => {
-          res.status(500).json({ success: false, message: err?.message });
-        });
-        return;
-      }
+				user_id = Number(result[0]?.id);
 
-      const userCount = userResults.length;
+				if (isNaN(user_id)) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//! Check if General info for the user with the given ID exists
+				const checkUserSql = "SELECT user_id FROM address WHERE user_id = ?";
 
-      // If address doesn't exist, send an error response
-      if (userCount === 0) {
-        db.rollback(() => {
-          res
-            .status(404)
-            .json({ success: false, message: "address not found" });
-        });
-        return;
-      }
+				db.query<RowDataPacket[]>(
+					checkUserSql,
+					[user_id],
+					(err, userResults) => {
+						if (err) {
+							console.error("Error checking address info:", err);
+							db.rollback(() => {
+								res.status(500).json({ success: false, message: err?.message });
+							});
+							return;
+						}
 
-      const currentUserData = userResults[0];
+						const userCount = userResults.length;
 
-      // Build the update SQL statement dynamically based on changed values
-      const updateFields: string[] = [];
-      const updateValues = [];
+						//! If address info doesn't exist, send an error response
+						if (userCount === 0) {
+							db.rollback(() => {
+								res
+									.status(404)
+									.json({ success: false, message: "Address info not found" });
+							});
+							return;
+						}
 
-      Object.keys(data).forEach((key) => {
-        updateFields.push(`${key} = ?`);
-        updateValues.push(data[key]);
-      });
+						//! Build the update SQL statement dynamically based on changed values
+						const updateFields: string[] = [];
+						const updateValues = [];
 
-      if (updateFields.length === 0) {
-        // No fields to update
-        db.commit(() => {
-          res
-            .status(200)
-            .json({ success: true, message: "No changes to update" });
-        });
-        return;
-      }
+						Object.keys(data).forEach((key) => {
+							updateFields.push(`${key} = ?`);
+							updateValues.push(data[key]);
+						});
 
-      // Construct the final update SQL statement
-      const updateSql = `UPDATE address SET ${updateFields.join(
-        ", "
-      )} WHERE id = ?`;
+						if (updateFields.length === 0) {
+							// No fields to update
+							db.commit(() => {
+								res
+									.status(200)
+									.json({ success: true, message: "No changes to update" });
+							});
+							return;
+						}
 
-      updateValues.push(userId);
+						// Construct the final update SQL statement
+						const updateSql = `UPDATE address SET ${updateFields.join(
+							", "
+						)} WHERE user_id = ?`;
 
-      // Execute the update query within the transaction
-      db.query(updateSql, updateValues, (err, results) => {
-        if (err) {
-          console.error("Error updating address:", err);
-          db.rollback(() => {
-            res
-              .status(500)
-              .json({ success: false, message: "Internal Server Error" });
-          });
-        } else {
-          // Commit the transaction if the update was successful
-          db.commit(() => {
-            res
-              .status(200)
-              .json(sendSuccess("Update sucessfully completed", results, 200));
-          });
-        }
-      });
-    });
-  });
+						updateValues.push(user_id);
+
+						// Execute the update query within the transaction
+						db.query(updateSql, updateValues, (err, results) => {
+							if (err) {
+								console.error("Error updating address info:", err);
+								db.rollback(() => {
+									res.status(500).json({
+										success: false,
+										message: "Internal Server Error",
+										error: err,
+									});
+								});
+							} else {
+								// Commit the transaction if the update was successful
+								db.commit(() => {
+									res.status(200).json({
+										message: "Update successfully completed",
+										success: true,
+										data: results,
+									});
+								});
+							}
+						});
+					}
+				);
+			}
+		);
+	});
 };
 
 const deleteAddress = (req: Request, res: Response) => {
-  const userId = req.params.id; // Assuming you pass the user ID in the URL
+	const userId = req.params.id; // Assuming you pass the user ID in the URL
 
-  // Check if address for the user with the given ID exists
-  const checkUserSql = "SELECT COUNT(*) AS userCount FROM address WHERE id = ?";
-  db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-    if (err) {
-      console.error("Error checking address:", err);
-      return res.status(500).json({ success: false, message: err?.message });
-    }
+	// Check if address for the user with the given ID exists
+	const checkUserSql = "SELECT COUNT(*) AS userCount FROM address WHERE id = ?";
+	db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
+		if (err) {
+			console.error("Error checking address:", err);
+			return res.status(500).json({ success: false, message: err?.message });
+		}
 
-    const userCount = userResults[0].userCount;
+		const userCount = userResults[0].userCount;
 
-    // If address doesn't exist, send an error response
-    if (userCount === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "address not found" });
-    }
+		// If address doesn't exist, send an error response
+		if (userCount === 0) {
+			return res
+				.status(404)
+				.json({ success: false, message: "address not found" });
+		}
 
-    // If address exists, proceed with the deletion
-    const deleteSql = "DELETE FROM address WHERE id = ?";
-    db.query(deleteSql, [userId], (err, results) => {
-      if (err) {
-        console.error("Error deleting address:", err);
-        res
-          .status(500)
-          .json({ success: false, message: "Internal Server Error" });
-      } else {
-        res
-          .status(200)
-          .json({ success: true, message: "address deleted successfully" });
-      }
-    });
-  });
+		// If address exists, proceed with the deletion
+		const deleteSql = "DELETE FROM address WHERE id = ?";
+		db.query(deleteSql, [userId], (err, results) => {
+			if (err) {
+				console.error("Error deleting address:", err);
+				res
+					.status(500)
+					.json({ success: false, message: "Internal Server Error" });
+			} else {
+				res
+					.status(200)
+					.json({ success: true, message: "address deleted successfully" });
+			}
+		});
+	});
+};
+
+const getAddressInfoByUserId = (req: Request, res: Response) => {
+	const userId = req.params.id; // Assuming the user_id is in the route parameter
+	const sql = "SELECT * FROM address WHERE user_id = ?";
+	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
+		if (err) {
+			res.send({
+				message: err?.message,
+				success: false,
+			});
+		} else {
+			if (rows.length === 0) {
+				res.status(404).json({
+					message: "Address info not found for the specified user_id",
+					success: false,
+				});
+			} else {
+				res.status(200).json({
+					message: "Address info retrieved successfully",
+					success: true,
+					data: rows[0], // Assuming you expect only one row per user_id
+				});
+			}
+		}
+	});
 };
 
 export const AddressController = {
-  getAddress,
-  getSingleAddress,
-  createAddress,
-  updateAddress,
-  deleteAddress,
+	getAddress,
+	getSingleAddress,
+	createAddress,
+	updateAddress,
+	deleteAddress,
+	getAddressInfoByUserId,
 };

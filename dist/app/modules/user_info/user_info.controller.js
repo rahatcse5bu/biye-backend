@@ -19,6 +19,8 @@ const uuid_1 = require("uuid");
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const user_info_constant_1 = require("./user_info.constant");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
+const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
+const config_1 = __importDefault(require("../../../config"));
 const addUniqueId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = (0, uuid_1.v4)();
     const updateSql = `
@@ -36,7 +38,7 @@ const addUniqueId = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     });
 });
 const getUserInfo = (req, res) => {
-    const sql = `select * from user_info`;
+    const sql = `select id,token_id,email,user_role,edited_timeline_index,last_edited_timeline_index from user_info`;
     db_1.default.query(sql, (err, rows) => {
         if (err) {
             res.send({
@@ -51,7 +53,7 @@ const getUserInfo = (req, res) => {
 };
 const getUserInfoByEmail = (req, res) => {
     const email = req.params.email; // Assuming you pass the user ID as a route parameter
-    const sql = `SELECT * FROM user_info WHERE email = ?`;
+    const sql = `SELECT id,token_id,email,user_role,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE email = ?`;
     db_1.default.query(sql, [email], (err, rows) => {
         if (err) {
             return res.status(500).json({
@@ -72,81 +74,170 @@ const getUserInfoByEmail = (req, res) => {
     });
 };
 const createUserForGoogleSignIn = (req, res) => {
-    const data = req.body;
-    const checkEmailSql = "SELECT COUNT(*) AS emailCount FROM user_info WHERE email = ?";
-    // First, check if the email already exists
-    db_1.default.query(checkEmailSql, [data.email], (err, emailResults) => {
+    let data = req.body;
+    data = Object.assign(Object.assign({}, data), { token_id: (0, uuid_1.v4)() });
+    //! Start a database transaction
+    db_1.default.beginTransaction((err) => {
         if (err) {
-            console.error("Error checking email:", err);
-            return res.send({
+            console.error("Error starting transaction:", err);
+            return res.status(500).json({
                 success: false,
-                message: "Something went wrong.",
+                message: "Server error",
                 error: err,
             });
         }
-        const emailCount = emailResults[0].emailCount;
-        // console.log(emailResults);
-        // If the email already exists, send an error response
-        if (emailCount > 0) {
-            // Generate the SQL update statement dynamically based on the provided fields
-            const updateFields = [];
-            const updateValues = [];
-            Object.keys(data).forEach((key) => {
-                updateFields.push(`${key} = ?`);
-                updateValues.push(data[key]);
-            });
-            if (updateFields.length === 0) {
-                // No fields to update
-                return res
-                    .status(400)
-                    .json({ success: true, message: "No update data provided" });
-            }
-            const updateSql = `UPDATE user_info SET ${updateFields.join(", ")} WHERE email = ?`;
-            const updateParams = [...updateValues, data === null || data === void 0 ? void 0 : data.email];
-            db_1.default.query(updateSql, updateParams, (err, results) => {
-                if (err) {
-                    console.error("Error updating data:", err);
-                    res.status(500).json({ success: false, message: "Server error" });
-                }
-                else {
-                    res.json({
-                        success: true,
-                        message: "User information updated successfully",
-                    });
-                }
-            });
-        }
-        else {
-            // If the email doesn't exist, proceed with the insertion
-            const insertSql = `INSERT INTO user_info (
-					${user_info_constant_1.UserInfoFields.join(",")}
-				) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(user_info_constant_1.UserInfoFields.length)})`;
-            const UserInfoData = [];
-            user_info_constant_1.UserInfoFields.forEach((field) => {
-                UserInfoData.push(data[field]);
-            });
-            db_1.default.query(insertSql, UserInfoData, (err, results) => {
-                if (err) {
-                    console.error("Error inserting data:", err);
-                    res.send({
+        //! First, check if the email already exists
+        const checkEmailSql = "SELECT COUNT(*) AS emailCount FROM user_info WHERE email = ?";
+        db_1.default.query(checkEmailSql, [data.email], (err, emailResults) => {
+            if (err) {
+                console.error("Error checking email:", err);
+                return db_1.default.rollback(() => {
+                    res.status(500).json({
                         success: false,
-                        message: "Something went wrong",
+                        message: "Server error",
                         error: err,
                     });
-                }
-                else {
-                    res.send({
-                        success: true,
-                        message: "User info created successfully",
+                });
+            }
+            const emailCount = emailResults[0].emailCount;
+            //! If the email already exists, send an error response
+            if (emailCount > 0) {
+                //! Generate the SQL update statement dynamically based on the provided fields
+                const updateFields = [];
+                const updateValues = [];
+                Object.keys(data).forEach((key) => {
+                    updateFields.push(`${key} = ?`);
+                    updateValues.push(data[key]);
+                });
+                if (updateFields.length === 0) {
+                    //! No fields to update
+                    return db_1.default.rollback(() => {
+                        res.status(400).json({
+                            success: true,
+                            message: "No update data provided",
+                        });
                     });
                 }
-            });
-        }
+                //! Execute the update query within the transaction
+                const updateSql = `UPDATE user_info SET ${updateFields.join(", ")} WHERE email = ?`;
+                const updateParams = [...updateValues, data === null || data === void 0 ? void 0 : data.email];
+                db_1.default.query(updateSql, updateParams, (err, results) => {
+                    if (err) {
+                        console.error("Error updating data:", err);
+                        db_1.default.rollback(() => {
+                            res.status(500).json({
+                                success: false,
+                                message: "Server error",
+                                error: err,
+                            });
+                        });
+                    }
+                    else {
+                        const getUserInfoSql = "select token_id, user_role from user_info where email=?";
+                        db_1.default.query(getUserInfoSql, [data === null || data === void 0 ? void 0 : data.email], (err, user) => {
+                            if (err) {
+                                console.error("Error updating data:", err);
+                                db_1.default.rollback(() => {
+                                    res.status(500).json({
+                                        success: false,
+                                        message: "Server error",
+                                        error: err,
+                                    });
+                                });
+                            }
+                            console.log(user);
+                            //! Commit the transaction if the update was successful
+                            db_1.default.commit((err) => {
+                                var _a, _b;
+                                if (err) {
+                                    console.error("Error committing transaction:", err);
+                                    db_1.default.rollback(() => {
+                                        res
+                                            .status(500)
+                                            .json({ success: false, message: "Server error" });
+                                    });
+                                }
+                                else {
+                                    res.json({
+                                        success: true,
+                                        message: "User information updated successfully",
+                                        token: jwtHelpers_1.jwtHelpers.createToken({
+                                            token_id: (_a = user[0]) === null || _a === void 0 ? void 0 : _a.token_id,
+                                            user_role: (_b = user[0]) === null || _b === void 0 ? void 0 : _b.user_role,
+                                        }, config_1.default.jwt_secret, "7d"),
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+            else {
+                // If the email doesn't exist, proceed with the insertion
+                const insertSql = `INSERT INTO user_info (${user_info_constant_1.UserInfoFields.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(user_info_constant_1.UserInfoFields.length)})`;
+                const UserInfoData = [];
+                user_info_constant_1.UserInfoFields.forEach((field) => {
+                    UserInfoData.push(data[field]);
+                });
+                // Execute the insert query within the transaction
+                db_1.default.query(insertSql, UserInfoData, (err, results) => {
+                    if (err) {
+                        console.error("Error inserting data:", err);
+                        db_1.default.rollback(() => {
+                            res.status(500).json({
+                                success: false,
+                                message: "Something went wrong",
+                                error: err,
+                            });
+                        });
+                    }
+                    else {
+                        const getUserInfoSql = "select token_id, user_role from user_info where email=?";
+                        // Commit the transaction if the insertion was successful
+                        db_1.default.query(getUserInfoSql, [data === null || data === void 0 ? void 0 : data.email], (err, user) => {
+                            if (err) {
+                                console.error("Error updating data:", err);
+                                db_1.default.rollback(() => {
+                                    res.status(500).json({
+                                        success: false,
+                                        message: "Server error",
+                                        error: err,
+                                    });
+                                });
+                            }
+                            console.log(user);
+                            //! Commit the transaction if the update was successful
+                            db_1.default.commit((err) => {
+                                var _a, _b;
+                                if (err) {
+                                    console.error("Error committing transaction:", err);
+                                    db_1.default.rollback(() => {
+                                        res
+                                            .status(500)
+                                            .json({ success: false, message: "Server error" });
+                                    });
+                                }
+                                else {
+                                    res.json({
+                                        success: true,
+                                        message: "User information updated successfully",
+                                        token: jwtHelpers_1.jwtHelpers.createToken({
+                                            token_id: (_a = user[0]) === null || _a === void 0 ? void 0 : _a.token_id,
+                                            user_role: (_b = user[0]) === null || _b === void 0 ? void 0 : _b.user_role,
+                                        }, config_1.default.jwt_secret, "7d"),
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        });
     });
 };
 const getSingleUserInfo = (req, res) => {
     const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-    const sql = `SELECT * FROM user_info WHERE id = ?`;
+    const sql = `SELECT id,token_id,email,user_role,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE id = ?`;
     db_1.default.query(sql, [userId], (err, rows) => {
         if (err) {
             return res.status(500).json({
@@ -166,7 +257,8 @@ const getSingleUserInfo = (req, res) => {
     });
 };
 const createUserInfo = (req, res) => {
-    const data = req.body;
+    let data = req.body;
+    data = Object.assign(Object.assign({}, data), { token_id: (0, uuid_1.v4)() });
     const checkEmailSql = "SELECT COUNT(*) AS emailCount FROM user_info WHERE email = ?";
     // First, check if the email already exists
     db_1.default.query(checkEmailSql, [data.email], (err, emailResults) => {

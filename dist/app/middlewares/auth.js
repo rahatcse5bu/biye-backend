@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.auth = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const jwtHelpers_1 = require("../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../config"));
@@ -21,7 +22,7 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         const token = req.headers.authorization;
         if (!token) {
             // throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
-            return res.send({
+            return res.status(401).send({
                 statusCode: http_status_1.default.UNAUTHORIZED,
                 message: "You are not authorized",
                 success: false,
@@ -30,8 +31,7 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         // verify token
         let verifiedUser = null;
         verifiedUser = jwtHelpers_1.jwtHelpers.verifyToken(token, config_1.default.jwt_secret);
-        req.user = verifiedUser; // role  , userid
-        // role diye guard korar jnno
+        req.user = verifiedUser; // user_role  , token_id
         if (requiredRoles.length &&
             !requiredRoles.includes(verifiedUser.user_role)) {
             // throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
@@ -51,3 +51,4 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         });
     }
 });
+exports.auth = auth;

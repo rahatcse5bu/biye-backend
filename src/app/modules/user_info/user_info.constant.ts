@@ -1,8 +1,8 @@
-export const UserInfoFields:string[] = [
-    "username",
-    "email",
-    "password",
-    "phone",
-    "gender"
+export const UserInfoFields: string[] = [
+  "token_id",
+  "username",
+  "email",
+  "password",
+  "phone",
+  "gender",
 ];
-  

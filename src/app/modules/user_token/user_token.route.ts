@@ -1,9 +1,10 @@
 import express from "express";
-import { UserTokenControllers } from "./user_token.controller";
+import { UserTokenControllers, verifyJWT } from "./user_token.controller";
 const userTokenRouter = express.Router();
 
+userTokenRouter.route("/verify-token").get(verifyJWT);
 userTokenRouter
-  .route("/create-token/:tokenId")
-  .get(UserTokenControllers.getUserToken);
+	.route("/create-token/:tokenId")
+	.get(UserTokenControllers.getUserToken);
 
 export default userTokenRouter;
