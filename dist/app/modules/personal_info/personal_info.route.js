@@ -5,14 +5,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const personal_info_controller_1 = require("./personal_info.controller"); // Replace with the actual path
+const auth_1 = require("../../middlewares/auth");
 const personalInfoRouter = express_1.default.Router();
 personalInfoRouter
-    .route('/')
+    .route("/")
     .get(personal_info_controller_1.PersonalInfoController.getPersonalInfo)
-    .post(personal_info_controller_1.PersonalInfoController.createPersonalInfo);
+    .post((0, auth_1.auth)("user", "admin"), personal_info_controller_1.PersonalInfoController.createPersonalInfo)
+    .put((0, auth_1.auth)("user", "admin"), personal_info_controller_1.PersonalInfoController.updatePersonalInfo);
 personalInfoRouter
-    .route('/:id')
+    .route("/:id/user-id")
+    .get(personal_info_controller_1.PersonalInfoController.getPersonalInfoByUserId);
+personalInfoRouter
+    .route("/:id")
     .get(personal_info_controller_1.PersonalInfoController.getSinglePersonalInfo)
-    .put(personal_info_controller_1.PersonalInfoController.updatePersonalInfo)
     .delete(personal_info_controller_1.PersonalInfoController.deletePersonalInfo);
 exports.default = personalInfoRouter;

@@ -1,12 +1,12 @@
 {
-  "cSpell.words": ["pncmatrimony"],
-  "editor.formatOnSave": true,
-  "notebook.formatOnSave.enabled": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+	"cSpell.words": ["Favourites", "lifepartner", "pncmatrimony"],
+	"editor.formatOnSave": true,
+	"notebook.formatOnSave.enabled": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	}
 }

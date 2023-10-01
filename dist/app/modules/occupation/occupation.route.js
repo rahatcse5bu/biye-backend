@@ -5,14 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const occupation_controller_1 = require("./occupation.controller");
+const auth_1 = require("../../middlewares/auth");
 const OccupationRouter = express_1.default.Router();
-OccupationRouter
-    .route('/')
+OccupationRouter.route("/")
     .get(occupation_controller_1.OccupationController.getOccupation)
-    .post(occupation_controller_1.OccupationController.createOccupation);
-OccupationRouter
-    .route('/:id')
+    .put((0, auth_1.auth)("user", "admin"), occupation_controller_1.OccupationController.updateOccupation)
+    .post((0, auth_1.auth)("user", "admin"), occupation_controller_1.OccupationController.createOccupation);
+OccupationRouter.route("/:id/user-id").get(occupation_controller_1.OccupationController.getOccupationByUserId);
+OccupationRouter.route("/:id")
     .get(occupation_controller_1.OccupationController.getSingleOccupation)
-    .put(occupation_controller_1.OccupationController.updateOccupation)
     .delete(occupation_controller_1.OccupationController.deleteOccupation);
 exports.default = OccupationRouter;

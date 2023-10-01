@@ -5,12 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const contact_controller_1 = require("./contact.controller");
+const auth_1 = require("../../middlewares/auth");
 const ContactRouter = express_1.default.Router();
 ContactRouter.route("/")
     .get(contact_controller_1.ContactController.getContact)
-    .post(contact_controller_1.ContactController.createContact);
+    .post((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.createContact)
+    .put((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.updateContact);
+ContactRouter.route("/:id/user-id").get(contact_controller_1.ContactController.getContactByUserId);
 ContactRouter.route("/:id")
     .get(contact_controller_1.ContactController.getSingleContact)
-    .put(contact_controller_1.ContactController.updateContact)
     .delete(contact_controller_1.ContactController.deleteContact);
 exports.default = ContactRouter;
