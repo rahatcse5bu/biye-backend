@@ -97,7 +97,7 @@ const createMaritalInfo = (req: Request, res: Response) => {
 				//! Check if the user_id already exists in the database
 
 				const checkSql =
-					"SELECT COUNT(*) AS count FROM  WHERE user_id = ?";
+					"SELECT COUNT(*) AS count FROM marital_info  WHERE user_id = ?";
 
 				db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
 					if (err) {
@@ -124,7 +124,7 @@ const createMaritalInfo = (req: Request, res: Response) => {
 					const values = Object.values(others);
 
 					//! Insert  into the database
-					const insertSql = `INSERT INTO  (${keys.join(
+					const insertSql = `INSERT INTO marital_info (${keys.join(
 						","
 					)}) VALUES (${generatePlaceholders(values.length)})`;
 					const expectedLifePartner: string[] = [];
@@ -217,7 +217,7 @@ const updateMaritalInfo = (req: Request, res: Response) => {
 				}
 				//! Check if General info for the user with the given ID exists
 				const checkUserSql =
-					"SELECT user_id FROM  WHERE user_id = ?";
+					"SELECT user_id FROM marital_info WHERE user_id = ?";
 
 				db.query<RowDataPacket[]>(
 					checkUserSql,
@@ -264,7 +264,7 @@ const updateMaritalInfo = (req: Request, res: Response) => {
 						}
 
 						// Construct the final update SQL statement
-						const updateSql = `UPDATE  SET ${updateFields.join(
+						const updateSql = `UPDATE marital_info  SET ${updateFields.join(
 							", "
 						)} WHERE user_id = ?`;
 
@@ -339,7 +339,7 @@ const deleteMaritalInfo = (req: Request, res: Response) => {
 };
 const getMaritalInfoByUserId = (req: Request, res: Response) => {
 	const userId = req.params.id; // Assuming the user_id is in the route parameter
-	const sql = "SELECT * FROM  WHERE user_id = ?";
+	const sql = "SELECT * FROM marital_info WHERE user_id = ?";
 	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
 		if (err) {
 			res.send({

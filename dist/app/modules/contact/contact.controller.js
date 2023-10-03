@@ -112,7 +112,7 @@ const createContact = (req, res) => {
                 keys.forEach((field) => {
                     contact.push(others[field]);
                 });
-                //! Insert family status information
+                //! Insert Contact information
                 db_1.default.query(insertSql, contact, (err, results) => {
                     if (err) {
                         console.error("Error inserting Expected Life Partner:", err);

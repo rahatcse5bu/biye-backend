@@ -89,7 +89,7 @@ const createMaritalInfo = (req, res) => {
             //console.log(result);
             user_id = result[0].id;
             //! Check if the user_id already exists in the database
-            const checkSql = "SELECT COUNT(*) AS count FROM  WHERE user_id = ?";
+            const checkSql = "SELECT COUNT(*) AS count FROM marital_info  WHERE user_id = ?";
             db_1.default.query(checkSql, [user_id], (err, results) => {
                 if (err) {
                     console.error("Error checking User Id:", err);
@@ -107,7 +107,7 @@ const createMaritalInfo = (req, res) => {
                 const keys = Object.keys(others);
                 const values = Object.values(others);
                 //! Insert  into the database
-                const insertSql = `INSERT INTO  (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
+                const insertSql = `INSERT INTO marital_info (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
                 const expectedLifePartner = [];
                 keys.forEach((field) => {
                     expectedLifePartner.push(others[field]);
@@ -185,7 +185,7 @@ const updateMaritalInfo = (req, res) => {
                 });
             }
             //! Check if General info for the user with the given ID exists
-            const checkUserSql = "SELECT user_id FROM  WHERE user_id = ?";
+            const checkUserSql = "SELECT user_id FROM marital_info WHERE user_id = ?";
             db_1.default.query(checkUserSql, [user_id], (err, userResults) => {
                 if (err) {
                     console.error("Error checking Marital info:", err);
@@ -222,7 +222,7 @@ const updateMaritalInfo = (req, res) => {
                     return;
                 }
                 // Construct the final update SQL statement
-                const updateSql = `UPDATE  SET ${updateFields.join(", ")} WHERE user_id = ?`;
+                const updateSql = `UPDATE marital_info  SET ${updateFields.join(", ")} WHERE user_id = ?`;
                 updateValues.push(user_id);
                 // Execute the update query within the transaction
                 db_1.default.query(updateSql, updateValues, (err, results) => {
@@ -287,7 +287,7 @@ const deleteMaritalInfo = (req, res) => {
 };
 const getMaritalInfoByUserId = (req, res) => {
     const userId = req.params.id; // Assuming the user_id is in the route parameter
-    const sql = "SELECT * FROM  WHERE user_id = ?";
+    const sql = "SELECT * FROM marital_info WHERE user_id = ?";
     db_1.default.query(sql, [userId], (err, rows) => {
         if (err) {
             res.send({
