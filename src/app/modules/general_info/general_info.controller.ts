@@ -9,10 +9,25 @@ import { error } from "console";
 import httpsStatus from "http-status";
 
 const getGeneralInfo = (req: Request, res: Response) => {
-	const sql = "SELECT * FROM general_info";
+	const query = req.query;
+	console.log(Object.keys(query).length);
+	let conditions = "";
+	Object.keys(query).forEach((key, index) => {
+		conditions += `${key} = '${query[key]}'`;
+		if (index < Object.keys(query).length - 1) {
+			conditions += " AND ";
+		}
+	});
+
+	let sql = `SELECT * FROM general_info`;
+	if (conditions) {
+		sql += ` WHERE ${conditions}`;
+	}
+	console.log({ conditions });
+	console.log({ sql });
 	db.query<RowDataPacket[]>(sql, (err, rows) => {
 		if (err) {
-			res.send({
+			return res.send({
 				message: err?.message,
 				success: false,
 			});
@@ -304,13 +319,11 @@ const updateGeneralInfo = (req: Request, res: Response) => {
 							if (err) {
 								console.error("Error updating General info:", err);
 								db.rollback(() => {
-									res
-										.status(500)
-										.json({
-											success: false,
-											message: "Internal Server Error",
-											error: err,
-										});
+									res.status(500).json({
+										success: false,
+										message: "Internal Server Error",
+										error: err,
+									});
 								});
 							} else {
 								// Commit the transaction if the update was successful
