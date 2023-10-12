@@ -12,7 +12,7 @@ exports.GeneralInfoFields = [
     "blood_group",
     "screen_color",
     "nationality",
-    "status",
+    "marital_status",
     "views_count",
     "purchases_count",
     "isFbPosted",

@@ -21,10 +21,35 @@ const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const general_info_constant_1 = require("./general_info.constant");
 const http_status_1 = __importDefault(require("http-status"));
 const getGeneralInfo = (req, res) => {
-    const sql = "SELECT * FROM general_info";
+    const { bio_type, marital_status, zilla } = req.query;
+    let conditions = "";
+    if (bio_type) {
+        conditions += `general_info.bio_type = '${bio_type}' AND `;
+    }
+    if (marital_status) {
+        conditions += `general_info.marital_status = '${marital_status}' AND `;
+    }
+    if (zilla) {
+        conditions += `general_info.zilla = '${zilla}' AND `;
+    }
+    if (conditions) {
+        conditions = conditions.slice(0, -5);
+        conditions = "WHERE " + conditions;
+    }
+    const sql = `SELECT general_info.bio_type , general_info.gender , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info JOIN address ON general_info.user_id = address.user_id JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id  ${conditions}`;
+    // db.query<RowDataPacket[]>(tempSql, (err, rows) => {
+    // 	if (err) {
+    // 		console.log(err);
+    // 	}
+    // 	console.log(rows);
+    // });
+    // console.log(tempSql);
+    // let sql = `SELECT * FROM general_info`;
+    // console.log({ conditions });
+    // console.log({ sql });
     db_1.default.query(sql, (err, rows) => {
         if (err) {
-            res.send({
+            return res.send({
                 message: err === null || err === void 0 ? void 0 : err.message,
                 success: false,
             });
@@ -268,9 +293,7 @@ const updateGeneralInfo = (req, res) => {
                     if (err) {
                         console.error("Error updating General info:", err);
                         db_1.default.rollback(() => {
-                            res
-                                .status(500)
-                                .json({
+                            res.status(500).json({
                                 success: false,
                                 message: "Internal Server Error",
                                 error: err,
