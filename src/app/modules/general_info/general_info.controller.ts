@@ -5,26 +5,38 @@ import { sendSuccess } from "../../../shared/SendSuccess";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
 import { GeneralInfoFields } from "./general_info.constant";
 import { JwtPayload } from "jsonwebtoken";
-import { error } from "console";
 import httpsStatus from "http-status";
 
 const getGeneralInfo = (req: Request, res: Response) => {
-	const query = req.query;
-	console.log(Object.keys(query).length);
-	let conditions = "";
-	Object.keys(query).forEach((key, index) => {
-		conditions += `${key} = '${query[key]}'`;
-		if (index < Object.keys(query).length - 1) {
-			conditions += " AND ";
-		}
-	});
+	const { bio_type, marital_status, zilla } = req.query;
 
-	let sql = `SELECT * FROM general_info`;
-	if (conditions) {
-		sql += ` WHERE ${conditions}`;
+	let conditions = "";
+	if (bio_type) {
+		conditions += `general_info.bio_type = '${bio_type}' AND `;
 	}
-	console.log({ conditions });
-	console.log({ sql });
+	if (marital_status) {
+		conditions += `general_info.marital_status = '${marital_status}' AND `;
+	}
+	if (zilla) {
+		conditions += `general_info.zilla = '${zilla}' AND `;
+	}
+	if (conditions) {
+		conditions = conditions.slice(0, -5);
+		conditions = "WHERE " + conditions;
+	}
+
+	const sql = `SELECT general_info.bio_type , general_info.gender , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info JOIN address ON general_info.user_id = address.user_id JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id  ${conditions}`;
+	// db.query<RowDataPacket[]>(tempSql, (err, rows) => {
+	// 	if (err) {
+	// 		console.log(err);
+	// 	}
+	// 	console.log(rows);
+	// });
+	// console.log(tempSql);
+	// let sql = `SELECT * FROM general_info`;
+
+	// console.log({ conditions });
+	// console.log({ sql });
 	db.query<RowDataPacket[]>(sql, (err, rows) => {
 		if (err) {
 			return res.send({
