@@ -25,7 +25,7 @@ const getGeneralInfo = (req: Request, res: Response) => {
 		conditions = "WHERE " + conditions;
 	}
 
-	const sql = `SELECT general_info.bio_type , general_info.gender , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info JOIN address ON general_info.user_id = address.user_id JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id  ${conditions}`;
+	const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info JOIN address ON general_info.user_id = address.user_id JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id  ${conditions}`;
 	// db.query<RowDataPacket[]>(tempSql, (err, rows) => {
 	// 	if (err) {
 	// 		console.log(err);
