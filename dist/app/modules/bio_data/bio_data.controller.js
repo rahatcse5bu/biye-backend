@@ -199,9 +199,10 @@ const getBioData = (req, res) => {
                                                                                             }
                                                                                             else {
                                                                                                 bioData = Object.assign(Object.assign({}, bioData), { ongikarNama: ongikarNama[0] });
-                                                                                                db_1.default.commit((err) => {
+                                                                                                const updateViews = `UPDATE general_info SET views=views+1 where user_id=?`;
+                                                                                                db_1.default.query(updateViews, [bioId], (err, rows) => {
                                                                                                     if (err) {
-                                                                                                        console.log(err);
+                                                                                                        // Rollback the transaction in case of an error
                                                                                                         db_1.default.rollback(() => {
                                                                                                             console.log("Transaction rolled back.");
                                                                                                             return res
@@ -213,9 +214,25 @@ const getBioData = (req, res) => {
                                                                                                         });
                                                                                                     }
                                                                                                     else {
-                                                                                                        return res
-                                                                                                            .status(200)
-                                                                                                            .json((0, SendSuccess_1.sendSuccess)("Retrieved bio data successfully", bioData, 200));
+                                                                                                        db_1.default.commit((err) => {
+                                                                                                            if (err) {
+                                                                                                                console.log(err);
+                                                                                                                db_1.default.rollback(() => {
+                                                                                                                    console.log("Transaction rolled back.");
+                                                                                                                    return res
+                                                                                                                        .status(500)
+                                                                                                                        .json({
+                                                                                                                        success: false,
+                                                                                                                        message: "Internal server error",
+                                                                                                                    });
+                                                                                                                });
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                return res
+                                                                                                                    .status(200)
+                                                                                                                    .json((0, SendSuccess_1.sendSuccess)("Retrieved bio data successfully", bioData, 200));
+                                                                                                            }
+                                                                                                        });
                                                                                                     }
                                                                                                 });
                                                                                             }

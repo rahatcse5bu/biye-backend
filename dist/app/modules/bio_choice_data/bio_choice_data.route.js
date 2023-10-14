@@ -9,6 +9,7 @@ const BioChoiceDataRouter = express_1.default.Router();
 BioChoiceDataRouter.route("/")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceData)
     .post(bio_choice_data_controller_1.BioChoiceDataController.createBioChoiceData);
+BioChoiceDataRouter.route("/statistics/:id").get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceStatisticsData);
 BioChoiceDataRouter.route("/:id")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getSingleBioChoiceData)
     .put(bio_choice_data_controller_1.BioChoiceDataController.updateBioChoiceData)

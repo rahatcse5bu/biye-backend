@@ -8,6 +8,7 @@ const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const bio_choice_data_constant_1 = require("./bio_choice_data.constant");
+const response_1 = require("../../../utils/response");
 const getBioChoiceData = (req, res) => {
     const sql = "SELECT * FROM bio_choice_data";
     db_1.default.query(sql, (err, rows) => {
@@ -20,6 +21,71 @@ const getBioChoiceData = (req, res) => {
         res
             .status(200)
             .json((0, SendSuccess_1.sendSuccess)("All Bio choice data  retrieved successfully", rows));
+    });
+};
+const getBioChoiceStatisticsData = (req, res) => {
+    const bioId = req.params.id;
+    const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'rejected' AND user_id =? `;
+    let responseResults = {};
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                success: false,
+                message: "Something went wrong",
+                error: err,
+            });
+        }
+        db_1.default.query(rejectedSql, [bioId], (err, results) => {
+            var _a;
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "Something went wrong",
+                    error: err,
+                });
+            }
+            responseResults = Object.assign(Object.assign({}, responseResults), { rejected: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.rejectedCount });
+            const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'approved' AND user_id=? `;
+            db_1.default.query(approvedSql, [bioId], (err, results) => {
+                var _a;
+                if (err) {
+                    return db_1.default.rollback(() => {
+                        res.send({
+                            message: err === null || err === void 0 ? void 0 : err.message,
+                            success: false,
+                            error: err,
+                        });
+                    });
+                }
+                responseResults = Object.assign(Object.assign({}, responseResults), { approved: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.approvedCount });
+                const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'pending' AND user_id=? `;
+                db_1.default.query(pendingSql, [bioId], (err, results) => {
+                    var _a;
+                    if (err) {
+                        return db_1.default.rollback(() => {
+                            res.send({
+                                message: err === null || err === void 0 ? void 0 : err.message,
+                                success: false,
+                                error: err,
+                            });
+                        });
+                    }
+                    responseResults = Object.assign(Object.assign({}, responseResults), { pending: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.pendingCount });
+                    db_1.default.commit((err) => {
+                        if (err) {
+                            return db_1.default.rollback(() => {
+                                throw err;
+                            });
+                        }
+                        res.status(200).json({
+                            success: true,
+                            results: responseResults,
+                            message: "All statistics retrieve successfully",
+                        });
+                    });
+                });
+            });
+        });
     });
 };
 const getSingleBioChoiceData = (req, res) => {
@@ -184,4 +250,5 @@ exports.BioChoiceDataController = {
     createBioChoiceData,
     updateBioChoiceData,
     deleteBioChoiceData,
+    getBioChoiceStatisticsData,
 };
