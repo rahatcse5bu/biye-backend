@@ -59,9 +59,8 @@ const createFavourites = (req, res) => {
     var _a;
     const data = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let { user_form } = data, others = __rest(data, ["user_form"]);
+    let others = __rest(data, []);
     let user_id = null;
-    // console.log(req.user);
     if (!token_id) {
         return res.status(401).send({
             statusCode: http_status_1.default.UNAUTHORIZED,
@@ -89,13 +88,13 @@ const createFavourites = (req, res) => {
             //console.log(result);
             user_id = result[0].id;
             //! Check if the user_id already exists in the database
-            const checkSql = "SELECT COUNT(*) AS count FROM favourites WHERE user_id = ?";
+            const checkSql = "SELECT COUNT(*) AS favouritesCount FROM favourites WHERE user_id = ?";
             db_1.default.query(checkSql, [user_id], (err, results) => {
                 if (err) {
                     console.error("Error checking User Id:", err);
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                 }
-                const count = results[0].count;
+                const count = results[0].favouritesCount;
                 if (count > 0) {
                     //! User with this user_id already exists, return an error response
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
@@ -118,25 +117,14 @@ const createFavourites = (req, res) => {
                         console.error("Error inserting  favourites:", err);
                         return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                     }
-                    //! Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
-                    const updateUserInfoSql = `
-            UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
-          `;
-                    db_1.default.query(updateUserInfoSql, [user_id], (err, results) => {
+                    db_1.default.commit((err) => {
                         if (err) {
-                            console.error("Error updating user_info:", err);
+                            console.error("Error committing transaction:", err);
                             return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                         }
-                        // Commit the transaction if everything is successful
-                        db_1.default.commit((err) => {
-                            if (err) {
-                                console.error("Error committing transaction:", err);
-                                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                            }
-                            res.status(201).json({
-                                success: true,
-                                message: "Favourites created and user_info updated successfully",
-                            });
+                        res.status(201).json({
+                            success: true,
+                            message: "Favourites created and user_info updated successfully",
                         });
                     });
                 });
