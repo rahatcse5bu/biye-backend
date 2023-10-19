@@ -16,17 +16,20 @@ const isomorphic_fetch_1 = __importDefault(require("isomorphic-fetch"));
 const tokenParameters_1 = __importDefault(require("./tokenParameters"));
 const globalDataSet_1 = __importDefault(require("./globalDataSet"));
 const tokenHeaders_1 = __importDefault(require("./tokenHeaders"));
+const node_global_storage_1 = require("node-global-storage");
 const grantToken = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log("grant token start !!");
-        const tokenResponse = yield (0, isomorphic_fetch_1.default)("https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout/token/grant", {
+        const tokenResponse = yield (0, isomorphic_fetch_1.default)(`${(0, node_global_storage_1.get)("bkash_base_url")}/checkout/token/grant`, {
             method: "POST",
             headers: (0, tokenHeaders_1.default)(),
             body: JSON.stringify((0, tokenParameters_1.default)()),
         });
         const tokenResult = yield tokenResponse.json();
         console.log(tokenResult);
+        console.log((0, node_global_storage_1.get)("bkash_base_url"));
         (0, globalDataSet_1.default)(tokenResult);
+        console.log((0, tokenHeaders_1.default)());
         return tokenResult;
     }
     catch (e) {

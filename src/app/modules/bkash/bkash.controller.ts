@@ -8,7 +8,7 @@ import executePayment from "../../../helpers/executePayment";
 const create = async (req: Request, res: Response) => {
 	try {
 		const createResult = await createPayment(req.body); // pass amount & callbackURL from frontend
-		console.log(createResult);
+		console.log('create payment~',createResult);
 		res.json(createResult);
 	} catch (e) {
 		console.log(e);
