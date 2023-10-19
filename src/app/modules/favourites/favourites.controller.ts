@@ -57,10 +57,9 @@ const getSingleFavourites = (req: Request, res: Response) => {
 const createFavourites = (req: Request, res: Response) => {
 	const data = req.body;
 	const token_id = req.user?.token_id;
-	let { user_form, ...others } = data;
-
+	let { ...others } = data;
 	let user_id: string | null = null;
-	// console.log(req.user);
+
 	if (!token_id) {
 		return res.status(401).send({
 			statusCode: httpStatus.UNAUTHORIZED,
@@ -91,13 +90,11 @@ const createFavourites = (req: Request, res: Response) => {
 					});
 				}
 				//console.log(result);
-
 				user_id = result[0].id;
 
 				//! Check if the user_id already exists in the database
-
 				const checkSql =
-					"SELECT COUNT(*) AS count FROM favourites WHERE user_id = ?";
+					"SELECT COUNT(*) AS favouritesCount FROM favourites WHERE user_id = ?";
 
 				db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
 					if (err) {
@@ -105,7 +102,7 @@ const createFavourites = (req: Request, res: Response) => {
 						return rollbackAndRespond(res, db, err);
 					}
 
-					const count = results[0].count;
+					const count = results[0].favouritesCount;
 
 					if (count > 0) {
 						//! User with this user_id already exists, return an error response
@@ -139,28 +136,16 @@ const createFavourites = (req: Request, res: Response) => {
 							return rollbackAndRespond(res, db, err);
 						}
 
-						//! Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
-						const updateUserInfoSql = `
-            UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
-          `;
-						db.query(updateUserInfoSql, [user_id], (err, results) => {
+						db.commit((err) => {
 							if (err) {
-								console.error("Error updating user_info:", err);
+								console.error("Error committing transaction:", err);
 								return rollbackAndRespond(res, db, err);
 							}
 
-							// Commit the transaction if everything is successful
-							db.commit((err) => {
-								if (err) {
-									console.error("Error committing transaction:", err);
-									return rollbackAndRespond(res, db, err);
-								}
-
-								res.status(201).json({
-									success: true,
-									message:
-										"Favourites created and user_info updated successfully",
-								});
+							res.status(201).json({
+								success: true,
+								message:
+									"Favourites created and user_info updated successfully",
 							});
 						});
 					});

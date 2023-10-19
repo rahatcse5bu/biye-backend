@@ -20,6 +20,7 @@ import userTokenRouter from "./app/modules/user_token/user_token.route";
 // @ts-ignore
 import cors from "cors";
 import config from "./config";
+import bkashRouter from "./app/modules/bkash/bkash.route";
 
 const app = express();
 
@@ -36,19 +37,19 @@ app.use(morgan("dev"));
 // );
 
 app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
-  next();
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header("Access-Control-Allow-Headers", "X-Requested-With");
+	next();
 });
 
 app.use(
-  cors({
-    origin: "*",
-  })
+	cors({
+		origin: "*",
+	})
 );
 
 app.get("/", async (req: Request, res: Response) => {
-  res.send("hello world!");
+	res.send("hello world!");
 });
 
 app.use("/api/v1/user-info", userRouter);
@@ -67,6 +68,7 @@ app.use("/api/v1/favorites", FavouritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/token", userTokenRouter);
+app.use("/api/v1/bkash", bkashRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
