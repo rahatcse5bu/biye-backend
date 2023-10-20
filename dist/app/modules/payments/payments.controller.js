@@ -8,17 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -27,7 +16,6 @@ exports.PaymentsController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
-const payments_constant_1 = require("./payments.constant");
 const response_1 = require("../../../utils/response");
 const http_status_1 = __importDefault(require("http-status"));
 const getPayments = (req, res) => {
@@ -67,9 +55,8 @@ const getSinglePayments = (req, res) => {
 };
 const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const data = req.body;
+    let data = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let others = __rest(data, []);
     let user_id = null;
     // console.log(req.user);
     if (!token_id) {
@@ -99,50 +86,62 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
             //console.log(result);
             user_id = result[0].id;
             //! now save payment information to payments table
-            others = Object.assign(Object.assign({}, others), { user_id });
-            const keys = Object.keys(others);
-            const values = Object.values(others);
+            data = Object.assign(Object.assign({}, data), { user_id });
+            const keys = Object.keys(data);
+            const values = Object.values(data);
             //! Insert  into the database
             const insertSql = `INSERT INTO payments (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
             const payment = [];
             keys.forEach((field) => {
-                payment.push(others[field]);
+                payment.push(data[field]);
             });
             db_1.default.query(insertSql, payment, (err, results) => {
                 if (err) {
                     console.error("Error inserting payments history", err);
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                 }
-                const paymentStatus = others["status"];
-                const amount = +others["amount"];
-                let points = 0;
-                if (paymentStatus === "Completed") {
-                    points = payments_constant_1.amountToPoints[amount] ? +payments_constant_1.amountToPoints[amount] : 0;
-                }
-                else {
-                    points = 0;
-                }
-                console.log(points);
-                const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?
-              `;
-                db_1.default.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
+                db_1.default.commit((err) => {
                     if (err) {
-                        console.error("Error updating user_info:", err);
+                        console.error("Error committing transaction:", err);
                         return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                     }
-                    //! Commit the transaction if everything is successful
-                    db_1.default.commit((err) => {
-                        if (err) {
-                            console.error("Error committing transaction:", err);
-                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                        }
-                        res.status(201).json({
-                            success: true,
-                            message: "Payments created and general info updated successfully",
-                        });
+                    res.status(201).json({
+                        success: true,
+                        message: "Payments created and general info updated successfully",
                     });
                 });
             });
+            // const paymentStatus = data["status"];
+            // const amount = Number(data["amount"]);
+            // let points = 0;
+            // if (paymentStatus === "Completed") {
+            // 	points = amountToPoints[amount]
+            // 		? Number(amountToPoints[amount])
+            // 		: 0;
+            // } else {
+            // 	points = 0;
+            // }
+            // console.log(points);
+            // const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?
+            //     `;
+            // db.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
+            // 	if (err) {
+            // 		console.error("Error updating user_info:", err);
+            // 		return rollbackAndRespond(res, db, err);
+            // 	}
+            // 	//! Commit the transaction if everything is successful
+            // 	db.commit((err) => {
+            // 		if (err) {
+            // 			console.error("Error committing transaction:", err);
+            // 			return rollbackAndRespond(res, db, err);
+            // 		}
+            // 		res.status(201).json({
+            // 			success: true,
+            // 			message:
+            // 				"Payments created and general info updated successfully",
+            // 		});
+            // 	});
+            // });
         });
     });
 });
