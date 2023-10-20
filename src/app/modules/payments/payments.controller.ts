@@ -127,7 +127,7 @@ const createPayments = async (req: Request, res: Response) => {
 						points = 0;
 					}
 					console.log(points);
-					const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?`;
+					const updateGeneralInfoSql = `UPDATE user_info SET points = points + ? where user_id = ?`;
 
 					db.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
 						if (err) {

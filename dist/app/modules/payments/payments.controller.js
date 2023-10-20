@@ -119,7 +119,7 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
                     points = 0;
                 }
                 console.log(points);
-                const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?`;
+                const updateGeneralInfoSql = `UPDATE user_info SET points = points + ? where user_id = ?`;
                 db_1.default.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
                     if (err) {
                         return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
