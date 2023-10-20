@@ -3,7 +3,7 @@ import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-import { PaymentsFields, amountToPoints } from "./payments.constant";
+import { amountToPoints } from "./payments.constant";
 import { rollbackAndRespond } from "../../../utils/response";
 import httpStatus from "http-status";
 
@@ -54,9 +54,9 @@ const getSinglePayments = (req: Request, res: Response) => {
 };
 
 const createPayments = async (req: Request, res: Response) => {
-	const data = req.body;
+	let data = req.body;
 	const token_id = req.user?.token_id;
-	let { ...others } = data;
+
 	let user_id: string | null = null;
 	// console.log(req.user);
 	if (!token_id) {
@@ -94,13 +94,13 @@ const createPayments = async (req: Request, res: Response) => {
 
 				//! now save payment information to payments table
 
-				others = {
-					...others,
+				data = {
+					...data,
 					user_id,
 				};
 
-				const keys = Object.keys(others);
-				const values = Object.values(others);
+				const keys = Object.keys(data);
+				const values = Object.values(data);
 
 				//! Insert  into the database
 				const insertSql = `INSERT INTO payments (${keys.join(
@@ -108,7 +108,7 @@ const createPayments = async (req: Request, res: Response) => {
 				)}) VALUES (${generatePlaceholders(values.length)})`;
 				const payment: string[] = [];
 				keys.forEach((field) => {
-					payment.push(others[field]);
+					payment.push(data[field]);
 				});
 
 				db.query(insertSql, payment, (err, results) => {
@@ -117,39 +117,53 @@ const createPayments = async (req: Request, res: Response) => {
 						return rollbackAndRespond(res, db, err);
 					}
 
-					const paymentStatus = others["status"];
-					const amount = +others["amount"];
-					let points = 0;
-					if (paymentStatus === "Completed") {
-						points = amountToPoints[amount] ? +amountToPoints[amount] : 0;
-					} else {
-						points = 0;
-					}
-					console.log(points);
-					const updateGeneralInfoSql = `UPDATE general_info SET points = points + ${points} where user_id= ?
-            `;
-
-					db.query(updateGeneralInfoSql, [user_id], (err, results) => {
+					db.commit((err) => {
 						if (err) {
-							console.error("Error updating user_info:", err);
+							console.error("Error committing transaction:", err);
 							return rollbackAndRespond(res, db, err);
 						}
 
-						//! Commit the transaction if everything is successful
-						db.commit((err) => {
-							if (err) {
-								console.error("Error committing transaction:", err);
-								return rollbackAndRespond(res, db, err);
-							}
-
-							res.status(201).json({
-								success: true,
-								message:
-									"Payments created and general info updated successfully",
-							});
+						res.status(201).json({
+							success: true,
+							message: "Payments created and general info updated successfully",
 						});
 					});
 				});
+
+				// const paymentStatus = data["status"];
+				// const amount = Number(data["amount"]);
+				// let points = 0;
+				// if (paymentStatus === "Completed") {
+				// 	points = amountToPoints[amount]
+				// 		? Number(amountToPoints[amount])
+				// 		: 0;
+				// } else {
+				// 	points = 0;
+				// }
+				// console.log(points);
+				// const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?
+				//     `;
+
+				// db.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
+				// 	if (err) {
+				// 		console.error("Error updating user_info:", err);
+				// 		return rollbackAndRespond(res, db, err);
+				// 	}
+
+				// 	//! Commit the transaction if everything is successful
+				// 	db.commit((err) => {
+				// 		if (err) {
+				// 			console.error("Error committing transaction:", err);
+				// 			return rollbackAndRespond(res, db, err);
+				// 		}
+
+				// 		res.status(201).json({
+				// 			success: true,
+				// 			message:
+				// 				"Payments created and general info updated successfully",
+				// 		});
+				// 	});
+				// });
 			}
 		);
 	});
