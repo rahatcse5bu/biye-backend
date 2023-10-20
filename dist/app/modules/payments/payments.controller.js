@@ -15,9 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
-const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
-const response_1 = require("../../../utils/response");
-const http_status_1 = __importDefault(require("http-status"));
 const getPayments = (req, res) => {
     const sql = "SELECT * FROM payments";
     db_1.default.query(sql, (err, rows) => {
@@ -57,93 +54,7 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
     var _a;
     let data = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let user_id = null;
-    // console.log(req.user);
-    if (!token_id) {
-        return res.status(401).send({
-            statusCode: http_status_1.default.UNAUTHORIZED,
-            message: "You are not authorized",
-            success: false,
-        });
-    }
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
-        }
-        //? get user_id using token_id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
-            if (err) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            //console.log(result);
-            user_id = result[0].id;
-            //! now save payment information to payments table
-            data = Object.assign(Object.assign({}, data), { user_id });
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-            //! Insert  into the database
-            const insertSql = `INSERT INTO payments (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
-            const payment = [];
-            keys.forEach((field) => {
-                payment.push(data[field]);
-            });
-            db_1.default.query(insertSql, payment, (err, results) => {
-                if (err) {
-                    console.error("Error inserting payments history", err);
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                }
-                db_1.default.commit((err) => {
-                    if (err) {
-                        console.error("Error committing transaction:", err);
-                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                    }
-                    res.status(201).json({
-                        success: true,
-                        message: "Payments created and general info updated successfully",
-                    });
-                });
-            });
-            // const paymentStatus = data["status"];
-            // const amount = Number(data["amount"]);
-            // let points = 0;
-            // if (paymentStatus === "Completed") {
-            // 	points = amountToPoints[amount]
-            // 		? Number(amountToPoints[amount])
-            // 		: 0;
-            // } else {
-            // 	points = 0;
-            // }
-            // console.log(points);
-            // const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?
-            //     `;
-            // db.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
-            // 	if (err) {
-            // 		console.error("Error updating user_info:", err);
-            // 		return rollbackAndRespond(res, db, err);
-            // 	}
-            // 	//! Commit the transaction if everything is successful
-            // 	db.commit((err) => {
-            // 		if (err) {
-            // 			console.error("Error committing transaction:", err);
-            // 			return rollbackAndRespond(res, db, err);
-            // 		}
-            // 		res.status(201).json({
-            // 			success: true,
-            // 			message:
-            // 				"Payments created and general info updated successfully",
-            // 		});
-            // 	});
-            // });
-        });
-    });
+    res.json({ token_id: token_id, data: data });
 });
 const updatePayments = (req, res) => {
     const data = req.body;
