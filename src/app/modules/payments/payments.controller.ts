@@ -88,12 +88,36 @@ const createPayments = async (req: Request, res: Response) => {
 						error: err,
 					});
 				}
-
-				db.commit(() => {
-					res.status(200).json({
-						message: "Update successfully completed",
-						success: true,
-						data: data,
+				//! now save payment information to payments table
+				data = {
+					...data,
+					user_id,
+				};
+				const keys = Object.keys(data);
+				const values = Object.values(data);
+				//! Insert  into the database
+				const insertSql = `INSERT INTO payments (${keys.join(
+					","
+				)}) VALUES (${generatePlaceholders(values.length)})`;
+				const payment: string[] = [];
+				keys.forEach((field) => {
+					payment.push(data[field]);
+				});
+				db.query<RowDataPacket[]>(insertSql, (err, result) => {
+					if (err) {
+						return rollbackAndRespond(res, db, null, {
+							success: false,
+							message: "something wrong",
+							error: err,
+						});
+					}
+					console.log();
+					db.commit(() => {
+						res.status(200).json({
+							message: "successfully completed",
+							success: true,
+							data: result,
+						});
 					});
 				});
 			}
