@@ -18,18 +18,57 @@ const SendSuccess_1 = require("../../../shared/SendSuccess");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const payments_constant_1 = require("./payments.constant");
 const response_1 = require("../../../utils/response");
-const getPayments = (req, res) => {
-    const sql = "SELECT * FROM payments";
-    db_1.default.query(sql, (err, rows) => {
+const getPaymentsByUser = (req, res) => {
+    var _a;
+    let data = req.body;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    db_1.default.beginTransaction((err) => {
         if (err) {
-            res.send({
-                message: err === null || err === void 0 ? void 0 : err.message,
-                success: false,
-            });
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
         }
-        res
-            .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("All payments  retrieved successfully", rows));
+        //? get user id using token id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            console.log(result);
+            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
+            if (isNaN(user_id)) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! now get all payment history by individuals
+            const getPaymentsHistorySql = `SELECT * from payments where user_id = ?`;
+            db_1.default.query(getPaymentsHistorySql, [user_id], (err, result) => {
+                if (err) {
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                        success: false,
+                        message: "something wrong",
+                        error: err,
+                    });
+                }
+                db_1.default.commit(() => {
+                    res.status(200).json({
+                        message: "successfully completed",
+                        success: true,
+                        data: result,
+                    });
+                });
+            });
+        });
     });
 };
 const getSinglePayments = (req, res) => {
@@ -248,7 +287,7 @@ const deletePayments = (req, res) => {
     });
 };
 exports.PaymentsController = {
-    getPayments,
+    getPaymentsByUser,
     getSinglePayments,
     createPayments,
     updatePayments,

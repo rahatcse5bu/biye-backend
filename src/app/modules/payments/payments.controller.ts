@@ -7,24 +7,67 @@ import { amountToPoints } from "./payments.constant";
 import { rollbackAndRespond } from "../../../utils/response";
 import httpStatus from "http-status";
 
-const getPayments = (req: Request, res: Response) => {
-	const sql = "SELECT * FROM payments";
-	db.query<RowDataPacket[]>(sql, (err, rows) => {
+const getPaymentsByUser = (req: Request, res: Response) => {
+	let data = req.body;
+	const token_id = req.user?.token_id;
+	let user_id: number | null = null;
+
+	db.beginTransaction((err) => {
 		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
 		}
 
-		res
-			.status(200)
-			.json(
-				sendSuccess<RowDataPacket[]>(
-					"All payments  retrieved successfully",
-					rows
-				)
-			);
+		//? get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				console.log(result);
+				user_id = Number(result[0]?.id);
+				if (isNaN(user_id)) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//! now get all payment history by individuals
+				const getPaymentsHistorySql = `SELECT * from payments where user_id = ?`;
+
+				db.query<RowDataPacket[]>(
+					getPaymentsHistorySql,
+					[user_id],
+					(err, result) => {
+						if (err) {
+							return rollbackAndRespond(res, db, null, {
+								success: false,
+								message: "something wrong",
+								error: err,
+							});
+						}
+
+						db.commit(() => {
+							res.status(200).json({
+								message: "successfully completed",
+								success: true,
+								data: result,
+							});
+						});
+					}
+				);
+			}
+		);
 	});
 };
 
@@ -279,7 +322,7 @@ const deletePayments = (req: Request, res: Response) => {
 };
 
 export const PaymentsController = {
-	getPayments,
+	getPaymentsByUser,
 	getSinglePayments,
 	createPayments,
 	updatePayments,

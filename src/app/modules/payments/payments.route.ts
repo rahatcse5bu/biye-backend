@@ -4,7 +4,7 @@ import { auth } from "../../middlewares/auth";
 const PaymentsRouter = express.Router();
 
 PaymentsRouter.route("/")
-	.get(PaymentsController.getPayments)
+	.get(auth("user", "admin"), PaymentsController.getPaymentsByUser)
 	.post(auth("user", "admin"), PaymentsController.createPayments);
 
 PaymentsRouter.route("/:id")
