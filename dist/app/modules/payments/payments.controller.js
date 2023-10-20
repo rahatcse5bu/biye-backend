@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
+const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const response_1 = require("../../../utils/response");
 const getPayments = (req, res) => {
     const sql = "SELECT * FROM payments";
@@ -83,11 +84,35 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
                     error: err,
                 });
             }
-            db_1.default.commit(() => {
-                res.status(200).json({
-                    message: "Update successfully completed",
-                    success: true,
-                    data: data,
+            //! now save payment information to payments table
+            data = Object.assign(Object.assign({}, data), { user_id });
+            const keys = Object.keys(data);
+            const values = Object.values(data);
+            console.log(keys.length);
+            console.log(values.length);
+            //! Insert  into the database
+            const insertSql = `INSERT INTO payments (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
+            console.log(insertSql);
+            const payment = [];
+            keys.forEach((field) => {
+                payment.push(data[field]);
+            });
+            console.log(payment);
+            db_1.default.query(insertSql, payment, (err, result) => {
+                if (err) {
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                        success: false,
+                        message: "something wrong",
+                        error: err,
+                    });
+                }
+                console.log();
+                db_1.default.commit(() => {
+                    res.status(200).json({
+                        message: "successfully completed",
+                        success: true,
+                        data: result,
+                    });
                 });
             });
         });

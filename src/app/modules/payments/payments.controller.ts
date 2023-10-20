@@ -95,15 +95,19 @@ const createPayments = async (req: Request, res: Response) => {
 				};
 				const keys = Object.keys(data);
 				const values = Object.values(data);
+				console.log(keys.length);
+				console.log(values.length);
 				//! Insert  into the database
 				const insertSql = `INSERT INTO payments (${keys.join(
 					","
 				)}) VALUES (${generatePlaceholders(values.length)})`;
+				console.log(insertSql);
 				const payment: string[] = [];
 				keys.forEach((field) => {
 					payment.push(data[field]);
 				});
-				db.query<RowDataPacket[]>(insertSql, (err, result) => {
+				console.log(payment);
+				db.query<RowDataPacket[]>(insertSql, payment, (err, result) => {
 					if (err) {
 						return rollbackAndRespond(res, db, null, {
 							success: false,
