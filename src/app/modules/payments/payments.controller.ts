@@ -56,7 +56,49 @@ const getSinglePayments = (req: Request, res: Response) => {
 const createPayments = async (req: Request, res: Response) => {
 	let data = req.body;
 	const token_id = req.user?.token_id;
-	res.json({ token_id: token_id, data: data });
+	let user_id = null;
+
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
+		}
+
+		//? get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				console.log(result);
+				user_id = Number(result[0]?.id);
+				if (isNaN(user_id)) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				db.commit(() => {
+					res.status(200).json({
+						message: "Update successfully completed",
+						success: true,
+						data: data,
+					});
+				});
+			}
+		);
+	});
 };
 
 const updatePayments = (req: Request, res: Response) => {

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
+const response_1 = require("../../../utils/response");
 const getPayments = (req, res) => {
     const sql = "SELECT * FROM payments";
     db_1.default.query(sql, (err, rows) => {
@@ -54,7 +55,43 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
     var _a;
     let data = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    res.json({ token_id: token_id, data: data });
+    let user_id = null;
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //? get user id using token id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            console.log(result);
+            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
+            if (isNaN(user_id)) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            db_1.default.commit(() => {
+                res.status(200).json({
+                    message: "Update successfully completed",
+                    success: true,
+                    data: data,
+                });
+            });
+        });
+    });
 });
 const updatePayments = (req, res) => {
     const data = req.body;
