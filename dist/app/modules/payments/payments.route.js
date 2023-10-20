@@ -5,10 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const payments_controller_1 = require("./payments.controller");
+const auth_1 = require("../../middlewares/auth");
 const PaymentsRouter = express_1.default.Router();
 PaymentsRouter.route("/")
     .get(payments_controller_1.PaymentsController.getPayments)
-    .post(payments_controller_1.PaymentsController.createPayments);
+    .post((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentsController.createPayments);
 PaymentsRouter.route("/:id")
     .get(payments_controller_1.PaymentsController.getSinglePayments)
     .put(payments_controller_1.PaymentsController.updatePayments)

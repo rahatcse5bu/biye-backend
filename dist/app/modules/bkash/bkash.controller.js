@@ -21,7 +21,7 @@ const executePayment_1 = __importDefault(require("../../../helpers/executePaymen
 const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const createResult = yield (0, createPayment_1.default)(req.body); // pass amount & callbackURL from frontend
-        console.log('create payment~', createResult);
+        console.log("create payment~", createResult);
         res.json(createResult);
     }
     catch (e) {
