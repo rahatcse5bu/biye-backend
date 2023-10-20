@@ -56,7 +56,7 @@ const getSinglePayments = (req: Request, res: Response) => {
 const createPayments = async (req: Request, res: Response) => {
 	let data = req.body;
 	const token_id = req.user?.token_id;
-	let user_id = null;
+	let user_id: number | null = null;
 
 	db.beginTransaction((err) => {
 		if (err) {
@@ -115,12 +115,36 @@ const createPayments = async (req: Request, res: Response) => {
 							error: err,
 						});
 					}
-					console.log();
-					db.commit(() => {
-						res.status(200).json({
-							message: "successfully completed",
-							success: true,
-							data: result,
+
+					const paymentStatus = data["status"];
+					const amount = Number(data["amount"]);
+					let points = 0;
+					if (paymentStatus === "Completed") {
+						points = amountToPoints[amount]
+							? Number(amountToPoints[amount])
+							: 0;
+					} else {
+						points = 0;
+					}
+					console.log(points);
+					const updateGeneralInfoSql = `UPDATE general_info SET points = points + ? where user_id = ?
+				    `;
+
+					db.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
+						if (err) {
+							return rollbackAndRespond(res, db, null, {
+								success: false,
+								message: "something wrong",
+								error: err,
+							});
+						}
+
+						db.commit(() => {
+							res.status(200).json({
+								message: "successfully completed",
+								success: true,
+								data: results,
+							});
 						});
 					});
 				});
