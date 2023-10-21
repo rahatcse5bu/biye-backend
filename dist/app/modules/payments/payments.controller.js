@@ -243,7 +243,11 @@ const updatePayments = (req, res) => {
                 }
                 else {
                     // Commit the transaction if the update was successful
-                    db_1.default.commit(() => {
+                    db_1.default.commit((err) => {
+                        if (err) {
+                            console.error("Error committing transaction:", err);
+                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                        }
                         res
                             .status(200)
                             .json((0, SendSuccess_1.sendSuccess)("Update sucessfully completed", results, 200));

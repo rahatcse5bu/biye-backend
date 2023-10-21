@@ -8,11 +8,14 @@ import httpStatus from "http-status";
 import { rollbackAndRespond } from "../../../utils/response";
 import { JwtPayload } from "jsonwebtoken";
 
-const getFavourites = (req: Request, res: Response) => {
-	const sql = "SELECT * FROM favourites";
-	db.query<RowDataPacket[]>(sql, (err, rows) => {
+const getFavouritesByUserId = (req: Request, res: Response) => {
+	const user_id = req.params.userId;
+	const bio_id = req.params.bioId;
+	const sql =
+		"SELECT type,user_id,bio_id FROM favourites WHERE user_id = ? AND bio_id = ? AND type=?";
+	db.query<RowDataPacket[]>(sql, [user_id, bio_id, "like"], (err, rows) => {
 		if (err) {
-			res.send({
+			return res.send({
 				message: err?.message,
 				success: false,
 			});
@@ -21,11 +24,35 @@ const getFavourites = (req: Request, res: Response) => {
 		res
 			.status(200)
 			.json(
-				sendSuccess<RowDataPacket[]>(
+				sendSuccess<RowDataPacket>(
 					"All favourites  retrieved successfully",
-					rows
+					rows[0]
 				)
 			);
+	});
+};
+
+const getFavouritesCountByBioId = (req: Request, res: Response) => {
+	const bio_id = req.params.id;
+	console.log(bio_id);
+	const sql =
+		"SELECT COUNT(*) AS count FROM favourites WHERE bio_id = ? AND type = ?"; // Updated SQL query
+
+	db.query<RowDataPacket[]>(sql, [bio_id, "like"], (err, rows) => {
+		console.log(err);
+		if (err) {
+			return res.send({
+				message: err?.message,
+				success: false,
+			});
+		}
+
+		const count = rows[0].count; // Extract the count from the result
+
+		res.status(200).json({
+			success: true,
+			count: count,
+		});
 	});
 };
 
@@ -55,9 +82,8 @@ const getSingleFavourites = (req: Request, res: Response) => {
 };
 
 const createFavourites = (req: Request, res: Response) => {
-	const data = req.body;
+	const { bio_id } = req.body;
 	const token_id = req.user?.token_id;
-	let { ...others } = data;
 	let user_id: string | null = null;
 
 	if (!token_id) {
@@ -71,13 +97,15 @@ const createFavourites = (req: Request, res: Response) => {
 	db.beginTransaction((err) => {
 		if (err) {
 			console.error("Error starting transaction:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
+			return res.status(500).json({
+				success: false,
+				message: "Internal Server Error",
+				error: err,
+			});
 		}
 
-		//! get user_id using token_id
-		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		//! Get user_id using token_id
+		const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
 		db.query<RowDataPacket[]>(
 			getUserIdByTokenSql,
 			[token_id],
@@ -89,67 +117,72 @@ const createFavourites = (req: Request, res: Response) => {
 						error: err,
 					});
 				}
-				//console.log(result);
-				user_id = result[0].id;
 
-				//! Check if the user_id already exists in the database
-				const checkSql =
-					"SELECT COUNT(*) AS favouritesCount FROM favourites WHERE user_id = ?";
+				user_id = result[0]?.id;
 
-				db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
-					if (err) {
-						console.error("Error checking User Id:", err);
-						return rollbackAndRespond(res, db, err);
-					}
+				//? get type from favourites
 
-					const count = results[0].favouritesCount;
-
-					if (count > 0) {
-						//! User with this user_id already exists, return an error response
-						return rollbackAndRespond(res, db, null, {
-							success: false,
-							message: "User with this user id already exists",
-						});
-					}
-
-					others = {
-						...others,
-						user_id,
-					};
-
-					const keys = Object.keys(others);
-					const values = Object.values(others);
-
-					//! Insert  into the database
-					const insertSql = `INSERT INTO favourites (${keys.join(
-						","
-					)}) VALUES (${generatePlaceholders(values.length)})`;
-					const favourites: string[] = [];
-					keys.forEach((field) => {
-						favourites.push(others[field]);
-					});
-
-					//! Insert favourites information
-					db.query(insertSql, favourites, (err, results) => {
+				const getTypeSql =
+					"SELECT type from favourites where user_id = ? AND bio_id = ?";
+				db.query<RowDataPacket[]>(
+					getTypeSql,
+					[user_id, bio_id],
+					(err, result) => {
 						if (err) {
-							console.error("Error inserting  favourites:", err);
+							console.error("Error updating favourites:", err);
 							return rollbackAndRespond(res, db, err);
 						}
 
-						db.commit((err) => {
-							if (err) {
-								console.error("Error committing transaction:", err);
-								return rollbackAndRespond(res, db, err);
-							}
+						//! If existing type is 'like', update it to 'dislike', and vice versa
+						if (result.length) {
+							const newType = result[0]?.type === "like" ? "not-like" : "like";
+							const updateSql = `UPDATE favourites SET type=?  WHERE user_id = ? AND bio_id=?`;
+							db.query(
+								updateSql,
+								[newType, user_id, bio_id],
+								(err, results) => {
+									if (err) {
+										console.error("Error updating favourites:", err);
+										return rollbackAndRespond(res, db, err);
+									}
 
-							res.status(201).json({
-								success: true,
-								message:
-									"Favourites created and user_info updated successfully",
+									db.commit((err) => {
+										if (err) {
+											console.error("Error committing transaction:", err);
+											return rollbackAndRespond(res, db, err);
+										}
+
+										res.status(201).json({
+											success: true,
+											message: "Favourites updated successfully",
+											data: results,
+										});
+									});
+								}
+							);
+						} else {
+							const createSql = `Insert into favourites(user_id,bio_id,type) values(?,?,?)`;
+							db.query(createSql, [user_id, bio_id, "like"], (err, results) => {
+								if (err) {
+									console.error("Error updating favourites:", err);
+									return rollbackAndRespond(res, db, err);
+								}
+
+								db.commit((err) => {
+									if (err) {
+										console.error("Error committing transaction:", err);
+										return rollbackAndRespond(res, db, err);
+									}
+									res.status(201).json({
+										success: true,
+										message: "Favourites created successfully",
+										data: results,
+									});
+								});
 							});
-						});
-					});
-				});
+						}
+					}
+				);
 			}
 		);
 	});
@@ -320,36 +353,12 @@ const deleteFavourites = (req: Request, res: Response) => {
 		});
 	});
 };
-const getFavouritesByUserId = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming the user_id is in the route parameter
-	const sql = "SELECT * FROM favourites WHERE user_id = ?";
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
-		} else {
-			if (rows.length === 0) {
-				res.status(404).json({
-					message: "Favourites not found for the specified user_id",
-					success: false,
-				});
-			} else {
-				res.status(200).json({
-					message: "Favourites retrieved successfully",
-					success: true,
-					data: rows[0], // Assuming you expect only one row per user_id
-				});
-			}
-		}
-	});
-};
+
 export const FavouritesController = {
-	getFavourites,
 	getSingleFavourites,
 	createFavourites,
 	updateFavourites,
 	deleteFavourites,
 	getFavouritesByUserId,
+	getFavouritesCountByBioId,
 };

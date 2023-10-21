@@ -1,15 +1,4 @@
 "use strict";
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -17,21 +6,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FavouritesController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
-const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const http_status_1 = __importDefault(require("http-status"));
 const response_1 = require("../../../utils/response");
-const getFavourites = (req, res) => {
-    const sql = "SELECT * FROM favourites";
-    db_1.default.query(sql, (err, rows) => {
+const getFavouritesByUserId = (req, res) => {
+    const user_id = req.params.userId;
+    const bio_id = req.params.bioId;
+    const sql = "SELECT type,user_id,bio_id FROM favourites WHERE user_id = ? AND bio_id = ? AND type=?";
+    db_1.default.query(sql, [user_id, bio_id, "like"], (err, rows) => {
         if (err) {
-            res.send({
+            return res.send({
                 message: err === null || err === void 0 ? void 0 : err.message,
                 success: false,
             });
         }
         res
             .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("All favourites  retrieved successfully", rows));
+            .json((0, SendSuccess_1.sendSuccess)("All favourites  retrieved successfully", rows[0]));
+    });
+};
+const getFavouritesCountByBioId = (req, res) => {
+    const bio_id = req.params.id;
+    console.log(bio_id);
+    const sql = "SELECT COUNT(*) AS count FROM favourites WHERE bio_id = ? AND type = ?"; // Updated SQL query
+    db_1.default.query(sql, [bio_id, "like"], (err, rows) => {
+        console.log(err);
+        if (err) {
+            return res.send({
+                message: err === null || err === void 0 ? void 0 : err.message,
+                success: false,
+            });
+        }
+        const count = rows[0].count; // Extract the count from the result
+        res.status(200).json({
+            success: true,
+            count: count,
+        });
     });
 };
 const getSingleFavourites = (req, res) => {
@@ -57,9 +66,8 @@ const getSingleFavourites = (req, res) => {
 };
 const createFavourites = (req, res) => {
     var _a;
-    const data = req.body;
+    const { bio_id } = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let others = __rest(data, []);
     let user_id = null;
     if (!token_id) {
         return res.status(401).send({
@@ -71,13 +79,16 @@ const createFavourites = (req, res) => {
     db_1.default.beginTransaction((err) => {
         if (err) {
             console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+                error: err,
+            });
         }
-        //! get user_id using token_id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        //! Get user_id using token_id
+        const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
         db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
             if (err) {
                 return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
                     success: false,
@@ -85,49 +96,57 @@ const createFavourites = (req, res) => {
                     error: err,
                 });
             }
-            //console.log(result);
-            user_id = result[0].id;
-            //! Check if the user_id already exists in the database
-            const checkSql = "SELECT COUNT(*) AS favouritesCount FROM favourites WHERE user_id = ?";
-            db_1.default.query(checkSql, [user_id], (err, results) => {
+            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
+            //? get type from favourites
+            const getTypeSql = "SELECT type from favourites where user_id = ? AND bio_id = ?";
+            db_1.default.query(getTypeSql, [user_id, bio_id], (err, result) => {
+                var _a;
                 if (err) {
-                    console.error("Error checking User Id:", err);
+                    console.error("Error updating favourites:", err);
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                 }
-                const count = results[0].favouritesCount;
-                if (count > 0) {
-                    //! User with this user_id already exists, return an error response
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                        success: false,
-                        message: "User with this user id already exists",
-                    });
-                }
-                others = Object.assign(Object.assign({}, others), { user_id });
-                const keys = Object.keys(others);
-                const values = Object.values(others);
-                //! Insert  into the database
-                const insertSql = `INSERT INTO favourites (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
-                const favourites = [];
-                keys.forEach((field) => {
-                    favourites.push(others[field]);
-                });
-                //! Insert favourites information
-                db_1.default.query(insertSql, favourites, (err, results) => {
-                    if (err) {
-                        console.error("Error inserting  favourites:", err);
-                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                    }
-                    db_1.default.commit((err) => {
+                //! If existing type is 'like', update it to 'dislike', and vice versa
+                if (result.length) {
+                    const newType = ((_a = result[0]) === null || _a === void 0 ? void 0 : _a.type) === "like" ? "not-like" : "like";
+                    const updateSql = `UPDATE favourites SET type=?  WHERE user_id = ? AND bio_id=?`;
+                    db_1.default.query(updateSql, [newType, user_id, bio_id], (err, results) => {
                         if (err) {
-                            console.error("Error committing transaction:", err);
+                            console.error("Error updating favourites:", err);
                             return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                         }
-                        res.status(201).json({
-                            success: true,
-                            message: "Favourites created and user_info updated successfully",
+                        db_1.default.commit((err) => {
+                            if (err) {
+                                console.error("Error committing transaction:", err);
+                                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                            }
+                            res.status(201).json({
+                                success: true,
+                                message: "Favourites updated successfully",
+                                data: results,
+                            });
                         });
                     });
-                });
+                }
+                else {
+                    const createSql = `Insert into favourites(user_id,bio_id,type) values(?,?,?)`;
+                    db_1.default.query(createSql, [user_id, bio_id, "like"], (err, results) => {
+                        if (err) {
+                            console.error("Error updating favourites:", err);
+                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                        }
+                        db_1.default.commit((err) => {
+                            if (err) {
+                                console.error("Error committing transaction:", err);
+                                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                            }
+                            res.status(201).json({
+                                success: true,
+                                message: "Favourites created successfully",
+                                data: results,
+                            });
+                        });
+                    });
+                }
             });
         });
     });
@@ -272,38 +291,11 @@ const deleteFavourites = (req, res) => {
         });
     });
 };
-const getFavouritesByUserId = (req, res) => {
-    const userId = req.params.id; // Assuming the user_id is in the route parameter
-    const sql = "SELECT * FROM favourites WHERE user_id = ?";
-    db_1.default.query(sql, [userId], (err, rows) => {
-        if (err) {
-            res.send({
-                message: err === null || err === void 0 ? void 0 : err.message,
-                success: false,
-            });
-        }
-        else {
-            if (rows.length === 0) {
-                res.status(404).json({
-                    message: "Favourites not found for the specified user_id",
-                    success: false,
-                });
-            }
-            else {
-                res.status(200).json({
-                    message: "Favourites retrieved successfully",
-                    success: true,
-                    data: rows[0], // Assuming you expect only one row per user_id
-                });
-            }
-        }
-    });
-};
 exports.FavouritesController = {
-    getFavourites,
     getSingleFavourites,
     createFavourites,
     updateFavourites,
     deleteFavourites,
     getFavouritesByUserId,
+    getFavouritesCountByBioId,
 };
