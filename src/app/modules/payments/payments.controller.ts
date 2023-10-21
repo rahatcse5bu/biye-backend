@@ -8,7 +8,6 @@ import { rollbackAndRespond } from "../../../utils/response";
 import httpStatus from "http-status";
 
 const getPaymentsByUser = (req: Request, res: Response) => {
-	let data = req.body;
 	const token_id = req.user?.token_id;
 	let user_id: number | null = null;
 
@@ -43,7 +42,7 @@ const getPaymentsByUser = (req: Request, res: Response) => {
 					});
 				}
 				//! now get all payment history by individuals
-				const getPaymentsHistorySql = `SELECT * from payments where user_id = ?`;
+				const getPaymentsHistorySql = `SELECT p.*, b.bio_details, b.feedback, b.status AS bio_choice_status FROM payments AS p LEFT JOIN bio_choice_data AS b ON p.user_id = b.user_id WHERE p.user_id = ?`;
 
 				db.query<RowDataPacket[]>(
 					getPaymentsHistorySql,
