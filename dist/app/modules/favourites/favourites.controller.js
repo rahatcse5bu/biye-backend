@@ -8,6 +8,55 @@ const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const http_status_1 = __importDefault(require("http-status"));
 const response_1 = require("../../../utils/response");
+const getFavouritesListByUserId = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    //! Get user_id using token_id
+    const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
+    db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+        var _a;
+        if (err) {
+            return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                success: false,
+                message: "You are not authorized",
+                error: err,
+            });
+        }
+        user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
+        //? get all bio data that likes an users
+        const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites 
+			JOIN address ON favourites.bio_id = address.user_id 
+			JOIN general_info ON favourites.bio_id = general_info.user_id 
+			JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
+			where favourites.user_id = ?
+			`;
+        db_1.default.query(sql1, [user_id], (err, result) => {
+            if (err) {
+                console.error("Error updating favourites:", err);
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+            }
+            db_1.default.commit((err) => {
+                if (err) {
+                    console.error("Error committing transaction:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                res.status(201).json({
+                    success: true,
+                    message: "Favourites created successfully",
+                    data: result,
+                });
+            });
+        });
+    });
+};
 const getFavouritesByUserId = (req, res) => {
     const user_id = req.params.userId;
     const bio_id = req.params.bioId;
@@ -298,4 +347,5 @@ exports.FavouritesController = {
     deleteFavourites,
     getFavouritesByUserId,
     getFavouritesCountByBioId,
+    getFavouritesListByUserId,
 };

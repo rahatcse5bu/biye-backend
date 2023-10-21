@@ -3,10 +3,9 @@ import { FavouritesController } from "./favourites.controller";
 import { auth } from "../../middlewares/auth";
 const FavouritesRouter = express.Router();
 
-FavouritesRouter.route("/").post(
-	auth("user", "admin"),
-	FavouritesController.createFavourites
-);
+FavouritesRouter.route("/")
+	.get(auth("user", "admin"), FavouritesController.getFavouritesListByUserId)
+	.post(auth("user", "admin"), FavouritesController.createFavourites);
 
 FavouritesRouter.route("/user-data/:userId/:bioId").get(
 	FavouritesController.getFavouritesByUserId
