@@ -8,58 +8,88 @@ import httpStatus from "http-status";
 import { rollbackAndRespond } from "../../../utils/response";
 import { JwtPayload } from "jsonwebtoken";
 
+// const getRefundList = (req: Request, res: Response) => {
+// 	const token_id = req.user?.token_id;
+// 	let user_id: string | null = null;
+// 	if (!token_id) {
+// 		return res.status(401).send({
+// 			statusCode: httpStatus.UNAUTHORIZED,
+// 			message: "You are not authorized",
+// 			success: false,
+// 		});
+// 	}
+// 	//! Get user_id using token_id
+// 	const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
+// 	db.query<RowDataPacket[]>(getUserIdByTokenSql, [token_id], (err, result) => {
+// 		if (err) {
+// 			return rollbackAndRespond(res, db, null, {
+// 				success: false,
+// 				message: "You are not authorized",
+// 				error: err,
+// 			});
+// 		}
+
+// 		user_id = result[0]?.id;
+
+// 		//? get all bio data that likes an users
+// 		// const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites
+// 		// 	LEFT JOIN address ON favourites.bio_id = address.user_id
+// 		// 	LEFT JOIN general_info ON favourites.bio_id = general_info.user_id
+// 		// 	LEFT JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
+// 		// 	where favourites.user_id = ?
+// 		// 	`;
+// 		const sql1 = "SELECT * FROM `refunds` where refund_status='requested'";
+// 		db.query<RowDataPacket[]>(sql1, [user_id, user_id], (err, result) => {
+// 			if (err) {
+// 				console.error("Error updating Refund:", err);
+// 				return rollbackAndRespond(res, db, err);
+// 			}
+
+// 			db.commit((err) => {
+// 				if (err) {
+// 					console.error("Error committing transaction:", err);
+// 					return rollbackAndRespond(res, db, err);
+// 				}
+// 				res.status(201).json({
+// 					success: true,
+// 					message: "Refunds created successfully",
+// 					data: result,
+// 				});
+// 			});
+// 		});
+// 	});
+// };
 const getRefundList = (req: Request, res: Response) => {
-	const token_id = req.user?.token_id;
-	let user_id: string | null = null;
-	if (!token_id) {
-		return res.status(401).send({
-			statusCode: httpStatus.UNAUTHORIZED,
-			message: "You are not authorized",
-			success: false,
-		});
-	}
-	//! Get user_id using token_id
-	const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
-	db.query<RowDataPacket[]>(getUserIdByTokenSql, [token_id], (err, result) => {
-		if (err) {
-			return rollbackAndRespond(res, db, null, {
-				success: false,
-				message: "You are not authorized",
-				error: err,
-			});
-		}
-
-		user_id = result[0]?.id;
-
-		//? get all bio data that likes an users
-		// const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites
-		// 	LEFT JOIN address ON favourites.bio_id = address.user_id
-		// 	LEFT JOIN general_info ON favourites.bio_id = general_info.user_id
-		// 	LEFT JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
-		// 	where favourites.user_id = ?
-		// 	`;
-		const sql1 = "SELECT * FROM `refunds` where refund_status='requested'";
-		db.query<RowDataPacket[]>(sql1, [user_id, user_id], (err, result) => {
-			if (err) {
-				console.error("Error updating Refund:", err);
-				return rollbackAndRespond(res, db, err);
-			}
-
-			db.commit((err) => {
-				if (err) {
-					console.error("Error committing transaction:", err);
-					return rollbackAndRespond(res, db, err);
-				}
-				res.status(201).json({
-					success: true,
-					message: "Refunds created successfully",
-					data: result,
-				});
-			});
-		});
-	});
-};
-
+    // Your route logic here
+    // Get all refund data where refund_status is 'requested'
+    const sql = "SELECT * FROM `refunds` WHERE refund_status = 'requested'";
+  
+    db.query<RowDataPacket[]>(sql, (err, result) => {
+      if (err) {
+        console.error("Error retrieving refund data:", err);
+        return rollbackAndRespond(res, db, err);
+      }
+  
+      // Commit the transaction
+      db.commit((err) => {
+        if (err) {
+          console.error("Error committing transaction:", err);
+          return rollbackAndRespond(res, db, err);
+        }
+  
+        // Send the refund data as a response
+        res.status(200).json({
+          success: true,
+          message: "Refund data retrieved successfully",
+          data: result,
+        });
+      });
+    });
+  };
+  
+  // Export the modified function
+  export { getRefundList };
+  
 const getFavouritesByUserId = (req: Request, res: Response) => {
 	const user_id = req.params.userId;
 	const bio_id = req.params.bioId;
