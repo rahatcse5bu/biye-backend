@@ -17,7 +17,7 @@ import PaymentsRouter from "./app/modules/payments/payments.route";
 import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
 import userTokenRouter from "./app/modules/user_token/user_token.route";
-import RefundRouter from "./app/modules/refunds/refunds.route";
+import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 import cors from "cors";
 import config from "./config";
@@ -70,7 +70,7 @@ app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/token", userTokenRouter);
 app.use("/api/v1/bkash", bkashRouter);
-app.use("/api/v1/refund", RefundRouter);
+app.use("/api/v1/refund", RefundsRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
