@@ -32,13 +32,65 @@ const getFavouritesListByUserId = (req: Request, res: Response) => {
 		user_id = result[0]?.id;
 
 		//? get all bio data that likes an users
-		const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites 
-			JOIN address ON favourites.bio_id = address.user_id 
-			JOIN general_info ON favourites.bio_id = general_info.user_id 
-			JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
-			where favourites.user_id = ?
-			`;
-		db.query<RowDataPacket[]>(sql1, [user_id], (err, result) => {
+		// const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites
+		// 	LEFT JOIN address ON favourites.bio_id = address.user_id
+		// 	LEFT JOIN general_info ON favourites.bio_id = general_info.user_id
+		// 	LEFT JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
+		// 	where favourites.user_id = ?
+		// 	`;
+		const sql1 = `SELECT DISTINCT
+    f.user_id,
+    f.bio_id,
+    a.permanent_address,
+    gf.date_of_birth,
+    gf.screen_color,
+    (
+        SELECT COUNT(*) 
+        FROM bio_choice_data bc 
+        WHERE bc.bio_id = f.bio_id
+    ) AS total_count,
+    (
+        SELECT COUNT(*) 
+        FROM bio_choice_data bc 
+        WHERE bc.bio_id = f.bio_id AND bc.status = 'pending'
+    ) AS total_pending,
+    (
+        SELECT COUNT(*) 
+        FROM bio_choice_data bc 
+        WHERE bc.bio_id = f.bio_id AND bc.status = 'approved'
+    ) AS total_approved, 
+    (
+        SELECT COUNT(*) 
+        FROM bio_choice_data bc 
+        WHERE bc.bio_id = f.bio_id AND bc.status = 'rejected'
+    ) AS total_rejected,
+    COALESCE(
+        (
+            SELECT (COUNT(*) * 100)
+            FROM bio_choice_data bc 
+            WHERE bc.bio_id = f.bio_id AND bc.status = 'approved'
+        ) / (
+            SELECT COUNT(*) 
+            FROM bio_choice_data bc 
+            WHERE bc.bio_id = f.bio_id
+        ), 0
+    ) AS approval_rate,
+    COALESCE(
+        (
+            SELECT (COUNT(*) * 100)
+            FROM bio_choice_data bc 
+            WHERE bc.bio_id = f.bio_id AND bc.status = 'rejected'
+        ) / (
+            SELECT COUNT(*) 
+            FROM bio_choice_data bc 
+            WHERE bc.bio_id = f.bio_id
+        ), 0
+    ) AS rejection_rate
+FROM favourites AS f
+JOIN address AS a ON f.bio_id = a.user_id
+JOIN general_info AS gf ON f.bio_id = gf.user_id
+WHERE f.user_id = ? AND f.bio_id <> ?`;
+		db.query<RowDataPacket[]>(sql1, [user_id, user_id], (err, result) => {
 			if (err) {
 				console.error("Error updating favourites:", err);
 				return rollbackAndRespond(res, db, err);
