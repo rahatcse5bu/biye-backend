@@ -1,19 +1,13 @@
 import express from "express";
-import {  RefundController } from "./refunds.controller";
+import { RefundController } from "./refunds.controller";
 import { auth } from "../../middlewares/auth";
+
 const RefundsRouter = express.Router();
 
-RefundsRouter.route("/")
-	.get(auth("user", "admin"), RefundController.getRefundList)
-	.post(auth("user", "admin"), RefundController.addRefundRequest);
+// GET request to retrieve refunds
+RefundsRouter.get("/refund-req", RefundController.getRefundList);
 
-// RefundsRouter.route("/refund-req/").get(
-// 	RefundController.getRefundByUserId
-// );
-// RefundsRouter.route("/bio-data/:id")
-// 	.get(RefundController.getFavouritesCountByBioId)
-// 	.put(RefundController.updateRefund)
-// 	.delete(RefundController.deleteFavourites);
-    RefundsRouter.route("/refund-req/").get(RefundController.getRefundList)
-	.post(RefundController.addRefundRequest);
+// POST request to add a refund request
+RefundsRouter.post("/refund-req", RefundController.addRefundRequest);
+
 export default RefundsRouter;
