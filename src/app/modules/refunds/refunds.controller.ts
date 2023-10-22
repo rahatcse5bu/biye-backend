@@ -351,12 +351,12 @@ const deleteFavourites = (req: Request, res: Response) => {
 	});
 };
 
-export const FavouritesController = {
+export const RefundController = {
 	getSingleFavourites,
 	addRefundRequest,
 	updateRefund,
 	deleteFavourites,
-	getAllRefunds: getRefundList,
+	getRefundList: getRefundList,
 	getFavouritesCountByBioId,
 	// getFavouritesListByUserId: getRefundListByUserId,
 };
