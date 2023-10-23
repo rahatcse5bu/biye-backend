@@ -30,10 +30,48 @@ export const RefundController = {
     },
   
     addRefundRequest: (req: Request, res: Response) => {
+        const token_id = req.user?.token_id;
+        let user_id: string | null = null;
+    
+        if (!token_id) {
+            return res.status(401).send({
+                statusCode: httpStatus.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+    
+        db.beginTransaction((err) => {
+            if (err) {
+                console.error("Error starting transaction:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Internal Server Error",
+                    error: err,
+                });
+            }
+    
+            //! Get user_id using token_id
+            const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
+            db.query<RowDataPacket[]>(
+                getUserIdByTokenSql,
+                [token_id],
+                (err, result) => {
+                    if (err) {
+                        return rollbackAndRespond(res, db, null, {
+                            success: false,
+                            message: "You are not authorized",
+                            error: err,
+                        });
+                    }
+    
+                    user_id = result[0]?.id;
+                });  
+            });  
       // Handle the POST request to add a refund request here
       const data = req.body;
       const sql = "INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
-      db.query(sql, [data.user_id, data.payment_id, data.transaction_id, data.refund_amount, data.refund_status], (err, result) => {
+      db.query(sql, [user_id, data.payment_id, data.transaction_id, data.refund_amount, data.refund_status], (err, result) => {
         if (err) {
           console.error("Error adding refund request:", err);
           res.status(500).json({
