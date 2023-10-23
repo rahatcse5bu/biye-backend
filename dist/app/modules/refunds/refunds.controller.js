@@ -29,7 +29,13 @@ exports.RefundController = {
         // Handle the POST request to add a refund request here
         const data = req.body;
         const sql = "INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
-        db_1.default.query(sql, [data.user_id, data.payment_id, data.transaction_id, data.refund_amount, data.refund_status], (err, result) => {
+        db_1.default.query(sql, [
+            data.user_id,
+            data.payment_id,
+            data.transaction_id,
+            data.amount,
+            data.refund_status,
+        ], (err, result) => {
             if (err) {
                 console.error("Error adding refund request:", err);
                 res.status(500).json({
