@@ -3,12 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FavouritesController = void 0;
+exports.UnFavoritesController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const http_status_1 = __importDefault(require("http-status"));
 const response_1 = require("../../../utils/response");
-const getFavouritesListByUserId = (req, res) => {
+const getUnFavoritesListByUserId = (req, res) => {
     var _a;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
     let user_id = null;
@@ -32,11 +32,11 @@ const getFavouritesListByUserId = (req, res) => {
         }
         user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
         //? get all bio data that likes an users
-        // const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites
-        // 	LEFT JOIN address ON favourites.bio_id = address.user_id
-        // 	LEFT JOIN general_info ON favourites.bio_id = general_info.user_id
-        // 	LEFT JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
-        // 	where favourites.user_id = ?
+        // const sql1 = `SELECT unfavorites.user_id,unfavorites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from unfavorites
+        // 	LEFT JOIN address ON unfavorites.bio_id = address.user_id
+        // 	LEFT JOIN general_info ON unfavorites.bio_id = general_info.user_id
+        // 	LEFT JOIN bio_choice_data ON unfavorites.bio_id = bio_choice_data.user_id
+        // 	where unfavorites.user_id = ?
         // 	`;
         const sql1 = `SELECT DISTINCT
     f.user_id,
@@ -86,13 +86,13 @@ const getFavouritesListByUserId = (req, res) => {
             WHERE bc.bio_id = f.bio_id
         ), 0
     ) AS rejection_rate
-FROM favourites AS f
+FROM unfavorites AS f
 JOIN address AS a ON f.bio_id = a.user_id
 JOIN general_info AS gf ON f.bio_id = gf.user_id
 WHERE f.user_id = ? AND f.bio_id <> ?`;
         db_1.default.query(sql1, [user_id, user_id], (err, result) => {
             if (err) {
-                console.error("Error updating favourites:", err);
+                console.error("Error updating unfavorites:", err);
                 return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
             }
             db_1.default.commit((err) => {
@@ -102,18 +102,18 @@ WHERE f.user_id = ? AND f.bio_id <> ?`;
                 }
                 res.status(201).json({
                     success: true,
-                    message: "Favourites created successfully",
+                    message: "UnFavorites created successfully",
                     data: result,
                 });
             });
         });
     });
 };
-const getFavouritesByUserId = (req, res) => {
+const getUnFavoritesByUserId = (req, res) => {
     const user_id = req.params.userId;
     const bio_id = req.params.bioId;
-    const sql = "SELECT type FROM favourites WHERE user_id = ? AND bio_id = ? AND type=?";
-    db_1.default.query(sql, [user_id, bio_id, "like"], (err, rows) => {
+    const sql = "SELECT type FROM unfavorites WHERE user_id = ? AND bio_id = ?";
+    db_1.default.query(sql, [user_id, bio_id], (err, rows) => {
         if (err) {
             return res.send({
                 message: err === null || err === void 0 ? void 0 : err.message,
@@ -122,13 +122,13 @@ const getFavouritesByUserId = (req, res) => {
         }
         res
             .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("All favourites  retrieved successfully", rows[0]));
+            .json((0, SendSuccess_1.sendSuccess)("unfavorites  retrieved successfully", rows[0]));
     });
 };
-const getFavouritesCountByBioId = (req, res) => {
+const getUnFavoritesCountByBioId = (req, res) => {
     const bio_id = req.params.id;
     console.log(bio_id);
-    const sql = "SELECT COUNT(*) AS count FROM favourites WHERE bio_id = ? AND type = ?"; // Updated SQL query
+    const sql = "SELECT COUNT(*) AS count FROM unfavorites WHERE bio_id = ? AND type = ?"; // Updated SQL query
     db_1.default.query(sql, [bio_id, "like"], (err, rows) => {
         console.log(err);
         if (err) {
@@ -144,9 +144,9 @@ const getFavouritesCountByBioId = (req, res) => {
         });
     });
 };
-const getSingleFavourites = (req, res) => {
+const getSingleUnFavorites = (req, res) => {
     const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-    const sql = "SELECT * FROM favourites WHERE id = ?";
+    const sql = "SELECT * FROM unfavorites WHERE id = ?";
     db_1.default.query(sql, [userId], (err, rows) => {
         if (err) {
             return res.status(500).json({
@@ -156,16 +156,16 @@ const getSingleFavourites = (req, res) => {
         }
         if (rows.length === 0) {
             return res.status(404).json({
-                message: "favourites not found",
+                message: "unfavorites not found",
                 success: false,
             });
         }
         res
             .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("favourites retrieved", rows, 200));
+            .json((0, SendSuccess_1.sendSuccess)("unfavorites retrieved", rows, 200));
     });
 };
-const createFavourites = (req, res) => {
+const createUnFavorites = (req, res) => {
     var _a;
     const { bio_id } = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
@@ -198,21 +198,21 @@ const createFavourites = (req, res) => {
                 });
             }
             user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
-            //? get type from favourites
-            const getTypeSql = "SELECT type from favourites where user_id = ? AND bio_id = ?";
+            //? get type from unfavorites
+            const getTypeSql = "SELECT type from unfavorites where user_id = ? AND bio_id = ?";
             db_1.default.query(getTypeSql, [user_id, bio_id], (err, result) => {
                 var _a;
                 if (err) {
-                    console.error("Error updating favourites:", err);
+                    console.error("Error updating unfavorites:", err);
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                 }
-                //! If existing type is 'like', update it to 'dislike', and vice versa
+                //! If existing type is 'gnore', update it to 'not-ignore', and vice versa
                 if (result.length) {
-                    const newType = ((_a = result[0]) === null || _a === void 0 ? void 0 : _a.type) === "like" ? "not-like" : "like";
-                    const updateSql = `UPDATE favourites SET type=?  WHERE user_id = ? AND bio_id=?`;
+                    const newType = ((_a = result[0]) === null || _a === void 0 ? void 0 : _a.type) === "ignore" ? "not-ignore" : "ignore";
+                    const updateSql = `UPDATE unfavorites SET type=?  WHERE user_id = ? AND bio_id=?`;
                     db_1.default.query(updateSql, [newType, user_id, bio_id], (err, results) => {
                         if (err) {
-                            console.error("Error updating favourites:", err);
+                            console.error("Error updating unfavorites:", err);
                             return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                         }
                         db_1.default.commit((err) => {
@@ -222,17 +222,17 @@ const createFavourites = (req, res) => {
                             }
                             res.status(201).json({
                                 success: true,
-                                message: "Favourites updated successfully",
+                                message: "UnFavorites updated successfully",
                                 data: results,
                             });
                         });
                     });
                 }
                 else {
-                    const createSql = `Insert into favourites(user_id,bio_id,type) values(?,?,?)`;
-                    db_1.default.query(createSql, [user_id, bio_id, "like"], (err, results) => {
+                    const createSql = `Insert into unfavorites(user_id,bio_id,type) values(?,?,?)`;
+                    db_1.default.query(createSql, [user_id, bio_id, "ignore"], (err, results) => {
                         if (err) {
-                            console.error("Error updating favourites:", err);
+                            console.error("Error updating unfavorites:", err);
                             return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
                         }
                         db_1.default.commit((err) => {
@@ -242,7 +242,7 @@ const createFavourites = (req, res) => {
                             }
                             res.status(201).json({
                                 success: true,
-                                message: "Favourites created successfully",
+                                message: "UnFavorites created successfully",
                                 data: results,
                             });
                         });
@@ -252,7 +252,7 @@ const createFavourites = (req, res) => {
         });
     });
 };
-const updateFavourites = (req, res) => {
+const updateUnFavorites = (req, res) => {
     var _a, _b;
     const data = req.body;
     const token_id = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id) !== null && _b !== void 0 ? _b : null;
@@ -293,22 +293,22 @@ const updateFavourites = (req, res) => {
                 });
             }
             //! Check if Expected Life Partner for the user with the given ID exists
-            const checkUserSql = "SELECT user_id FROM favourites WHERE user_id = ?";
+            const checkUserSql = "SELECT user_id FROM unfavorites WHERE user_id = ?";
             db_1.default.query(checkUserSql, [user_id], (err, userResults) => {
                 if (err) {
-                    console.error("Error checking Favourites:", err);
+                    console.error("Error checking UnFavorites:", err);
                     db_1.default.rollback(() => {
                         res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
                     });
                     return;
                 }
                 const userCount = userResults.length;
-                //! If Favourites doesn't exist, send an error response
+                //! If UnFavorites doesn't exist, send an error response
                 if (userCount === 0) {
                     db_1.default.rollback(() => {
                         res.status(404).json({
                             success: false,
-                            message: "Favourites not found",
+                            message: "UnFavorites not found",
                         });
                     });
                     return;
@@ -330,12 +330,12 @@ const updateFavourites = (req, res) => {
                     return;
                 }
                 // Construct the final update SQL statement
-                const updateSql = `UPDATE favourites SET ${updateFields.join(", ")} WHERE user_id = ?`;
+                const updateSql = `UPDATE unfavorites SET ${updateFields.join(", ")} WHERE user_id = ?`;
                 updateValues.push(user_id);
                 // Execute the update query within the transaction
                 db_1.default.query(updateSql, updateValues, (err, results) => {
                     if (err) {
-                        console.error("Error updating Favourites:", err);
+                        console.error("Error updating UnFavorites:", err);
                         db_1.default.rollback(() => {
                             res.status(500).json({
                                 success: false,
@@ -359,27 +359,27 @@ const updateFavourites = (req, res) => {
         });
     });
 };
-const deleteFavourites = (req, res) => {
+const deleteUnFavorites = (req, res) => {
     const userId = req.params.id; // Assuming you pass the user ID in the URL
-    // Check if favourites for the user with the given ID exists
-    const checkUserSql = "SELECT COUNT(*) AS userCount FROM favourites WHERE id = ?";
+    // Check if unfavorites for the user with the given ID exists
+    const checkUserSql = "SELECT COUNT(*) AS userCount FROM unfavorites WHERE id = ?";
     db_1.default.query(checkUserSql, [userId], (err, userResults) => {
         if (err) {
-            console.error("Error checking favourites:", err);
+            console.error("Error checking unfavorites:", err);
             return res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
         }
         const userCount = userResults[0].userCount;
-        // If favourites doesn't exist, send an error response
+        // If unfavorites doesn't exist, send an error response
         if (userCount === 0) {
             return res
                 .status(404)
-                .json({ success: false, message: "favourites not found" });
+                .json({ success: false, message: "unfavorites not found" });
         }
-        // If favourites exists, proceed with the deletion
-        const deleteSql = "DELETE FROM favourites WHERE id = ?";
+        // If unfavorites exists, proceed with the deletion
+        const deleteSql = "DELETE FROM unfavorites WHERE id = ?";
         db_1.default.query(deleteSql, [userId], (err, results) => {
             if (err) {
-                console.error("Error deleting favourites:", err);
+                console.error("Error deleting unfavorites:", err);
                 res
                     .status(500)
                     .json({ success: false, message: "Internal Server Error" });
@@ -387,17 +387,17 @@ const deleteFavourites = (req, res) => {
             else {
                 res
                     .status(200)
-                    .json({ success: true, message: "favourites deleted successfully" });
+                    .json({ success: true, message: "unfavorites deleted successfully" });
             }
         });
     });
 };
-exports.FavouritesController = {
-    getSingleFavourites,
-    createFavourites,
-    updateFavourites,
-    deleteFavourites,
-    getFavouritesByUserId,
-    getFavouritesCountByBioId,
-    getFavouritesListByUserId,
+exports.UnFavoritesController = {
+    getSingleUnFavorites,
+    createUnFavorites,
+    updateUnFavorites,
+    deleteUnFavorites,
+    getUnFavoritesByUserId,
+    getUnFavoritesCountByBioId,
+    getUnFavoritesListByUserId,
 };
