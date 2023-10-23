@@ -8,6 +8,10 @@ const RefundsRouter = express.Router();
 RefundsRouter.get("/refund-req", RefundController.getRefundList);
 
 // POST request to add a refund request
-RefundsRouter.post("/refund-req", RefundController.addRefundRequest);
+RefundsRouter.post(
+	"/refund-req",
+	auth("user", "admin"),
+	RefundController.addRefundRequest
+);
 
 export default RefundsRouter;
