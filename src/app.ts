@@ -21,6 +21,7 @@ import userTokenRouter from "./app/modules/user_token/user_token.route";
 import cors from "cors";
 import config from "./config";
 import bkashRouter from "./app/modules/bkash/bkash.route";
+import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
 app.use("/api/v1/favorites", FavouritesRouter);
+app.use("/api/v1/un-favorites", UnFavoritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/token", userTokenRouter);

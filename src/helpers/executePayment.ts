@@ -15,6 +15,7 @@ const executePayment = async (paymentID: string) => {
 		}
 	);
 	const executeResult = await executeResponse.json();
+
 	return executeResult;
 };
 
