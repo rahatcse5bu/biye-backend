@@ -52,7 +52,7 @@ export const RefundController = {
             }
     
             //! Get user_id using token_id
-            const getUserIdByTokenSql = `SELECT user_id FROM user_info WHERE token_id = ?`;
+            const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
             db.query<RowDataPacket[]>(
                 getUserIdByTokenSql,
                 [token_id],
