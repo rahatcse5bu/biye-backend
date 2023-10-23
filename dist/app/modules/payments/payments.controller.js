@@ -50,7 +50,7 @@ const getPaymentsByUser = (req, res) => {
                 });
             }
             //! now get all payment history by individuals
-            const getPaymentsHistorySql = `SELECT DISTINCT p.*, b.bio_details, b.feedback, b.status AS bio_choice_status FROM payments AS p LEFT JOIN bio_choice_data AS b ON p.user_id = b.user_id WHERE p.user_id = ?`;
+            const getPaymentsHistorySql = `SELECT p.*, b.bio_details, b.feedback, b.status AS bio_choice_status FROM payments AS p JOIN bio_choice_data AS b ON p.user_id = b.user_id WHERE p.user_id = ? GROUP BY p.payment_id;`;
             db_1.default.query(getPaymentsHistorySql, [user_id], (err, result) => {
                 if (err) {
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
