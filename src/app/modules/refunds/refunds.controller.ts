@@ -172,13 +172,29 @@ export const RefundController = {
 										});
 										return;
 									}
-									db.commit(() => {
-										res.status(200).json({
-											message: "successfully completed",
-											success: true,
-											data: result,
-										});
-									});
+
+									const updatePaymentsSql = `UPDATE payments SET  refund_status = 'refund processing' where payment_id  = ?`;
+
+									db.query(
+										updatePaymentsSql,
+										[data.payment_id],
+										(err, result) => {
+											if (err) {
+												return rollbackAndRespond(res, db, null, {
+													success: false,
+													message: "something wrong",
+													error: err,
+												});
+											}
+											db.commit(() => {
+												res.status(200).json({
+													message: "successfully completed",
+													success: true,
+													data: result,
+												});
+											});
+										}
+									);
 								}
 							);
 						}

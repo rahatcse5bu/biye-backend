@@ -147,11 +147,21 @@ exports.RefundController = {
                             });
                             return;
                         }
-                        db_1.default.commit(() => {
-                            res.status(200).json({
-                                message: "successfully completed",
-                                success: true,
-                                data: result,
+                        const updatePaymentsSql = `UPDATE payments SET  refund_status = 'refund processing' where payment_id  = ?`;
+                        db_1.default.query(updatePaymentsSql, [data.payment_id], (err, result) => {
+                            if (err) {
+                                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                                    success: false,
+                                    message: "something wrong",
+                                    error: err,
+                                });
+                            }
+                            db_1.default.commit(() => {
+                                res.status(200).json({
+                                    message: "successfully completed",
+                                    success: true,
+                                    data: result,
+                                });
                             });
                         });
                     });
