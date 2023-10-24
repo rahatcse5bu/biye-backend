@@ -30,6 +30,7 @@ exports.RefundController = {
     addRefundRequest: (req, res) => {
         var _a;
         const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+        const data = req.body;
         console.log(token_id);
         let user_id = null;
         if (!token_id) {
@@ -59,9 +60,8 @@ exports.RefundController = {
                         error: err,
                     });
                 }
-                console.log(result);
                 user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
-                console.log({ user_id });
+                // console.log({ user_id });
                 if (!user_id) {
                     return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
                         success: false,
@@ -69,29 +69,47 @@ exports.RefundController = {
                         error: err,
                     });
                 }
-                const data = req.body;
-                const sql = "INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
-                db_1.default.query(sql, [
-                    user_id,
-                    data.payment_id,
-                    data.transaction_id,
-                    data.amount,
-                    data.refund_status,
-                ], (err, result) => {
+                // Check if payment_id and transaction_id exist
+                const checkPaymentAndTransactionSql = `SELECT user_id,payment_id FROM refunds WHERE payment_id = ? AND transaction_id = ?`;
+                db_1.default.query(checkPaymentAndTransactionSql, [data.payment_id, data.transaction_id], (err, result) => {
                     if (err) {
-                        console.error("Error adding refund request:", err);
-                        res.status(500).json({
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
                             success: false,
-                            message: "Internal Server Error",
+                            message: "Error occurred while checking payment and transaction",
                             error: err,
                         });
-                        return;
                     }
-                    db_1.default.commit(() => {
-                        res.status(200).json({
-                            message: "successfully completed",
-                            success: true,
-                            data: result,
+                    if (result.length > 0) {
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                            success: false,
+                            message: "You are already requested for refunding",
+                            error: null,
+                        });
+                    }
+                    // If payment_id and transaction_id exist, proceed with adding refund request
+                    const sql = "INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
+                    db_1.default.query(sql, [
+                        user_id,
+                        data.payment_id,
+                        data.transaction_id,
+                        data.amount,
+                        data.refund_status,
+                    ], (err, result) => {
+                        if (err) {
+                            console.error("Error adding refund request:", err);
+                            res.status(500).json({
+                                success: false,
+                                message: "Internal Server Error",
+                                error: err,
+                            });
+                            return;
+                        }
+                        db_1.default.commit(() => {
+                            res.status(200).json({
+                                message: "successfully completed",
+                                success: true,
+                                data: result,
+                            });
                         });
                     });
                 });
