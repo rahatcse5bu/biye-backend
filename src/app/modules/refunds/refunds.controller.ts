@@ -28,9 +28,9 @@ export const RefundController = {
 			});
 		});
 	},
-
 	addRefundRequest: (req: Request, res: Response) => {
 		const token_id = req.user?.token_id;
+		const data = req.body;
 		console.log(token_id);
 		let user_id: string | null = null;
 
@@ -66,10 +66,9 @@ export const RefundController = {
 						});
 					}
 
-					console.log(result);
 					user_id = result[0]?.id;
 
-					console.log({ user_id });
+					// console.log({ user_id });
 					if (!user_id) {
 						return rollbackAndRespond(res, db, null, {
 							success: false,
@@ -78,35 +77,60 @@ export const RefundController = {
 						});
 					}
 
-					const data = req.body;
-					const sql =
-						"INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
-					db.query(
-						sql,
-						[
-							user_id,
-							data.payment_id,
-							data.transaction_id,
-							data.amount,
-							data.refund_status,
-						],
+					// Check if payment_id and transaction_id exist
+					const checkPaymentAndTransactionSql = `SELECT user_id,payment_id FROM refunds WHERE payment_id = ? AND transaction_id = ?`;
+					db.query<RowDataPacket[]>(
+						checkPaymentAndTransactionSql,
+						[data.payment_id, data.transaction_id],
 						(err, result) => {
 							if (err) {
-								console.error("Error adding refund request:", err);
-								res.status(500).json({
+								return rollbackAndRespond(res, db, null, {
 									success: false,
-									message: "Internal Server Error",
+									message:
+										"Error occurred while checking payment and transaction",
 									error: err,
 								});
-								return;
 							}
-							db.commit(() => {
-								res.status(200).json({
-									message: "successfully completed",
-									success: true,
-									data: result,
+
+							if (result.length > 0) {
+								return rollbackAndRespond(res, db, null, {
+									success: false,
+									message: "You are already requested for refunding",
+									error: null,
 								});
-							});
+							}
+
+							// If payment_id and transaction_id exist, proceed with adding refund request
+							const sql =
+								"INSERT INTO refunds (user_id, payment_id, transaction_id, refund_amount, refund_status) VALUES (?, ?, ?, ?, ?)";
+							db.query(
+								sql,
+								[
+									user_id,
+									data.payment_id,
+									data.transaction_id,
+									data.amount,
+									data.refund_status,
+								],
+								(err, result) => {
+									if (err) {
+										console.error("Error adding refund request:", err);
+										res.status(500).json({
+											success: false,
+											message: "Internal Server Error",
+											error: err,
+										});
+										return;
+									}
+									db.commit(() => {
+										res.status(200).json({
+											message: "successfully completed",
+											success: true,
+											data: result,
+										});
+									});
+								}
+							);
 						}
 					);
 				}
