@@ -141,8 +141,17 @@ const createGeneralInfo = (req: Request, res: Response) => {
 					error: err,
 				});
 			}
+
+			if (!result[0]?.id) {
+				return rollbackAndRespond(res, db, null, {
+					success: false,
+					message: "You are not authorized",
+					error: err,
+				});
+			}
 			console.log(result);
 			user_id = result[0]?.id;
+
 			// Check if the user_id already exists in the database
 			const checkSql =
 				"SELECT COUNT(*) AS count FROM general_info WHERE user_id = ?";

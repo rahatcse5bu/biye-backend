@@ -132,7 +132,7 @@ const createGeneralInfo = (req, res) => {
         // get user id using token id
         const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
         db_1.default.query(getUserIdByTokenSql, [tokenId], (err, result) => {
-            var _a;
+            var _a, _b;
             if (err) {
                 return rollbackAndRespond(res, db_1.default, null, {
                     success: false,
@@ -140,8 +140,15 @@ const createGeneralInfo = (req, res) => {
                     error: err,
                 });
             }
+            if (!((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id)) {
+                return rollbackAndRespond(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
             console.log(result);
-            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
+            user_id = (_b = result[0]) === null || _b === void 0 ? void 0 : _b.id;
             // Check if the user_id already exists in the database
             const checkSql = "SELECT COUNT(*) AS count FROM general_info WHERE user_id = ?";
             db_1.default.query(checkSql, [user_id], (err, results) => {
