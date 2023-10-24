@@ -201,7 +201,7 @@ exports.RefundController = {
                         error: err,
                     });
                 }
-                const updateRefundSql = `UPDATE refunds SET  refund_transaction_id = ?, refund_status = ? , refunded_time = CURRENT_TIMESTAMP WHERE payment_id =  ?`;
+                const updateRefundSql = `UPDATE refunds SET  refund_tnx_id = ?, refund_status = ? , refunded_time = CURRENT_TIMESTAMP WHERE payment_id =  ?`;
                 db_1.default.query(updateRefundSql, [data.refund_transaction_id, "refunded", data === null || data === void 0 ? void 0 : data.payment_id], (err, result) => {
                     if (err) {
                         return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {

@@ -236,7 +236,7 @@ export const RefundController = {
 						});
 					}
 
-					const updateRefundSql = `UPDATE refunds SET  refund_transaction_id = ?, refund_status = ? , refunded_time = CURRENT_TIMESTAMP WHERE payment_id =  ?`;
+					const updateRefundSql = `UPDATE refunds SET  refund_tnx_id = ?, refund_status = ? , refunded_time = CURRENT_TIMESTAMP WHERE payment_id =  ?`;
 
 					db.query(
 						updateRefundSql,
