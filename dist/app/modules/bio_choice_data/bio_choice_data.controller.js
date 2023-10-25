@@ -7,8 +7,8 @@ exports.BioChoiceDataController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const SendSuccess_1 = require("../../../shared/SendSuccess");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
-const bio_choice_data_constant_1 = require("./bio_choice_data.constant");
 const response_1 = require("../../../utils/response");
+const http_status_1 = __importDefault(require("http-status"));
 const getBioChoiceData = (req, res) => {
     const sql = "SELECT * FROM bio_choice_data";
     db_1.default.query(sql, (err, rows) => {
@@ -110,28 +110,96 @@ const getSingleBioChoiceData = (req, res) => {
     });
 };
 const createBioChoiceData = (req, res) => {
-    const data = req.body;
-    // Insert bio_choice_datarmation into the database
-    const insertSql = `INSERT INTO bio_choice_data (
-    	${bio_choice_data_constant_1.BioChoiceDataFields.join(",")}
-  ) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(bio_choice_data_constant_1.BioChoiceDataFields.length)})`;
-    const BioChoiceData = [];
-    bio_choice_data_constant_1.BioChoiceDataFields.forEach((field) => {
-        BioChoiceData.push(data[field]);
-    });
-    db_1.default.query(insertSql, BioChoiceData, (err, results) => {
+    var _a;
+    let data = req.body;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
         if (err) {
-            console.error("Error inserting Bio choice data:", err);
-            res
+            console.error("Error starting transaction:", err);
+            return res
                 .status(500)
-                .json({ success: false, message: "Internal Server Error" });
+                .json({ success: false, message: "Internal Server Error", error: err });
         }
-        else {
-            res.status(201).json({
-                success: true,
-                message: "Bio choice data created successfully",
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! Check if the user_id already exists in the database
+            const checkSql = "SELECT COUNT(*) AS count FROM bio_choice_data WHERE user_id = ? AND bio_id = ?";
+            db_1.default.query(checkSql, [user_id, data === null || data === void 0 ? void 0 : data.bio_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                const count = results[0].count;
+                if (count > 0) {
+                    //! User with this user_id already exists, return an error response
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                        success: false,
+                        message: "You already requested",
+                    });
+                }
+                data = Object.assign(Object.assign({}, data), { user_id });
+                const keys = Object.keys(data);
+                const values = Object.values(data);
+                //! Insert  into the database
+                const insertSql = `INSERT INTO bio_choice_data (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
+                const bio_choice_data = [];
+                keys.forEach((field) => {
+                    bio_choice_data.push(data[field]);
+                });
+                //! Insert bio choice data  information
+                db_1.default.query(insertSql, bio_choice_data, (err, results) => {
+                    if (err) {
+                        console.error("Error inserting Occupation:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    // ! reduced points
+                    const updateUserInfoSql = `UPDATE user_info SET points = points - ? WHERE id=?`;
+                    db_1.default.query(updateUserInfoSql, [30, user_id], (err, results) => {
+                        if (err) {
+                            console.error("Error updating user_info:", err);
+                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                        }
+                        // Commit the transaction if everything is successful
+                        db_1.default.commit((err) => {
+                            if (err) {
+                                console.error("Error committing transaction:", err);
+                                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                            }
+                            res.status(201).json({
+                                success: true,
+                                message: "Bio Choice data created successfully",
+                            });
+                        });
+                    });
+                });
             });
-        }
+        });
     });
 };
 const updateBioChoiceData = (req, res) => {

@@ -28,7 +28,7 @@ const addUniqueId = async (req: Request, res: Response) => {
 };
 
 const getUserInfo = (req: Request, res: Response) => {
-	const sql = `select id,token_id,email,user_role,edited_timeline_index,points,last_edited_timeline_index from user_info`;
+	const sql = `select id,token_id,user_status,email,user_role,edited_timeline_index,points,last_edited_timeline_index from user_info`;
 	db.query<RowDataPacket[]>(sql, (err, rows) => {
 		if (err) {
 			res.send({
@@ -49,7 +49,7 @@ const getUserInfo = (req: Request, res: Response) => {
 
 const getUserInfoByEmail = (req: Request, res: Response) => {
 	const email = req.params.email; // Assuming you pass the user ID as a route parameter
-	const sql = `SELECT id,token_id,email,user_role,edited_timeline_index,points,last_edited_timeline_index  FROM user_info WHERE email = ?`;
+	const sql = `SELECT id,token_id,user_status,email,user_role,edited_timeline_index,points,last_edited_timeline_index  FROM user_info WHERE email = ?`;
 
 	db.query<RowDataPacket[]>(sql, [email], (err, rows) => {
 		if (err) {
@@ -272,7 +272,7 @@ const createUserForGoogleSignIn = (req: Request, res: Response) => {
 
 const getSingleUserInfo = (req: Request, res: Response) => {
 	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-	const sql = `SELECT id,token_id,email,user_role,points,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE id = ?`;
+	const sql = `SELECT id,token_id,email,user_status,user_role,points,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE id = ?`;
 
 	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
 		if (err) {

@@ -5,10 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const bio_choice_data_controller_1 = require("./bio_choice_data.controller");
+const auth_1 = require("../../middlewares/auth");
 const BioChoiceDataRouter = express_1.default.Router();
 BioChoiceDataRouter.route("/")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceData)
-    .post(bio_choice_data_controller_1.BioChoiceDataController.createBioChoiceData);
+    .post((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.createBioChoiceData);
 BioChoiceDataRouter.route("/statistics/:id").get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceStatisticsData);
 BioChoiceDataRouter.route("/:id")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getSingleBioChoiceData)

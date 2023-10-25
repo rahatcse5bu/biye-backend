@@ -38,7 +38,7 @@ const addUniqueId = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     });
 });
 const getUserInfo = (req, res) => {
-    const sql = `select id,token_id,email,user_role,edited_timeline_index,points,last_edited_timeline_index from user_info`;
+    const sql = `select id,token_id,user_status,email,user_role,edited_timeline_index,points,last_edited_timeline_index from user_info`;
     db_1.default.query(sql, (err, rows) => {
         if (err) {
             res.send({
@@ -53,7 +53,7 @@ const getUserInfo = (req, res) => {
 };
 const getUserInfoByEmail = (req, res) => {
     const email = req.params.email; // Assuming you pass the user ID as a route parameter
-    const sql = `SELECT id,token_id,email,user_role,edited_timeline_index,points,last_edited_timeline_index  FROM user_info WHERE email = ?`;
+    const sql = `SELECT id,token_id,user_status,email,user_role,edited_timeline_index,points,last_edited_timeline_index  FROM user_info WHERE email = ?`;
     db_1.default.query(sql, [email], (err, rows) => {
         if (err) {
             return res.status(500).json({
@@ -237,7 +237,7 @@ const createUserForGoogleSignIn = (req, res) => {
 };
 const getSingleUserInfo = (req, res) => {
     const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-    const sql = `SELECT id,token_id,email,user_role,points,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE id = ?`;
+    const sql = `SELECT id,token_id,email,user_status,user_role,points,edited_timeline_index,last_edited_timeline_index  FROM user_info WHERE id = ?`;
     db_1.default.query(sql, [userId], (err, rows) => {
         if (err) {
             return res.status(500).json({

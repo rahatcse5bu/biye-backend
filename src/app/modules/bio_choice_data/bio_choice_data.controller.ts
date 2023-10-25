@@ -5,6 +5,7 @@ import { sendSuccess } from "../../../shared/SendSuccess";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
 import { BioChoiceDataFields } from "./bio_choice_data.constant";
 import { rollbackAndRespond } from "../../../utils/response";
+import httpStatus from "http-status";
 
 const getBioChoiceData = (req: Request, res: Response) => {
 	const sql = "SELECT * FROM bio_choice_data";
@@ -134,29 +135,122 @@ const getSingleBioChoiceData = (req: Request, res: Response) => {
 };
 
 const createBioChoiceData = (req: Request, res: Response) => {
-	const data = req.body;
-	// Insert bio_choice_datarmation into the database
-	const insertSql = `INSERT INTO bio_choice_data (
-    	${BioChoiceDataFields.join(",")}
-  ) VALUES (${generatePlaceholders(BioChoiceDataFields.length)})`;
+	let data = req.body;
+	const token_id = req.user?.token_id;
+	let user_id: string | null = null;
+	// console.log(req.user);
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
 
-	const BioChoiceData: string[] = [];
-	BioChoiceDataFields.forEach((field) => {
-		BioChoiceData.push(data[field]);
-	});
-
-	db.query(insertSql, BioChoiceData, (err, results) => {
+	db.beginTransaction((err) => {
 		if (err) {
-			console.error("Error inserting Bio choice data:", err);
-			res
+			console.error("Error starting transaction:", err);
+			return res
 				.status(500)
-				.json({ success: false, message: "Internal Server Error" });
-		} else {
-			res.status(201).json({
-				success: true,
-				message: "Bio choice data created successfully",
-			});
+				.json({ success: false, message: "Internal Server Error", error: err });
 		}
+
+		//! get user_id using token_id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//console.log(result);
+
+				user_id = result[0].id;
+
+				if (!user_id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				//! Check if the user_id already exists in the database
+				const checkSql =
+					"SELECT COUNT(*) AS count FROM bio_choice_data WHERE user_id = ? AND bio_id = ?";
+
+				db.query<RowDataPacket[]>(
+					checkSql,
+					[user_id, data?.bio_id],
+					(err, results) => {
+						if (err) {
+							console.error("Error checking User Id:", err);
+							return rollbackAndRespond(res, db, err);
+						}
+
+						const count = results[0].count;
+
+						if (count > 0) {
+							//! User with this user_id already exists, return an error response
+							return rollbackAndRespond(res, db, null, {
+								success: false,
+								message: "You already requested",
+							});
+						}
+
+						data = {
+							...data,
+							user_id,
+						};
+
+						const keys = Object.keys(data);
+						const values = Object.values(data);
+
+						//! Insert  into the database
+						const insertSql = `INSERT INTO bio_choice_data (${keys.join(
+							","
+						)}) VALUES (${generatePlaceholders(values.length)})`;
+						const bio_choice_data: string[] = [];
+						keys.forEach((field) => {
+							bio_choice_data.push(data[field]);
+						});
+
+						//! Insert bio choice data  information
+						db.query(insertSql, bio_choice_data, (err, results) => {
+							if (err) {
+								console.error("Error inserting Occupation:", err);
+								return rollbackAndRespond(res, db, err);
+							}
+							// ! reduced points
+							const updateUserInfoSql = `UPDATE user_info SET points = points - ? WHERE id=?`;
+							db.query(updateUserInfoSql, [30, user_id], (err, results) => {
+								if (err) {
+									console.error("Error updating user_info:", err);
+									return rollbackAndRespond(res, db, err);
+								}
+								// Commit the transaction if everything is successful
+								db.commit((err) => {
+									if (err) {
+										console.error("Error committing transaction:", err);
+										return rollbackAndRespond(res, db, err);
+									}
+
+									res.status(201).json({
+										success: true,
+										message: "Bio Choice data created successfully",
+									});
+								});
+							});
+						});
+					}
+				);
+			}
+		);
 	});
 };
 
