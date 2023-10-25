@@ -3,7 +3,6 @@ import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-import { BioChoiceDataFields } from "./bio_choice_data.constant";
 import { rollbackAndRespond } from "../../../utils/response";
 import httpStatus from "http-status";
 
