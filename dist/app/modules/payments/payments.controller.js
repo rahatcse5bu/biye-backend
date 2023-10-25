@@ -154,7 +154,7 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
                         : 0;
                 }
                 else {
-                    points = 0;
+                    points = amount;
                 }
                 console.log(points);
                 const updateGeneralInfoSql = `UPDATE user_info SET points = points + ? where id = ?`;

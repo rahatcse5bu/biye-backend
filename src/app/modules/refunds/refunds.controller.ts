@@ -3,6 +3,7 @@ import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
 import httpStatus from "http-status";
 import { rollbackAndRespond } from "../../../utils/response";
+import { amountToPoints } from "../payments/payments.constant";
 
 export const RefundController = {
 	getRefundList: (req: Request, res: Response) => {
@@ -207,7 +208,7 @@ export const RefundController = {
 		const token_id = req.user?.token_id;
 		const data = req.body;
 		let user_id: string | null = null;
-		console.log(token_id);
+		// console.log(token_id);
 
 		if (!token_id) {
 			return res.status(401).send({
@@ -277,14 +278,36 @@ export const RefundController = {
 											error: err,
 										});
 									}
+									let points = 0;
+									let amount = Number(data?.amount);
+									if (amountToPoints[amount]) {
+										points = Number(amountToPoints[amount]);
+									} else {
+										points = amount;
+									}
+									const updateGeneralInfoSql = `UPDATE user_info SET points = points - ? where id = ?`;
 
-									db.commit(() => {
-										res.status(200).json({
-											message: "successfully completed",
-											success: true,
-											data: result,
-										});
-									});
+									db.query(
+										updateGeneralInfoSql,
+										[points, data?.user_id],
+										(err, results) => {
+											if (err) {
+												return rollbackAndRespond(res, db, null, {
+													success: false,
+													message: "something wrong",
+													error: err,
+												});
+											}
+
+											db.commit(() => {
+												res.status(200).json({
+													message: "successfully completed",
+													success: true,
+													data: results,
+												});
+											});
+										}
+									);
 								}
 							);
 						}

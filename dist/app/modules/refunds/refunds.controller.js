@@ -7,6 +7,7 @@ exports.RefundController = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const http_status_1 = __importDefault(require("http-status"));
 const response_1 = require("../../../utils/response");
+const payments_constant_1 = require("../payments/payments.constant");
 exports.RefundController = {
     getRefundList: (req, res) => {
         var _a;
@@ -229,11 +230,29 @@ exports.RefundController = {
                                 error: err,
                             });
                         }
-                        db_1.default.commit(() => {
-                            res.status(200).json({
-                                message: "successfully completed",
-                                success: true,
-                                data: result,
+                        let points = 0;
+                        let amount = Number(data === null || data === void 0 ? void 0 : data.amount);
+                        if (payments_constant_1.amountToPoints[amount]) {
+                            points = Number(payments_constant_1.amountToPoints[amount]);
+                        }
+                        else {
+                            points = amount;
+                        }
+                        const updateGeneralInfoSql = `UPDATE user_info SET points = points - ? where id = ?`;
+                        db_1.default.query(updateGeneralInfoSql, [points, data === null || data === void 0 ? void 0 : data.user_id], (err, results) => {
+                            if (err) {
+                                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                                    success: false,
+                                    message: "something wrong",
+                                    error: err,
+                                });
+                            }
+                            db_1.default.commit(() => {
+                                res.status(200).json({
+                                    message: "successfully completed",
+                                    success: true,
+                                    data: results,
+                                });
                             });
                         });
                     });

@@ -166,7 +166,7 @@ const createPayments = async (req: Request, res: Response) => {
 							? Number(amountToPoints[amount])
 							: 0;
 					} else {
-						points = 0;
+						points = amount;
 					}
 					console.log(points);
 					const updateGeneralInfoSql = `UPDATE user_info SET points = points + ? where id = ?`;
