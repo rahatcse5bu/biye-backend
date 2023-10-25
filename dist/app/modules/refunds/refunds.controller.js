@@ -175,7 +175,7 @@ exports.RefundController = {
         const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
         const data = req.body;
         let user_id = null;
-        console.log(token_id);
+        // console.log(token_id);
         if (!token_id) {
             return res.status(401).send({
                 statusCode: http_status_1.default.UNAUTHORIZED,
