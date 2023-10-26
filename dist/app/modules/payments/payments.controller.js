@@ -18,6 +18,7 @@ const SendSuccess_1 = require("../../../shared/SendSuccess");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const payments_constant_1 = require("./payments.constant");
 const response_1 = require("../../../utils/response");
+const http_status_1 = __importDefault(require("http-status"));
 const getPaymentsByUser = (req, res) => {
     var _a;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
@@ -96,6 +97,14 @@ const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function*
     let data = req.body;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
     let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
     db_1.default.beginTransaction((err) => {
         if (err) {
             console.error("Error starting transaction:", err);

@@ -99,6 +99,14 @@ const createPayments = async (req: Request, res: Response) => {
 	let data = req.body;
 	const token_id = req.user?.token_id;
 	let user_id: number | null = null;
+	// console.log(req.user);
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
 
 	db.beginTransaction((err) => {
 		if (err) {
