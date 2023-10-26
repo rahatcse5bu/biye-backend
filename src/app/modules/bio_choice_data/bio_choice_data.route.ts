@@ -6,6 +6,16 @@ const BioChoiceDataRouter = express.Router();
 BioChoiceDataRouter.route("/")
 	.get(BioChoiceDataController.getBioChoiceData)
 	.post(auth("user", "admin"), BioChoiceDataController.createBioChoiceData);
+
+BioChoiceDataRouter.route("/first-step").get(
+	auth("user", "admin"),
+	BioChoiceDataController.getBioChoiceDataOfFirstStep
+);
+BioChoiceDataRouter.route("/second-step").get(
+	auth("user", "admin"),
+	BioChoiceDataController.getBioChoiceDataOfSecondStep
+);
+
 BioChoiceDataRouter.route("/statistics/:id").get(
 	BioChoiceDataController.getBioChoiceStatisticsData
 );

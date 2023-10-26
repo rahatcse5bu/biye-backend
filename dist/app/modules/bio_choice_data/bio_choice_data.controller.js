@@ -25,7 +25,7 @@ const getBioChoiceData = (req, res) => {
 };
 const getBioChoiceStatisticsData = (req, res) => {
     const bioId = req.params.id;
-    const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'rejected' AND user_id =? `;
+    const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND user_id =? `;
     let responseResults = {};
     db_1.default.beginTransaction((err) => {
         if (err) {
@@ -45,7 +45,7 @@ const getBioChoiceStatisticsData = (req, res) => {
                 });
             }
             responseResults = Object.assign(Object.assign({}, responseResults), { rejected: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.rejectedCount });
-            const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'approved' AND user_id=? `;
+            const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND user_id=? `;
             db_1.default.query(approvedSql, [bioId], (err, results) => {
                 var _a;
                 if (err) {
@@ -58,7 +58,7 @@ const getBioChoiceStatisticsData = (req, res) => {
                     });
                 }
                 responseResults = Object.assign(Object.assign({}, responseResults), { approved: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.approvedCount });
-                const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'pending' AND user_id=? `;
+                const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND user_id=? `;
                 db_1.default.query(pendingSql, [bioId], (err, results) => {
                     var _a;
                     if (err) {
@@ -312,6 +312,198 @@ const deleteBioChoiceData = (req, res) => {
         });
     });
 };
+const getBioChoiceDataOfFirstStep = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! get bio choice data first step
+            const getSqlFirstStep = `
+				SELECT subquery.bio_id,a.permanent_area,a.present_area,a.zilla,a.upzilla,a.division,a.city,
+				subquery.status,subquery.feedback,
+				COUNT(main.user_id) AS total_count,
+				SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
+				SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
+				SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) AS pending_count,
+				CASE
+        WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
+        THEN 0.0
+        ELSE
+            (
+                SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) * 100.0
+            ) / (
+                COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
+            )
+				END AS approval_rate,
+				CASE
+        WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
+        THEN 0.0
+        ELSE
+            (
+                SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) * 100.0
+            ) / (
+                COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
+            )
+								END AS rejection_rate
+						FROM (
+								SELECT DISTINCT *
+								FROM bio_choice_data
+								WHERE user_id = ? AND bio_id <> ?
+						) AS subquery
+						LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id
+						GROUP BY subquery.bio_id;
+				
+				`;
+            db_1.default.query(getSqlFirstStep, [user_id, user_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                // Commit the transaction if everything is successful
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Bio Choice first step data get successfully",
+                        data: results,
+                    });
+                });
+            });
+        });
+    });
+};
+const getBioChoiceDataOfSecondStep = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! get bio choice data of second step
+            const getSqlSecondStep = `
+				SELECT
+    subquery.bio_id,p.reason,a.permanent_area as permanent_address,a.present_area as present_address,a.zilla as zilla,a.upzilla as upzilla,a.division as divison,a.city as city,gi.date_of_birth as date_of_birth, c.full_name,c.family_number,c.relation,
+    subquery.status as choice_bio_status,subquery.feedback,
+    COUNT(main.user_id) AS total_count,
+    SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
+    SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
+    SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) AS pending_count,
+    CASE
+        WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
+        THEN 0.0
+        ELSE
+            (
+                SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) * 100.0
+            ) / (
+                COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
+            )
+    END AS approval_rate,
+    CASE
+        WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
+        THEN 0.0
+        ELSE
+            (
+                SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) * 100.0
+            ) / (
+                COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
+            )
+						END AS rejection_rate
+				FROM (
+						SELECT DISTINCT *
+						FROM bio_choice_data
+						WHERE user_id = ? AND bio_id <> ?
+				) AS subquery
+				LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id LEFT JOIN contact c on c.user_id=subquery.bio_id LEFT JOIN  general_info gi ON gi.user_id=subquery.bio_id LEFT JOIN contact_purchase_data cpd ON cpd.user_id=? LEFT JOIN payments p ON (p.user_id= ? AND p.transaction_id=cpd.transaction_id AND cpd.bio_id=subquery.bio_id) WHERE (p.reason='contact_purchase' AND p.status='Completed' AND p.refund_status <> 'refunded' OR p.refund_status NOT LIKE '%processing%') AND subquery.status='Approved'
+				GROUP BY subquery.bio_id;
+				`;
+            db_1.default.query(getSqlSecondStep, [user_id, user_id, user_id, user_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                // Commit the transaction if everything is successful
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Bio Choice second step data get successfully",
+                        data: results,
+                    });
+                });
+            });
+        });
+    });
+};
 exports.BioChoiceDataController = {
     getBioChoiceData,
     getSingleBioChoiceData,
@@ -319,4 +511,6 @@ exports.BioChoiceDataController = {
     updateBioChoiceData,
     deleteBioChoiceData,
     getBioChoiceStatisticsData,
+    getBioChoiceDataOfFirstStep,
+    getBioChoiceDataOfSecondStep,
 };

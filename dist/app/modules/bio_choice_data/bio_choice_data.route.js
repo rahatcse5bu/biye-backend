@@ -10,6 +10,8 @@ const BioChoiceDataRouter = express_1.default.Router();
 BioChoiceDataRouter.route("/")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceData)
     .post((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.createBioChoiceData);
+BioChoiceDataRouter.route("/first-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceDataOfFirstStep);
+BioChoiceDataRouter.route("/second-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceDataOfSecondStep);
 BioChoiceDataRouter.route("/statistics/:id").get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceStatisticsData);
 BioChoiceDataRouter.route("/:id")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getSingleBioChoiceData)

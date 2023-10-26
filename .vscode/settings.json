@@ -1,5 +1,13 @@
 {
-	"cSpell.words": ["bkash", "Favourites", "lifepartner", "pncmatrimony"],
+	"cSpell.words": [
+		"bkash",
+		"Favourites",
+		"lifepartner",
+		"pncmatrimony",
+		"subquery",
+		"upzilla",
+		"zilla"
+	],
 	"editor.formatOnSave": true,
 	"notebook.formatOnSave.enabled": true,
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
