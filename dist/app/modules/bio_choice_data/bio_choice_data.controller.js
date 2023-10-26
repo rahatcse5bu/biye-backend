@@ -504,6 +504,130 @@ const getBioChoiceDataOfSecondStep = (req, res) => {
         });
     });
 };
+const checkBioChoiceDataOfFirstStep = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    const bio_id = req.params.id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! get bio choice data of second step
+            const checkSqlFirstStep = "SELECT COUNT(*) as count , bcd.status FROM `bio_choice_data` bcd WHERE bcd.user_id= ? AND bcd.bio_id = ?";
+            db_1.default.query(checkSqlFirstStep, [user_id, bio_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                // Commit the transaction if everything is successful
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Bio Choice check first step data get successfully",
+                        data: results,
+                    });
+                });
+            });
+        });
+    });
+};
+const checkBioChoiceDataOfSecondStep = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    const bio_id = req.params.id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! get bio choice data of second step
+            const checkSqlSecondStep = "SELECT COUNT(*) as count,p.status as payment_status, p.refund_status as refund_status FROM payments p LEFT JOIN contact_purchase_data cpd on (p.user_id=cpd.user_id AND p.transaction_id=cpd.transaction_id) WHERE p.status='Completed' AND p.refund_status NOT LIKE '%processing%' AND p.reason='contact_purchase' AND p.user_id=? AND cpd.bio_id=?";
+            db_1.default.query(checkSqlSecondStep, [user_id, bio_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                // Commit the transaction if everything is successful
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Bio Choice check second step data get successfully",
+                        data: results,
+                    });
+                });
+            });
+        });
+    });
+};
 exports.BioChoiceDataController = {
     getBioChoiceData,
     getSingleBioChoiceData,
@@ -513,4 +637,6 @@ exports.BioChoiceDataController = {
     getBioChoiceStatisticsData,
     getBioChoiceDataOfFirstStep,
     getBioChoiceDataOfSecondStep,
+    checkBioChoiceDataOfFirstStep,
+    checkBioChoiceDataOfSecondStep,
 };

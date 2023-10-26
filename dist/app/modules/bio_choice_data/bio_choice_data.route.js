@@ -12,6 +12,8 @@ BioChoiceDataRouter.route("/")
     .post((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.createBioChoiceData);
 BioChoiceDataRouter.route("/first-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceDataOfFirstStep);
 BioChoiceDataRouter.route("/second-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceDataOfSecondStep);
+BioChoiceDataRouter.route("/check-second-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.checkBioChoiceDataOfSecondStep);
+BioChoiceDataRouter.route("/check-first-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceDataController.checkBioChoiceDataOfFirstStep);
 BioChoiceDataRouter.route("/statistics/:id").get(bio_choice_data_controller_1.BioChoiceDataController.getBioChoiceStatisticsData);
 BioChoiceDataRouter.route("/:id")
     .get(bio_choice_data_controller_1.BioChoiceDataController.getSingleBioChoiceData)
