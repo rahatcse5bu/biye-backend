@@ -15,6 +15,14 @@ BioChoiceDataRouter.route("/second-step").get(
 	auth("user", "admin"),
 	BioChoiceDataController.getBioChoiceDataOfSecondStep
 );
+BioChoiceDataRouter.route("/check-second-step/:id").get(
+	auth("user", "admin"),
+	BioChoiceDataController.checkBioChoiceDataOfSecondStep
+);
+BioChoiceDataRouter.route("/check-first-step/:id").get(
+	auth("user", "admin"),
+	BioChoiceDataController.checkBioChoiceDataOfFirstStep
+);
 
 BioChoiceDataRouter.route("/statistics/:id").get(
 	BioChoiceDataController.getBioChoiceStatisticsData
