@@ -25,7 +25,7 @@ const getBioChoiceData = (req, res) => {
 };
 const getBioChoiceStatisticsData = (req, res) => {
     const bioId = req.params.id;
-    const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND user_id =? `;
+    const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND bio_id =? `;
     let responseResults = {};
     db_1.default.beginTransaction((err) => {
         if (err) {
@@ -45,7 +45,7 @@ const getBioChoiceStatisticsData = (req, res) => {
                 });
             }
             responseResults = Object.assign(Object.assign({}, responseResults), { rejected: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.rejectedCount });
-            const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND user_id=? `;
+            const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND bio_id=? `;
             db_1.default.query(approvedSql, [bioId], (err, results) => {
                 var _a;
                 if (err) {
@@ -58,7 +58,7 @@ const getBioChoiceStatisticsData = (req, res) => {
                     });
                 }
                 responseResults = Object.assign(Object.assign({}, responseResults), { approved: (_a = results[0]) === null || _a === void 0 ? void 0 : _a.approvedCount });
-                const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND user_id=? `;
+                const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND bio_id=? `;
                 db_1.default.query(pendingSql, [bioId], (err, results) => {
                     var _a;
                     if (err) {
@@ -504,6 +504,67 @@ const getBioChoiceDataOfSecondStep = (req, res) => {
         });
     });
 };
+const getBioChoiceDataOfShare = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
+        }
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = result[0].id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //! get bio choice data of share
+            const getSqlOfShare = "SELECT DISTINCT bc.user_id, bc.status,bc.feedback FROM bio_choice_data bc WHERE bc.user_id IN (SELECT DISTINCT user_id FROM `bio_choice_data` WHERE bio_id=? AND user_id <> ?)";
+            db_1.default.query(getSqlOfShare, [user_id, user_id], (err, results) => {
+                if (err) {
+                    console.error("Error checking User Id:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                // Commit the transaction if everything is successful
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Bio Choice of share data get successfully",
+                        data: results,
+                    });
+                });
+            });
+        });
+    });
+};
 const checkBioChoiceDataOfFirstStep = (req, res) => {
     var _a;
     const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
@@ -639,4 +700,5 @@ exports.BioChoiceDataController = {
     getBioChoiceDataOfSecondStep,
     checkBioChoiceDataOfFirstStep,
     checkBioChoiceDataOfSecondStep,
+    getBioChoiceDataOfShare,
 };

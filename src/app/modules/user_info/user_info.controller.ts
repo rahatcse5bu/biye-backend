@@ -162,9 +162,7 @@ const createUserForGoogleSignIn = (req: Request, res: Response) => {
 											});
 										});
 									}
-
 									console.log(user);
-
 									//! Commit the transaction if the update was successful
 									db.commit((err) => {
 										if (err) {
@@ -184,7 +182,7 @@ const createUserForGoogleSignIn = (req: Request, res: Response) => {
 														user_role: user[0]?.user_role,
 													},
 													config.jwt_secret as string,
-													"7d"
+													"365d"
 												),
 											});
 										}

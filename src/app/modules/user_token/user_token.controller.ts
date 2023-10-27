@@ -1,12 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import { RowDataPacket } from "mysql2";
 import db from "../../../config/db";
-import { sendSuccess } from "../../../shared/SendSuccess";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import config from "../../../config";
 // @ts-ignore
 import { Secret } from "jsonwebtoken";
-import jwt from "jsonwebtoken";
+import { rollbackAndRespond } from "../../../utils/response";
+import httpStatus from "http-status";
 
 const getUserToken = async (req: Request, res: Response) => {
 	const tokenId = req.params.tokenId;
@@ -51,40 +51,69 @@ const getUserToken = async (req: Request, res: Response) => {
 };
 
 //! Middleware function for JWT verification
-export function verifyJWT(req: Request, res: Response, next: NextFunction) {
-	//! Get the JWT token from the request headers, cookies, or wherever you store it
-	const token = req.headers.authorization || req.cookies.jwt;
-
-	if (!token) {
-		return res.status(401).json({ message: "Unauthorized" });
+const verifyJWT = async (req: Request, res: Response) => {
+	const token_id = req.user?.token_id;
+	let user_id: string | null = null;
+	// console.log(req.user);
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
 	}
 
-	try {
-		//! Verify the JWT and assert the type as JwtPayload
-		const decoded = jwt.verify(
-			token,
-			config.jwt_secret as Secret
-		) as jwt.JwtPayload;
-
-		//! Check if the token is valid and hasn't expired
-		if (
-			!decoded ||
-			!decoded.exp ||
-			decoded.exp < Math.floor(Date.now() / 1000)
-		) {
-			return res.status(401).json({ message: "JWT has expired or is invalid" });
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
 		}
 
-		//! Token is valid, proceed to the next middleware or route
-		return res.status(200).json({ message: "Token is valid" });
-	} catch (error) {
-		if (error instanceof jwt.JsonWebTokenError) {
-			return res.status(401).json({ message: "Invalid token" });
-		} else {
-			return res.status(500).json({ message: "Internal server error" });
-		}
-	}
-}
+		//! get user_id using token_id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//console.log(result);
+
+				user_id = result[0]?.id;
+
+				if (!user_id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				db.commit((err) => {
+					if (err) {
+						console.error("Error committing transaction:", err);
+						return rollbackAndRespond(res, db, err);
+					}
+
+					res.status(201).json({
+						success: true,
+						message: "User info data get successfully",
+						data: {
+							user_id: user_id,
+						},
+					});
+				});
+			}
+		);
+	});
+};
 
 export const UserTokenControllers = {
 	getUserToken,

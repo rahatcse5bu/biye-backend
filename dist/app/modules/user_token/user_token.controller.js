@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserTokenControllers = exports.verifyJWT = void 0;
+exports.UserTokenControllers = void 0;
 const db_1 = __importDefault(require("../../../config/db"));
 const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../../config"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const response_1 = require("../../../utils/response");
+const http_status_1 = __importDefault(require("http-status"));
 const getUserToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const tokenId = req.params.tokenId;
     const sql = `SELECT * FROM user_info WHERE token_id = ?`;
@@ -50,34 +51,61 @@ const getUserToken = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     });
 });
 //! Middleware function for JWT verification
-function verifyJWT(req, res, next) {
-    //! Get the JWT token from the request headers, cookies, or wherever you store it
-    const token = req.headers.authorization || req.cookies.jwt;
-    if (!token) {
-        return res.status(401).json({ message: "Unauthorized" });
+const verifyJWT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    // console.log(req.user);
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
     }
-    try {
-        //! Verify the JWT and assert the type as JwtPayload
-        const decoded = jsonwebtoken_1.default.verify(token, config_1.default.jwt_secret);
-        //! Check if the token is valid and hasn't expired
-        if (!decoded ||
-            !decoded.exp ||
-            decoded.exp < Math.floor(Date.now() / 1000)) {
-            return res.status(401).json({ message: "JWT has expired or is invalid" });
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
         }
-        //! Token is valid, proceed to the next middleware or route
-        return res.status(200).json({ message: "Token is valid" });
-    }
-    catch (error) {
-        if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
-            return res.status(401).json({ message: "Invalid token" });
-        }
-        else {
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
-}
-exports.verifyJWT = verifyJWT;
+        //! get user_id using token_id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //console.log(result);
+            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            db_1.default.commit((err) => {
+                if (err) {
+                    console.error("Error committing transaction:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                res.status(201).json({
+                    success: true,
+                    message: "User info data get successfully",
+                    data: {
+                        user_id: user_id,
+                    },
+                });
+            });
+        });
+    });
+});
 exports.UserTokenControllers = {
     getUserToken,
     verifyJWT,
