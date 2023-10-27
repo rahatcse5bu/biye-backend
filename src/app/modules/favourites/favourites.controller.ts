@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import db from "../../../config/db";
 import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
-import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-import { FavouritesFields } from "./favourites.constant";
 import httpStatus from "http-status";
 import { rollbackAndRespond } from "../../../utils/response";
 import { JwtPayload } from "jsonwebtoken";

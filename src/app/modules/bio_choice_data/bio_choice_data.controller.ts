@@ -29,7 +29,7 @@ const getBioChoiceData = (req: Request, res: Response) => {
 
 const getBioChoiceStatisticsData = (req: Request, res: Response) => {
 	const bioId = req.params.id;
-	const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND user_id =? `;
+	const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND bio_id =? `;
 	let responseResults = {};
 	db.beginTransaction((err) => {
 		if (err) {
@@ -54,7 +54,7 @@ const getBioChoiceStatisticsData = (req: Request, res: Response) => {
 				rejected: results[0]?.rejectedCount,
 			};
 
-			const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND user_id=? `;
+			const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND bio_id=? `;
 			db.query<RowDataPacket[]>(approvedSql, [bioId], (err, results) => {
 				if (err) {
 					return db.rollback(() => {
@@ -71,7 +71,7 @@ const getBioChoiceStatisticsData = (req: Request, res: Response) => {
 					approved: results[0]?.approvedCount,
 				};
 
-				const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND user_id=? `;
+				const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND bio_id=? `;
 				db.query<RowDataPacket[]>(pendingSql, [bioId], (err, results) => {
 					if (err) {
 						return db.rollback(() => {
@@ -603,6 +603,92 @@ const getBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 		);
 	});
 };
+const getBioChoiceDataOfShare = (req: Request, res: Response) => {
+	const token_id = req.user?.token_id;
+	let user_id: string | null = null;
+	// console.log(req.user);
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
+
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
+		}
+
+		//! get user_id using token_id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//console.log(result);
+
+				user_id = result[0].id;
+
+				if (!user_id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				//! get bio choice data of share
+
+				const getSqlOfShare = `
+				SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,address.present_address,address.city,address.present_area 
+				FROM bio_choice_data as bc 
+				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id 
+				LEFT JOIN address ON address.user_id = bc.user_id
+				WHERE bc.user_id IN (
+						SELECT DISTINCT user_id 
+						FROM bio_choice_data 
+						WHERE bio_id = ? AND user_id <> ?
+				)
+				`;
+
+				db.query<RowDataPacket[]>(
+					getSqlOfShare,
+					[user_id, user_id],
+					(err, results) => {
+						if (err) {
+							console.error("Error checking User Id:", err);
+							return rollbackAndRespond(res, db, err);
+						}
+						// Commit the transaction if everything is successful
+						db.commit((err) => {
+							if (err) {
+								console.error("Error committing transaction:", err);
+								return rollbackAndRespond(res, db, err);
+							}
+
+							res.status(201).json({
+								success: true,
+								message: "Bio Choice of share data get successfully",
+								data: results,
+							});
+						});
+					}
+				);
+			}
+		);
+	});
+};
 
 const checkBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 	const token_id = req.user?.token_id;
@@ -772,4 +858,5 @@ export const BioChoiceDataController = {
 	getBioChoiceDataOfSecondStep,
 	checkBioChoiceDataOfFirstStep,
 	checkBioChoiceDataOfSecondStep,
+	getBioChoiceDataOfShare,
 };
