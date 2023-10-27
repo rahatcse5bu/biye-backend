@@ -650,8 +650,17 @@ const getBioChoiceDataOfShare = (req: Request, res: Response) => {
 
 				//! get bio choice data of share
 
-				const getSqlOfShare =
-					"SELECT DISTINCT bc.user_id, bc.status,bc.feedback FROM bio_choice_data bc WHERE bc.user_id IN (SELECT DISTINCT user_id FROM `bio_choice_data` WHERE bio_id=? AND user_id <> ?)";
+				const getSqlOfShare = `
+				SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,address.present_address,address.city,address.present_area 
+				FROM bio_choice_data as bc 
+				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id 
+				LEFT JOIN address ON address.user_id = bc.user_id
+				WHERE bc.user_id IN (
+						SELECT DISTINCT user_id 
+						FROM bio_choice_data 
+						WHERE bio_id = ? AND user_id <> ?
+				)
+				`;
 
 				db.query<RowDataPacket[]>(
 					getSqlOfShare,
