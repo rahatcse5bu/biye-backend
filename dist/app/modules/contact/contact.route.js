@@ -8,11 +8,9 @@ const contact_controller_1 = require("./contact.controller");
 const auth_1 = require("../../middlewares/auth");
 const ContactRouter = express_1.default.Router();
 ContactRouter.route("/")
-    .get(contact_controller_1.ContactController.getContact)
     .post((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.createContact)
     .put((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.updateContact);
-ContactRouter.route("/:id/user-id").get(contact_controller_1.ContactController.getContactByUserId);
-ContactRouter.route("/:id")
-    .get(contact_controller_1.ContactController.getSingleContact)
-    .delete(contact_controller_1.ContactController.deleteContact);
+ContactRouter.route("/bio-contact/:userId/:bioId").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactForBuyer);
+ContactRouter.route("/:id/user-id").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactByUserId);
+ContactRouter.route("/:id").delete(contact_controller_1.ContactController.deleteContact);
 exports.default = ContactRouter;

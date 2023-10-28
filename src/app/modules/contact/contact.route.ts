@@ -4,13 +4,18 @@ import { auth } from "../../middlewares/auth";
 const ContactRouter = express.Router();
 
 ContactRouter.route("/")
-	.get(ContactController.getContact)
 	.post(auth("user", "admin"), ContactController.createContact)
 	.put(auth("user", "admin"), ContactController.updateContact);
+ContactRouter.route("/bio-contact/:userId/:bioId").get(
+	auth("user", "admin"),
+	ContactController.getContactForBuyer
+);
 
-ContactRouter.route("/:id/user-id").get(ContactController.getContactByUserId);
-ContactRouter.route("/:id")
-	.get(ContactController.getSingleContact)
-	.delete(ContactController.deleteContact);
+ContactRouter.route("/:id/user-id").get(
+	auth("user", "admin"),
+	ContactController.getContactByUserId
+);
+
+ContactRouter.route("/:id").delete(ContactController.deleteContact);
 
 export default ContactRouter;

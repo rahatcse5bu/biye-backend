@@ -2,19 +2,13 @@ import express from "express";
 import { UserInfoController } from "./user_info.controller";
 const userRouter = express.Router();
 
-userRouter
-  .route("/")
-  .get(UserInfoController.getUserInfo)
-  .post(UserInfoController.createUserInfo);
+userRouter.route("/").post(UserInfoController.createUserInfo);
 
+userRouter.route("/status/:id").get(UserInfoController.getUserStatus);
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter
-  .route("/create-login-user")
-  .post(UserInfoController.createUserForGoogleSignIn);
-userRouter
-  .route("/:id")
-  .delete(UserInfoController.deleteUserInfo)
-  .put(UserInfoController.updateUserInfo)
-  .get(UserInfoController.getSingleUserInfo);
+	.route("/create-login-user")
+	.post(UserInfoController.createUserForGoogleSignIn);
+userRouter.route("/:id").get(UserInfoController.getSingleUserInfo);
 
 export default userRouter;

@@ -335,28 +335,186 @@ const deleteContact = (req: Request, res: Response) => {
 };
 
 const getContactByUserId = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming the user_id is in the route parameter
-	const sql = "SELECT * FROM contact WHERE user_id = ?";
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
+	const id = Number(req.params.id); // Assuming the user_id is in the route parameter
+	const token_id = (req.user?.token_id as JwtPayload) ?? null;
+	let user_id: number | null = null;
+
+	// console.log("token-id-contact", token_id);
+
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
+
+	//! Begin a database transaction
+	db.beginTransaction((err) => {
 		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
-		} else {
-			if (rows.length === 0) {
-				res.status(404).json({
-					message: "Contact not found for the specified user_id",
-					success: false,
-				});
-			} else {
-				res.status(200).json({
-					message: "Contact retrieved successfully",
-					success: true,
-					data: rows[0], // Assuming you expect only one row per user_id
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
+		}
+		// get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				// console.log(result);
+				user_id = Number(result[0]?.id);
+
+				if (isNaN(user_id) || user_id !== id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				const contactSql = "SELECT * FROM contact WHERE user_id = ?";
+
+				db.query<RowDataPacket[]>(contactSql, [user_id], (err, contact) => {
+					if (err) {
+						console.error("Error checking Contact:", err);
+						return rollbackAndRespond(res, db, null, {
+							success: false,
+							message: "You are not authorized",
+							error: err,
+						});
+					}
+					if (contact?.length === 0) {
+						res.status(404).json({
+							message: "Contact not found for the specified user_id",
+							success: false,
+							data: null,
+						});
+					}
+					// Commit the transaction if the update was successful
+					db.commit(() => {
+						res.status(200).json({
+							message: "Contact retrieved successfully",
+							success: true,
+							data: contact[0],
+						});
+					});
 				});
 			}
+		);
+	});
+};
+const getContactForBuyer = (req: Request, res: Response) => {
+	const id = Number(req.params.userId); // Assuming the user_id is in the route parameter
+	const bio_id = Number(req.params.bioId);
+	const token_id = (req.user?.token_id as JwtPayload) ?? null;
+	let user_id: number | null = null;
+
+	// console.log("token-id-contact", token_id);
+
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
+
+	//! Begin a database transaction
+	db.beginTransaction((err) => {
+		if (err) {
+			console.error("Error starting transaction:", err);
+			return res
+				.status(500)
+				.json({ success: false, message: "Internal Server Error", error: err });
 		}
+		// get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
+				if (err) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				// console.log(result);
+				user_id = Number(result[0]?.id);
+
+				if (isNaN(user_id) || user_id !== id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+
+				const contactSql =
+					"SELECT COUNT(*) as row_count,p.status as payment_status, p.refund_status as refund_status,c.full_name,c.family_number,c.relation FROM payments p  INNER JOIN contact_purchase_data cpd on (p.user_id=cpd.user_id AND p.transaction_id=cpd.transaction_id) INNER JOIN `bio_choice_data` bcd ON (bcd.user_id= cpd.user_id AND bcd.bio_id=cpd.bio_id AND cpd.user_id=p.user_id) LEFT JOIN contact c ON (bcd.bio_id=c.user_id AND cpd.bio_id=c.user_id) WHERE p.status='Completed' AND p.refund_status NOT LIKE '%processing%' AND p.refund_status NOT LIKE '%refunded%' AND p.reason='contact_purchase' AND p.user_id=? AND cpd.bio_id=?";
+
+				db.query<RowDataPacket[]>(
+					contactSql,
+					[user_id, bio_id],
+					(err, contact) => {
+						if (err) {
+							console.error("Error checking :", err);
+							return rollbackAndRespond(res, db, null, {
+								success: false,
+								message: "You are not authorized",
+								error: err,
+							});
+						}
+
+						if (contact[0]?.row_count > 1) {
+							const getContactSql = `select * from contact where bio_id = ?`;
+							db.query<RowDataPacket[]>(
+								getContactSql,
+								[bio_id],
+								(err, contact) => {
+									if (err) {
+										return rollbackAndRespond(res, db, null, {
+											success: false,
+											message: err?.message,
+											error: err,
+										});
+									}
+
+									db.commit(() => {
+										res.status(200).json({
+											message: "Contact retrieved successfully",
+											success: true,
+											data: contact[0],
+										});
+									});
+								}
+							);
+						} else {
+							// Commit the transaction if the update was successful
+							db.commit(() => {
+								res.status(200).json({
+									message: "Contact retrieved successfully",
+									success: true,
+									data: null,
+								});
+							});
+						}
+					}
+				);
+			}
+		);
 	});
 };
 
@@ -367,4 +525,5 @@ export const ContactController = {
 	updateContact,
 	deleteContact,
 	getContactByUserId,
+	getContactForBuyer,
 };

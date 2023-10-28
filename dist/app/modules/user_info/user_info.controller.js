@@ -389,6 +389,23 @@ const deleteUserInfo = (req, res) => {
         });
     });
 };
+const getUserStatus = (req, res) => {
+    const id = req.params.id;
+    const sql = "SELECT user_status from user_info WHERE id = ?";
+    db_1.default.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error checking General info:", err);
+            return res
+                .status(500)
+                .json({ success: false, message: err === null || err === void 0 ? void 0 : err.message, error: err });
+        }
+        res.status(200).json({
+            message: "user status",
+            success: true,
+            data: result[0],
+        });
+    });
+};
 exports.UserInfoController = {
     getUserInfo,
     createUserInfo,
@@ -398,4 +415,5 @@ exports.UserInfoController = {
     createUserForGoogleSignIn,
     getUserInfoByEmail,
     addUniqueId,
+    getUserStatus,
 };

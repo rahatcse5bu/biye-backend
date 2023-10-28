@@ -14,24 +14,13 @@ const getBioData = (req: Request, res: Response) => {
 				.status(500)
 				.json({ success: false, message: "Internal server error" });
 		}
-
-		const sendErrorResponse = (errorMessage: any) => {
-			console.log(errorMessage);
-			// Rollback the transaction in case of an error
-			db.rollback(() => {
-				console.log("Transaction rolled back.");
-				return res
-					.status(500)
-					.json({ success: false, message: "Internal server error" });
-			});
-		};
-
 		const userInfoSql =
 			"SELECT email,username,phone FROM user_info where id = ? ";
 		db.query<RowDataPacket[]>(userInfoSql, [bioId], (err, userInfo) => {
 			if (err) {
 				console.log(err);
 				// Rollback the transaction in case of an error
+
 				db.rollback(() => {
 					console.log("Transaction rolled back.");
 					return res
@@ -149,12 +138,12 @@ const getBioData = (req: Request, res: Response) => {
 																				occupation: occupation[0],
 																			};
 
-																			const contactSql =
-																				"SELECT * FROM contact where user_id = ?";
+																			const expectedLifePartnerSql =
+																				"SELECT * FROM expected_lifepartner WHERE user_id =? ";
 																			db.query<RowDataPacket[]>(
-																				contactSql,
+																				expectedLifePartnerSql,
 																				[bioId],
-																				(err, contact) => {
+																				(err, expectedLifePartner) => {
 																					if (err) {
 																						console.log(err);
 																						// Rollback the transaction in case of an error
@@ -171,15 +160,16 @@ const getBioData = (req: Request, res: Response) => {
 																					} else {
 																						bioData = {
 																							...bioData,
-																							contact: contact[0],
+																							expectedLifePartner:
+																								expectedLifePartner[0],
 																						};
 
-																						const expectedLifePartnerSql =
-																							"SELECT * FROM expected_lifepartner WHERE user_id =? ";
+																						const familyStatusSql =
+																							"select * from family_status where user_id = ?";
 																						db.query<RowDataPacket[]>(
-																							expectedLifePartnerSql,
+																							familyStatusSql,
 																							[bioId],
-																							(err, expectedLifePartner) => {
+																							(err, familyStatus) => {
 																								if (err) {
 																									console.log(err);
 																									// Rollback the transaction in case of an error
@@ -198,16 +188,16 @@ const getBioData = (req: Request, res: Response) => {
 																								} else {
 																									bioData = {
 																										...bioData,
-																										expectedLifePartner:
-																											expectedLifePartner[0],
+																										familyStatus:
+																											familyStatus[0],
 																									};
 
-																									const familyStatusSql =
-																										"select * from family_status where user_id = ?";
+																									const maritalInfoSql =
+																										"SELECT * FROM marital_info WHERE user_id =?";
 																									db.query<RowDataPacket[]>(
-																										familyStatusSql,
+																										maritalInfoSql,
 																										[bioId],
-																										(err, familyStatus) => {
+																										(err, maritalInfo) => {
 																											if (err) {
 																												console.log(err);
 																												// Rollback the transaction in case of an error
@@ -226,20 +216,19 @@ const getBioData = (req: Request, res: Response) => {
 																											} else {
 																												bioData = {
 																													...bioData,
-																													familyStatus:
-																														familyStatus[0],
+																													maritalInfo:
+																														maritalInfo[0],
 																												};
-
-																												const maritalInfoSql =
-																													"SELECT * FROM marital_info WHERE user_id =?";
+																												const ongikarNamaSql =
+																													"SELECT * FROM ongikar_nama WHERE user_id = ?";
 																												db.query<
 																													RowDataPacket[]
 																												>(
-																													maritalInfoSql,
+																													ongikarNamaSql,
 																													[bioId],
 																													(
 																														err,
-																														maritalInfo
+																														ongikarNama
 																													) => {
 																														if (err) {
 																															console.log(err);
@@ -262,24 +251,15 @@ const getBioData = (req: Request, res: Response) => {
 																														} else {
 																															bioData = {
 																																...bioData,
-																																maritalInfo:
-																																	maritalInfo[0],
+																																ongikarNama:
+																																	ongikarNama[0],
 																															};
-																															const ongikarNamaSql =
-																																"SELECT * FROM ongikar_nama WHERE user_id = ?";
-																															db.query<
-																																RowDataPacket[]
-																															>(
-																																ongikarNamaSql,
+																															const updateViews = `UPDATE general_info SET views=views+1 where user_id=?`;
+																															db.query(
+																																updateViews,
 																																[bioId],
-																																(
-																																	err,
-																																	ongikarNama
-																																) => {
+																																(err, rows) => {
 																																	if (err) {
-																																		console.log(
-																																			err
-																																		);
 																																		// Rollback the transaction in case of an error
 																																		db.rollback(
 																																			() => {
@@ -301,23 +281,14 @@ const getBioData = (req: Request, res: Response) => {
 																																			}
 																																		);
 																																	} else {
-																																		bioData = {
-																																			...bioData,
-																																			ongikarNama:
-																																				ongikarNama[0],
-																																		};
-																																		const updateViews = `UPDATE general_info SET views=views+1 where user_id=?`;
-																																		db.query(
-																																			updateViews,
-																																			[bioId],
-																																			(
-																																				err,
-																																				rows
-																																			) => {
+																																		db.commit(
+																																			(err) => {
 																																				if (
 																																					err
 																																				) {
-																																					// Rollback the transaction in case of an error
+																																					console.log(
+																																						err
+																																					);
 																																					db.rollback(
 																																						() => {
 																																							console.log(
@@ -338,50 +309,17 @@ const getBioData = (req: Request, res: Response) => {
 																																						}
 																																					);
 																																				} else {
-																																					db.commit(
-																																						(
-																																							err
-																																						) => {
-																																							if (
-																																								err
-																																							) {
-																																								console.log(
-																																									err
-																																								);
-																																								db.rollback(
-																																									() => {
-																																										console.log(
-																																											"Transaction rolled back."
-																																										);
-																																										return res
-																																											.status(
-																																												500
-																																											)
-																																											.json(
-																																												{
-																																													success:
-																																														false,
-																																													message:
-																																														"Internal server error",
-																																												}
-																																											);
-																																									}
-																																								);
-																																							} else {
-																																								return res
-																																									.status(
-																																										200
-																																									)
-																																									.json(
-																																										sendSuccess(
-																																											"Retrieved bio data successfully",
-																																											bioData,
-																																											200
-																																										)
-																																									);
-																																							}
-																																						}
-																																					);
+																																					return res
+																																						.status(
+																																							200
+																																						)
+																																						.json(
+																																							sendSuccess(
+																																								"Retrieved bio data successfully",
+																																								bioData,
+																																								200
+																																							)
+																																						);
 																																				}
 																																			}
 																																		);
