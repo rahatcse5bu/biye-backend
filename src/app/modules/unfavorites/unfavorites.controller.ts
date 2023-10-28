@@ -45,7 +45,7 @@ const getUnFavoritesListByUserId = (req: Request, res: Response) => {
 		gf.date_of_birth,
 		gf.screen_color,
 		(
-			SELECT COUNT(*)
+			SELECT COUNT(*) 8100
 			FROM bio_choice_data bc 
 			WHERE bc.bio_id = f.bio_id
 		) AS total_count,
@@ -97,7 +97,7 @@ const getUnFavoritesListByUserId = (req: Request, res: Response) => {
 	FROM unfavorites AS f
 	JOIN address AS a ON f.bio_id = a.user_id
 	JOIN general_info AS gf ON f.bio_id = gf.user_id
-	WHERE f.user_id = ? AND f.bio_id <> ? and f.type='ignore';`;
+	WHERE f.user_id = ? AND f.bio_id <> ? and f.type='ignore'`;
 		db.query<RowDataPacket[]>(sql1, [user_id, user_id], (err, result) => {
 			if (err) {
 				console.error("Error updating unfavorites:", err);
