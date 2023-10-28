@@ -182,7 +182,6 @@ const getSingleUnFavorites = (req: Request, res: Response) => {
 			.json(sendSuccess<RowDataPacket[]>("unfavorites retrieved", rows, 200));
 	});
 };
-
 const createUnFavorites = (req: Request, res: Response) => {
 	const { bio_id } = req.body;
 	const token_id = req.user?.token_id;
