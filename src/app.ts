@@ -51,7 +51,7 @@ app.use(
 );
 
 app.get("/", async (req: Request, res: Response) => {
-	res.send("hello world!");
+	res.send("server is running!");
 });
 
 app.use("/api/v1/user-info", userRouter);

@@ -57,7 +57,7 @@ app.use((0, cors_1.default)({
     origin: "*",
 }));
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.send("hello world!");
+    res.send("server is running!");
 }));
 app.use("/api/v1/user-info", user_info_route_1.default);
 app.use("/api/v1/personal-info", personal_info_route_1.default);
