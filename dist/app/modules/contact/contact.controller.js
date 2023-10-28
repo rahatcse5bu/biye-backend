@@ -408,7 +408,7 @@ const getContactForBuyer = (req, res) => {
                     });
                 }
                 if (((_a = contact[0]) === null || _a === void 0 ? void 0 : _a.row_count) >= 1) {
-                    const getContactSql = `select * from contact where bio_id = ?`;
+                    const getContactSql = `select * from contact where user_id = ?`;
                     db_1.default.query(getContactSql, [bio_id], (err, contact) => {
                         if (err) {
                             return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {

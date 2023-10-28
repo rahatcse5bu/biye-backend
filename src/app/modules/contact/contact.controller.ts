@@ -479,7 +479,7 @@ const getContactForBuyer = (req: Request, res: Response) => {
 						}
 
 						if (contact[0]?.row_count >= 1) {
-							const getContactSql = `select * from contact where bio_id = ?`;
+							const getContactSql = `select * from contact where user_id = ?`;
 							db.query<RowDataPacket[]>(
 								getContactSql,
 								[bio_id],
