@@ -45,7 +45,7 @@ const getUnFavoritesListByUserId = (req, res) => {
 		gf.date_of_birth,
 		gf.screen_color,
 		(
-			SELECT COUNT(*) 8100
+			SELECT COUNT(*) 
 			FROM bio_choice_data bc 
 			WHERE bc.bio_id = f.bio_id
 		) AS total_count,
