@@ -336,7 +336,7 @@ const getContactByUserId = (req, res) => {
                     });
                 }
                 if ((contact === null || contact === void 0 ? void 0 : contact.length) === 0) {
-                    res.status(404).json({
+                    return res.status(404).json({
                         message: "Contact not found for the specified user_id",
                         success: false,
                         data: null,
@@ -407,7 +407,7 @@ const getContactForBuyer = (req, res) => {
                         error: err,
                     });
                 }
-                if (((_a = contact[0]) === null || _a === void 0 ? void 0 : _a.row_count) > 1) {
+                if (((_a = contact[0]) === null || _a === void 0 ? void 0 : _a.row_count) >= 1) {
                     const getContactSql = `select * from contact where bio_id = ?`;
                     db_1.default.query(getContactSql, [bio_id], (err, contact) => {
                         if (err) {

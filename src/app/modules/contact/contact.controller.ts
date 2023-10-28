@@ -394,7 +394,7 @@ const getContactByUserId = (req: Request, res: Response) => {
 						});
 					}
 					if (contact?.length === 0) {
-						res.status(404).json({
+						return res.status(404).json({
 							message: "Contact not found for the specified user_id",
 							success: false,
 							data: null,
@@ -478,7 +478,7 @@ const getContactForBuyer = (req: Request, res: Response) => {
 							});
 						}
 
-						if (contact[0]?.row_count > 1) {
+						if (contact[0]?.row_count >= 1) {
 							const getContactSql = `select * from contact where bio_id = ?`;
 							db.query<RowDataPacket[]>(
 								getContactSql,
