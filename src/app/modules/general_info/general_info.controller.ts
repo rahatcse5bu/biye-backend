@@ -22,10 +22,19 @@ const getGeneralInfo = (req: Request, res: Response) => {
 	}
 	if (conditions) {
 		conditions = conditions.slice(0, -5);
+		conditions += ` user_info.user_status = 'in review' OR user_info.user_status = 'active'`;
 		conditions = "WHERE " + conditions;
+	} else {
+		conditions =
+			"WHERE user_info.user_status = 'in review' OR user_info.user_status = 'active' ";
 	}
 
-	const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender,general_info.views , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info JOIN address ON general_info.user_id = address.user_id JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id  ${conditions}`;
+	const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender,general_info.views , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info 
+	JOIN address ON general_info.user_id = address.user_id 
+	JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id
+	JOIN user_info ON general_info.user_id = user_info.id 
+	${conditions}`;
+	console.log(sql);
 	// db.query<RowDataPacket[]>(tempSql, (err, rows) => {
 	// 	if (err) {
 	// 		console.log(err);
