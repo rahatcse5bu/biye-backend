@@ -1,8 +1,12 @@
 import express from "express";
 import { UserInfoController } from "./user_info.controller";
+import { auth } from "../../middlewares/auth";
 const userRouter = express.Router();
 
 userRouter.route("/").post(UserInfoController.createUserInfo);
+userRouter
+	.route("/")
+	.put(auth("user", "admin"), UserInfoController.updateUserInfo);
 
 userRouter.route("/status/:id").get(UserInfoController.getUserStatus);
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);

@@ -21,6 +21,8 @@ const user_info_constant_1 = require("./user_info.constant");
 const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../../config"));
+const http_status_1 = __importDefault(require("http-status"));
+const response_1 = require("../../../utils/response");
 const addUniqueId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = (0, uuid_1.v4)();
     const updateSql = `
@@ -305,60 +307,108 @@ const createUserInfo = (req, res) => {
     });
 };
 const updateUserInfo = (req, res) => {
+    var _a, _b;
     const data = req.body;
-    const userId = req.params.id; // Assuming you pass the user ID in the URL
-    // Check if the user with the given ID exists
-    const checkUserSql = "SELECT COUNT(*) AS userCount FROM user_info WHERE id = ?";
-    db_1.default.query(checkUserSql, [userId], (err, userResults) => {
+    const token_id = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id) !== null && _b !== void 0 ? _b : null;
+    let user_id = null;
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    // Begin a database transaction
+    db_1.default.beginTransaction((err) => {
         if (err) {
-            console.error("Error checking user:", err);
-            return res.status(500).json({ success: false, message: "Server error" });
-        }
-        const userCount = userResults[0].userCount;
-        // If the user doesn't exist, send an error response
-        if (userCount === 0) {
+            console.error("Error starting transaction:", err);
             return res
-                .status(404)
-                .json({ success: false, message: "User not found" });
+                .status(500)
+                .json({ success: false, message: "Internal Server Error", error: err });
         }
-        // Generate the SQL update statement dynamically based on the provided fields
-        const updateFields = [];
-        const updateValues = [];
-        if (data.username) {
-            updateFields.push("username = ?");
-            updateValues.push(data.username);
-        }
-        if (data.password) {
-            updateFields.push("password = ?");
-            updateValues.push(data.password);
-        }
-        if (data.email) {
-            updateFields.push("email = ?");
-            updateValues.push(data.email);
-        }
-        if (data.phone) {
-            updateFields.push("phone = ?");
-            updateValues.push(data.phone);
-        }
-        if (updateFields.length === 0) {
-            // No fields to update
-            return res
-                .status(400)
-                .json({ success: false, message: "No update data provided" });
-        }
-        const updateSql = `UPDATE user_info SET ${updateFields.join(", ")} WHERE id = ?`;
-        const updateParams = [...updateValues, userId];
-        db_1.default.query(updateSql, updateParams, (err, results) => {
+        // get user id using token id
+        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
             if (err) {
-                console.error("Error updating data:", err);
-                res.status(500).json({ success: false, message: "Server error" });
-            }
-            else {
-                res.json({
-                    success: true,
-                    message: "User information updated successfully",
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
                 });
             }
+            // console.log(result);
+            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
+            if (isNaN(user_id)) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            // Check if General info for the user with the given ID exists
+            const checkUserSql = "SELECT * FROM user_info WHERE id = ?";
+            db_1.default.query(checkUserSql, [user_id], (err, userResults) => {
+                if (err) {
+                    console.error("Error checking user info:", err);
+                    db_1.default.rollback(() => {
+                        res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
+                    });
+                    return;
+                }
+                const userCount = userResults.length;
+                // If General info doesn't exist, send an error response
+                if (userCount === 0) {
+                    db_1.default.rollback(() => {
+                        res
+                            .status(404)
+                            .json({ success: false, message: "User info not found" });
+                    });
+                    return;
+                }
+                // Build the update SQL statement dynamically based on changed values
+                const updateFields = [];
+                const updateValues = [];
+                Object.keys(data).forEach((key) => {
+                    updateFields.push(`${key} = ?`);
+                    updateValues.push(data[key]);
+                });
+                if (updateFields.length === 0) {
+                    // No fields to update
+                    db_1.default.commit(() => {
+                        res
+                            .status(200)
+                            .json({ success: true, message: "No changes to update" });
+                    });
+                    return;
+                }
+                // Construct the final update SQL statement
+                const updateSql = `UPDATE user_info SET ${updateFields.join(", ")} WHERE id = ?`;
+                updateValues.push(user_id);
+                // Execute the update query within the transaction
+                db_1.default.query(updateSql, updateValues, (err, results) => {
+                    if (err) {
+                        console.error("Error updating General info:", err);
+                        db_1.default.rollback(() => {
+                            res.status(500).json({
+                                success: false,
+                                message: "Internal Server Error",
+                                error: err,
+                            });
+                        });
+                    }
+                    else {
+                        // Commit the transaction if the update was successful
+                        db_1.default.commit(() => {
+                            res.status(200).json({
+                                message: "Update successfully completed",
+                                success: true,
+                                data: results,
+                            });
+                        });
+                    }
+                });
+            });
         });
     });
 };

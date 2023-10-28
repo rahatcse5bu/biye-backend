@@ -45,30 +45,30 @@ const getUnFavoritesListByUserId = (req, res) => {
     gf.date_of_birth,
     gf.screen_color,
     (
-        SELECT COUNT(*) 
+        SELECT COUNT(*) *100
         FROM bio_choice_data bc 
         WHERE bc.bio_id = f.bio_id
     ) AS total_count,
     (
         SELECT COUNT(*) 
         FROM bio_choice_data bc 
-        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR bc.status = 'pending'
+        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
     ) AS total_pending,
     (
         SELECT COUNT(*) 
         FROM bio_choice_data bc 
-        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR bc.status = 'approved'
+        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
     ) AS total_approved, 
     (
         SELECT COUNT(*) 
         FROM bio_choice_data bc 
-        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR bc.status = 'rejected'
+        WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
     ) AS total_rejected,
     COALESCE(
         (
             SELECT (COUNT(*) * 100)
             FROM bio_choice_data bc 
-            WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR bc.status = 'approved'
+            WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
         ) / (
             SELECT COUNT(*) 
             FROM bio_choice_data bc 
@@ -79,7 +79,7 @@ const getUnFavoritesListByUserId = (req, res) => {
         (
             SELECT (COUNT(*) * 100)
             FROM bio_choice_data bc 
-            WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR bc.status = 'rejected'
+            WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
         ) / (
             SELECT COUNT(*) 
             FROM bio_choice_data bc 
