@@ -34,7 +34,7 @@ const getGeneralInfo = (req: Request, res: Response) => {
 	JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id
 	JOIN user_info ON general_info.user_id = user_info.id 
 	${conditions}`;
-	console.log(sql);
+	// console.log(sql);
 	// db.query<RowDataPacket[]>(tempSql, (err, rows) => {
 	// 	if (err) {
 	// 		console.log(err);

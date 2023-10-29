@@ -98,7 +98,7 @@ const createEducationalQualification = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				//! Check if the user_id already exists in the database
 
@@ -222,7 +222,8 @@ const updateEducationalQualification = (req: Request, res: Response) => {
 					});
 				}
 				//! Check if General info for the user with the given ID exists
-				const checkUserSql = "SELECT user_id FROM educational_qualification WHERE user_id = ?";
+				const checkUserSql =
+					"SELECT user_id FROM educational_qualification WHERE user_id = ?";
 
 				db.query<RowDataPacket[]>(
 					checkUserSql,

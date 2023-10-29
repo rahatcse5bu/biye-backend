@@ -92,7 +92,15 @@ const createContact = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
+
+				if (!user_id) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
 
 				//! Check if the user_id already exists in the database
 

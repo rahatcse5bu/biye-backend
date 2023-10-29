@@ -7,6 +7,10 @@ BioChoiceDataRouter.route("/")
 	.get(BioChoiceDataController.getBioChoiceData)
 	.post(auth("user", "admin"), BioChoiceDataController.createBioChoiceData);
 
+BioChoiceDataRouter.route("/bio-data/:id").put(
+	auth("user", "admin"),
+	BioChoiceDataController.updateBioChoiceData
+);
 BioChoiceDataRouter.route("/first-step").get(
 	auth("user", "admin"),
 	BioChoiceDataController.getBioChoiceDataOfFirstStep

@@ -5,6 +5,7 @@ import { sendSuccess } from "../../../shared/SendSuccess";
 import { generatePlaceholders } from "../../../utils/generatePlaceholders";
 import { rollbackAndRespond } from "../../../utils/response";
 import httpStatus from "http-status";
+import { JwtPayload } from "jsonwebtoken";
 
 const getBioChoiceData = (req: Request, res: Response) => {
 	const sql = "SELECT * FROM bio_choice_data";
@@ -169,7 +170,7 @@ const createBioChoiceData = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -254,91 +255,133 @@ const createBioChoiceData = (req: Request, res: Response) => {
 };
 
 const updateBioChoiceData = (req: Request, res: Response) => {
+	const bio_id = req.params?.id;
 	const data = req.body;
-	const userId = req.params.id; // Assuming you pass the user ID in the URL
+	const token_id = (req.user?.token_id as JwtPayload) ?? null;
+	let user_id: number | null = null;
+	if (!token_id) {
+		return res.status(401).send({
+			statusCode: httpStatus.UNAUTHORIZED,
+			message: "You are not authorized",
+			success: false,
+		});
+	}
 
-	//   console.log(data);
-
-	// Begin a database transaction
+	//! Begin a database transaction
 	db.beginTransaction((err) => {
 		if (err) {
 			console.error("Error starting transaction:", err);
 			return res
 				.status(500)
-				.json({ success: false, message: "Internal Server Error" });
+				.json({ success: false, message: "Internal Server Error", error: err });
 		}
-
-		// Check if Bio choice data for the user with the given ID exists
-		const checkUserSql = "SELECT * FROM bio_choice_data WHERE id = ?";
-		db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-			if (err) {
-				console.error("Error checking Bio choice data:", err);
-				db.rollback(() => {
-					res.status(500).json({ success: false, message: err?.message });
-				});
-				return;
-			}
-
-			const userCount = userResults.length;
-
-			// If Bio choice data doesn't exist, send an error response
-			if (userCount === 0) {
-				db.rollback(() => {
-					res.status(404).json({
-						success: false,
-						message: "Bio choice data not found",
-					});
-				});
-				return;
-			}
-
-			const currentUserData = userResults[0];
-
-			// Build the update SQL statement dynamically based on changed values
-			const updateFields: string[] = [];
-			const updateValues = [];
-
-			Object.keys(data).forEach((key) => {
-				updateFields.push(`${key} = ?`);
-				updateValues.push(data[key]);
-			});
-
-			if (updateFields.length === 0) {
-				// No fields to update
-				db.commit(() => {
-					res
-						.status(200)
-						.json({ success: true, message: "No changes to update" });
-				});
-				return;
-			}
-
-			// Construct the final update SQL statement
-			const updateSql = `UPDATE bio_choice_data SET ${updateFields.join(
-				", "
-			)} WHERE id = ?`;
-
-			updateValues.push(userId);
-
-			// Execute the update query within the transaction
-			db.query(updateSql, updateValues, (err, results) => {
+		// get user id using token id
+		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+		db.query<RowDataPacket[]>(
+			getUserIdByTokenSql,
+			[token_id],
+			(err, result) => {
 				if (err) {
-					console.error("Error updating Bio choice data:", err);
-					db.rollback(() => {
-						res
-							.status(500)
-							.json({ success: false, message: "Internal Server Error" });
-					});
-				} else {
-					// Commit the transaction if the update was successful
-					db.commit(() => {
-						res
-							.status(200)
-							.json(sendSuccess("Update sucessfully completed", results, 200));
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
 					});
 				}
-			});
-		});
+
+				console.log(result);
+
+				user_id = Number(result[0]?.id);
+
+				if (isNaN(user_id)) {
+					return rollbackAndRespond(res, db, null, {
+						success: false,
+						message: "You are not authorized",
+						error: err,
+					});
+				}
+				//! Check if Expected Life Partner for the user with the given ID exists
+				const checkUserSql =
+					"SELECT COUNT(*) as rowCount FROM bio_choice_data WHERE user_id = ? AND bio_id = ?";
+
+				db.query<RowDataPacket[]>(
+					checkUserSql,
+					[bio_id, user_id],
+					(err, rows) => {
+						if (err) {
+							console.error("Error checking Contact:", err);
+							db.rollback(() => {
+								res.status(500).json({ success: false, message: err?.message });
+							});
+							return;
+						}
+
+						const count = rows[0].rowCount;
+
+						//! If Contact doesn't exist, send an error response
+						if (count === 0) {
+							db.rollback(() => {
+								res.status(404).json({
+									success: false,
+									message: "bio choice data not found",
+								});
+							});
+							return;
+						}
+
+						//! Build the update SQL statement dynamically based on changed values
+						const updateFields: string[] = [];
+						const updateValues = [];
+
+						Object.keys(data).forEach((key) => {
+							updateFields.push(`${key} = ?`);
+							updateValues.push(data[key]);
+						});
+
+						if (updateFields.length === 0) {
+							// No fields to update
+							db.commit(() => {
+								res
+									.status(200)
+									.json({ success: true, message: "No changes to update" });
+							});
+							return;
+						}
+
+						// Construct the final update SQL statement
+						const updateSql = `UPDATE bio_choice_data SET ${updateFields.join(
+							", "
+						)} WHERE user_id = ? AND bio_id = ?`;
+
+						updateValues.push(bio_id);
+						updateValues.push(user_id);
+
+						// Execute the update query within the transaction
+						db.query(updateSql, updateValues, (err, results) => {
+							if (err) {
+								console.error("Error updating Contact:", err);
+								db.rollback(() => {
+									res.status(500).json({
+										success: false,
+										message: "Internal Server Error",
+										error: err,
+									});
+								});
+							} else {
+								// Commit the transaction if the update was successful
+								db.commit(() => {
+									res.status(200).json({
+										message: "Update successfully completed",
+										success: true,
+										data: results,
+									});
+								});
+							}
+						});
+					}
+				);
+			}
+		);
 	});
 };
 
@@ -417,7 +460,7 @@ const getBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -430,7 +473,7 @@ const getBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 				//! get bio choice data first step
 				const getSqlFirstStep = `
 				SELECT subquery.bio_id,a.permanent_area,a.present_area,a.zilla,a.upzilla,a.division,a.city,
-				subquery.status,subquery.feedback,
+				subquery.status,subquery.feedback,subquery.bio_details,
 				COUNT(main.user_id) AS total_count,
 				SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
 				SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
@@ -527,7 +570,7 @@ const getBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -542,7 +585,7 @@ const getBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 				const getSqlSecondStep = `
 				SELECT
     subquery.bio_id,p.reason,a.permanent_area as permanent_address,a.present_area as present_address,a.zilla as zilla,a.upzilla as upzilla,a.division as divison,a.city as city,gi.date_of_birth as date_of_birth, c.full_name,c.family_number,c.relation,
-    subquery.status as choice_bio_status,subquery.feedback,
+    subquery.status as choice_bio_status,subquery.feedback,subquery.bio_details,
     COUNT(main.user_id) AS total_count,
     SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
     SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
@@ -638,7 +681,7 @@ const getBioChoiceDataOfShare = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -650,17 +693,23 @@ const getBioChoiceDataOfShare = (req: Request, res: Response) => {
 
 				//! get bio choice data of share
 
-				const getSqlOfShare = `
-				SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,address.present_address,address.city,address.present_area 
+				const getSqlOfShare = `SELECT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area 
 				FROM bio_choice_data as bc 
 				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id 
 				LEFT JOIN address ON address.user_id = bc.user_id
-				WHERE bc.user_id IN (
-						SELECT DISTINCT user_id 
-						FROM bio_choice_data 
-						WHERE bio_id = ? AND user_id <> ?
-				)
+				WHERE bc.bio_id = ?
 				`;
+				// const getSqlOfShare = `
+				// SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area
+				// FROM bio_choice_data as bc
+				// LEFT JOIN general_info as gi ON gi.user_id = bc.user_id
+				// LEFT JOIN address ON address.user_id = bc.user_id
+				// WHERE bc.user_id IN (
+				// 		SELECT DISTINCT user_id
+				// 		FROM bio_choice_data
+				// 		WHERE bio_id = ? AND user_id <> ?
+				// )
+				// `;
 
 				db.query<RowDataPacket[]>(
 					getSqlOfShare,
@@ -726,7 +775,7 @@ const checkBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -759,7 +808,7 @@ const checkBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 							res.status(201).json({
 								success: true,
 								message: "Bio Choice check first step data get successfully",
-								data: results,
+								data: results[0],
 							});
 						});
 					}
@@ -804,7 +853,7 @@ const checkBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				if (!user_id) {
 					return rollbackAndRespond(res, db, null, {
@@ -837,7 +886,7 @@ const checkBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 							res.status(201).json({
 								success: true,
 								message: "Bio Choice check second step data get successfully",
-								data: results,
+								data: results[0],
 							});
 						});
 					}

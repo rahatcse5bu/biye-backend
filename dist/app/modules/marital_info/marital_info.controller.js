@@ -79,6 +79,7 @@ const createMaritalInfo = (req, res) => {
         //! get user_id using token_id
         const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
         db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
             if (err) {
                 return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
                     success: false,
@@ -87,7 +88,7 @@ const createMaritalInfo = (req, res) => {
                 });
             }
             //console.log(result);
-            user_id = result[0].id;
+            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
             //! Check if the user_id already exists in the database
             const checkSql = "SELECT COUNT(*) AS count FROM marital_info  WHERE user_id = ?";
             db_1.default.query(checkSql, [user_id], (err, results) => {

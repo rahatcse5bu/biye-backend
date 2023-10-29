@@ -92,7 +92,7 @@ const createFamilyStatus = (req: Request, res: Response) => {
 				}
 				//console.log(result);
 
-				user_id = result[0].id;
+				user_id = result[0]?.id;
 
 				//! Check if the user_id already exists in the database
 
