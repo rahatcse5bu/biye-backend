@@ -544,7 +544,7 @@ const getBioChoiceDataOfShare = (req, res) => {
             }
             //! get bio choice data of share
             const getSqlOfShare = `
-				SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,address.present_address,address.city,address.present_area 
+				SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth,bc.bio_details, bc.status, bc.feedback,address.present_address,address.city,address.present_area 
 				FROM bio_choice_data as bc 
 				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id 
 				LEFT JOIN address ON address.user_id = bc.user_id
