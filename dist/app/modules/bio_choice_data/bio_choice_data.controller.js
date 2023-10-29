@@ -581,23 +581,7 @@ const getBioChoiceDataOfShare = (req, res) => {
                 });
             }
             //! get bio choice data of share
-            const getSqlOfShare = `SELECT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area 
-				FROM bio_choice_data as bc 
-				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id 
-				LEFT JOIN address ON address.user_id = bc.user_id
-				WHERE bc.bio_id = ?
-				`;
-            // const getSqlOfShare = `
-            // SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area
-            // FROM bio_choice_data as bc
-            // LEFT JOIN general_info as gi ON gi.user_id = bc.user_id
-            // LEFT JOIN address ON address.user_id = bc.user_id
-            // WHERE bc.user_id IN (
-            // 		SELECT DISTINCT user_id
-            // 		FROM bio_choice_data
-            // 		WHERE bio_id = ? AND user_id <> ?
-            // )
-            // `;
+            const getSqlOfShare = `SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth,bc.bio_details, bc.status, bc.feedback,address.present_address,address.city,address.present_area FROM bio_choice_data as bc LEFT JOIN general_info as gi ON gi.user_id = bc.user_id LEFT JOIN address ON address.user_id = bc.user_id WHERE bc.user_id IN ( SELECT DISTINCT user_id FROM bio_choice_data WHERE bio_id = ? AND user_id <> ? ) GROUP By bc.user_id;`;
             db_1.default.query(getSqlOfShare, [user_id, user_id], (err, results) => {
                 if (err) {
                     console.error("Error checking User Id:", err);
