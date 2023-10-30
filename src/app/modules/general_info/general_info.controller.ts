@@ -10,7 +10,11 @@ import httpsStatus from "http-status";
 const getGeneralInfo = (req: Request, res: Response) => {
 	const { bio_type, marital_status, zilla } = req.query;
 
+	console.log("bio-type~", bio_type);
+	console.log("marital-status~", marital_status);
+	// console.log(req.query);
 	let conditions = "";
+
 	if (bio_type) {
 		conditions += `general_info.bio_type = '${bio_type}' AND `;
 	}
@@ -21,8 +25,11 @@ const getGeneralInfo = (req: Request, res: Response) => {
 		conditions += `general_info.zilla = '${zilla}' AND `;
 	}
 	if (conditions) {
+		console.log("conditions~", conditions);
 		conditions = conditions.slice(0, -5);
-		conditions += ` user_info.user_status = 'in review' OR user_info.user_status = 'active'`;
+		console.log("conditions~", conditions);
+		conditions += ` AND user_info.user_status = 'in review' OR user_info.user_status = 'active' `;
+		console.log("conditions~", conditions);
 		conditions = "WHERE " + conditions;
 	} else {
 		conditions =
