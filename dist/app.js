@@ -36,6 +36,7 @@ const refunds_route_1 = __importDefault(require("./app/modules/refunds/refunds.r
 const cors_1 = __importDefault(require("cors"));
 const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route"));
 const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
+const contact_purchase_data_route_1 = __importDefault(require("./app/modules/contact_purchase_data/contact_purchase_data.route"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
@@ -78,5 +79,6 @@ app.use("/api/v1/bio-data", bio_data_route_1.default);
 app.use("/api/v1/token", user_token_route_1.default);
 app.use("/api/v1/bkash", bkash_route_1.default);
 app.use("/api/v1/refund", refunds_route_1.default);
+app.use("/api/v1/contact-purchase-data", contact_purchase_data_route_1.default);
 app.use(globalErrorHandler_1.default);
 exports.default = app;
