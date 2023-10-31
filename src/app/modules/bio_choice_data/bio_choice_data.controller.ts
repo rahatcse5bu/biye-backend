@@ -472,8 +472,7 @@ const getBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 				}
 
 				//! get bio choice data first step
-				const getSqlFirstStep = `
-				SELECT subquery.bio_id,a.permanent_area,a.present_area,a.zilla,a.upzilla,a.division,a.city,
+				const getSqlFirstStep = `SELECT subquery.bio_id,a.permanent_area,a.present_area,a.zilla,a.upzilla,a.division,a.city,
 				subquery.status,subquery.feedback,subquery.bio_details,
 				COUNT(main.user_id) AS total_count,
 				SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
@@ -504,14 +503,14 @@ const getBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
 								FROM bio_choice_data
 								WHERE user_id = ? AND bio_id <> ?
 						) AS subquery
-						LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id
+						LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id WHERE subquery.bio_id NOT IN (SELECT bio_id FROM contact_purchase_data WHERE user_id= ?)
 						GROUP BY subquery.bio_id;
 				
 				`;
 
 				db.query<RowDataPacket[]>(
 					getSqlFirstStep,
-					[user_id, user_id],
+					[user_id, user_id, user_id],
 					(err, results) => {
 						if (err) {
 							console.error("Error checking User Id:", err);
