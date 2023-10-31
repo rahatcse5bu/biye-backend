@@ -10,6 +10,7 @@ const UnFavoritesRouter = express_1.default.Router();
 UnFavoritesRouter.route("/")
     .get((0, auth_1.auth)("user", "admin"), unfavorites_controller_1.UnFavoritesController.getUnFavoritesListByUserId)
     .post((0, auth_1.auth)("user", "admin"), unfavorites_controller_1.UnFavoritesController.createUnFavorites);
+UnFavoritesRouter.route("/dislikes-who").get((0, auth_1.auth)("user", "admin"), unfavorites_controller_1.UnFavoritesController.getUnFavouritesByWhoByUserId);
 UnFavoritesRouter.route("/user-data/:userId/:bioId").get(unfavorites_controller_1.UnFavoritesController.getUnFavoritesByUserId);
 UnFavoritesRouter.route("/bio-data/:id")
     .get(unfavorites_controller_1.UnFavoritesController.getUnFavoritesCountByBioId)

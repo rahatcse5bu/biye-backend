@@ -133,6 +133,128 @@ const getUnFavoritesByUserId = (req, res) => {
             .json((0, SendSuccess_1.sendSuccess)("unfavorites  retrieved successfully", rows[0]));
     });
 };
+const getUnFavouritesByWhoByUserId = (req, res) => {
+    var _a;
+    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
+    let user_id = null;
+    if (!token_id) {
+        return res.status(401).send({
+            statusCode: http_status_1.default.UNAUTHORIZED,
+            message: "You are not authorized",
+            success: false,
+        });
+    }
+    db_1.default.beginTransaction((err) => {
+        if (err) {
+            console.error("Error starting transaction:", err);
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+                error: err,
+            });
+        }
+        //! Get user_id using token_id
+        const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
+        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
+            var _a;
+            if (err) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
+            if (!user_id) {
+                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
+                    success: false,
+                    message: "You are not authorized",
+                    error: err,
+                });
+            }
+            //? get type from favourites
+            const getTypeSql = `
+				SELECT DISTINCT
+		f.user_id,
+		f.bio_id,
+		a.permanent_address,
+		gf.date_of_birth,
+		gf.screen_color,
+		(
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE bc.bio_id = f.bio_id
+		) AS total_count,
+		(
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
+		) AS total_pending,
+		(
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
+		) AS total_approved, 
+		(
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
+		) AS total_rejected,
+		COALESCE(
+			(
+				SELECT (COUNT(*) * 100)
+				FROM bio_choice_data bc 
+				WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
+			) / ((
+				SELECT COUNT(*) 
+				FROM bio_choice_data bc 
+				WHERE bc.bio_id = f.bio_id
+			)-    (
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
+		)), 0
+		) AS approval_rate,
+		COALESCE(
+			(
+				SELECT (COUNT(*) * 100)
+				FROM bio_choice_data bc 
+				WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
+			) / ((
+				SELECT COUNT(*) 
+				FROM bio_choice_data bc 
+				WHERE bc.bio_id = f.bio_id
+			)-    (
+			SELECT COUNT(*) 
+			FROM bio_choice_data bc 
+			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
+		)), 0
+		) AS rejection_rate
+	FROM unfavorites AS f
+	JOIN address AS a ON f.user_id = a.user_id
+	JOIN general_info AS gf ON f.user_id = gf.user_id
+	WHERE f.bio_id = ? AND f.user_id <> ? and f.type = 'ignore';
+				`;
+            db_1.default.query(getTypeSql, [user_id, user_id], (err, result) => {
+                if (err) {
+                    console.error("Error updating favourites:", err);
+                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                }
+                db_1.default.commit((err) => {
+                    if (err) {
+                        console.error("Error committing transaction:", err);
+                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
+                    }
+                    res.status(201).json({
+                        success: true,
+                        message: "Retrieve all UnFavourites  successfully",
+                        data: result,
+                    });
+                });
+            });
+        });
+    });
+};
 const getUnFavoritesCountByBioId = (req, res) => {
     const bio_id = req.params.id;
     console.log(bio_id);
@@ -408,4 +530,5 @@ exports.UnFavoritesController = {
     getUnFavoritesByUserId,
     getUnFavoritesCountByBioId,
     getUnFavoritesListByUserId,
+    getUnFavouritesByWhoByUserId,
 };

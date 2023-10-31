@@ -10,6 +10,7 @@ const FavouritesRouter = express_1.default.Router();
 FavouritesRouter.route("/")
     .get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavouritesController.getFavouritesListByUserId)
     .post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavouritesController.createFavourites);
+FavouritesRouter.route("/likes-who").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavouritesController.getFavouritesByWhoByUserId);
 FavouritesRouter.route("/user-data/:userId/:bioId").get(favourites_controller_1.FavouritesController.getFavouritesByUserId);
 FavouritesRouter.route("/bio-data/:id")
     .get(favourites_controller_1.FavouritesController.getFavouritesCountByBioId)

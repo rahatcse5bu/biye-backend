@@ -7,6 +7,11 @@ FavouritesRouter.route("/")
 	.get(auth("user", "admin"), FavouritesController.getFavouritesListByUserId)
 	.post(auth("user", "admin"), FavouritesController.createFavourites);
 
+FavouritesRouter.route("/likes-who").get(
+	auth("user", "admin"),
+	FavouritesController.getFavouritesByWhoByUserId
+);
+
 FavouritesRouter.route("/user-data/:userId/:bioId").get(
 	FavouritesController.getFavouritesByUserId
 );
