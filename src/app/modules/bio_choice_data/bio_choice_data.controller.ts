@@ -616,13 +616,13 @@ const getBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
 						FROM bio_choice_data
 						WHERE user_id = ? AND bio_id <> ?
 				) AS subquery
-				LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id LEFT JOIN contact c on c.user_id=subquery.bio_id LEFT JOIN  general_info gi ON gi.user_id=subquery.bio_id LEFT JOIN contact_purchase_data cpd ON cpd.user_id=? LEFT JOIN payments p ON (p.user_id= ? AND p.transaction_id=cpd.transaction_id AND cpd.bio_id=subquery.bio_id) WHERE (p.reason='contact_purchase' AND p.status='Completed' AND p.refund_status <> 'refunded' OR p.refund_status NOT LIKE '%processing%') AND subquery.status='Approved'
+				LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id LEFT JOIN contact c on c.user_id=subquery.bio_id LEFT JOIN  general_info gi ON gi.user_id=subquery.bio_id LEFT JOIN contact_purchase_data cpd ON (cpd.user_id= subquery.user_id AND cpd.bio_id=subquery.bio_id ) LEFT JOIN payments p ON (p.user_id= ? AND cpd.bio_id=subquery.bio_id) WHERE (p.reason='contact_purchase' AND p.status='Completed' AND p.refund_status <> 'refunded' OR p.refund_status NOT LIKE '%processing%') AND subquery.status='Approved'
 				GROUP BY subquery.bio_id;
 				`;
 
 				db.query<RowDataPacket[]>(
 					getSqlSecondStep,
-					[user_id, user_id, user_id, user_id],
+					[user_id, user_id, user_id],
 					(err, results) => {
 						if (err) {
 							console.error("Error checking User Id:", err);
