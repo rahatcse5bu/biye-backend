@@ -166,7 +166,7 @@ const createUserForGoogleSignIn = (req, res) => {
                                         token: jwtHelpers_1.jwtHelpers.createToken({
                                             token_id: (_a = user[0]) === null || _a === void 0 ? void 0 : _a.token_id,
                                             user_role: (_b = user[0]) === null || _b === void 0 ? void 0 : _b.user_role,
-                                        }, config_1.default.jwt_secret, "365d"),
+                                        }, config_1.default.jwt_secret, "7d"),
                                     });
                                 }
                             });

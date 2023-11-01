@@ -185,7 +185,7 @@ const createUserForGoogleSignIn = (req: Request, res: Response) => {
 														user_role: user[0]?.user_role,
 													},
 													config.jwt_secret as string,
-													"365d"
+													"7d"
 												),
 											});
 										}
