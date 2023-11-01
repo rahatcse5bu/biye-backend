@@ -21,7 +21,16 @@ const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
 const general_info_constant_1 = require("./general_info.constant");
 const http_status_1 = __importDefault(require("http-status"));
 const getGeneralInfo = (req, res) => {
+    var _a, _b;
     const { bio_type, marital_status, zilla } = req.query;
+    let limit = 10;
+    let page = 1;
+    if ((_a = req.query) === null || _a === void 0 ? void 0 : _a.limit) {
+        limit = Number(req.query.limit);
+    }
+    if ((_b = req.query) === null || _b === void 0 ? void 0 : _b.page) {
+        page = Number(req.query.page);
+    }
     console.log("bio-type~", bio_type);
     console.log("marital-status~", marital_status);
     // console.log(req.query);
@@ -47,6 +56,7 @@ const getGeneralInfo = (req, res) => {
         conditions =
             "WHERE user_info.user_status = 'in review' OR user_info.user_status = 'active' ";
     }
+    conditions += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
     const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender,general_info.views , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info 
 	JOIN address ON general_info.user_id = address.user_id 
 	JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id
@@ -70,9 +80,14 @@ const getGeneralInfo = (req, res) => {
                 success: false,
             });
         }
-        res
-            .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("All General info  retrieved successfully", rows));
+        res.status(200).json({
+            success: true,
+            message: "All General info  retrieved successfully",
+            data: rows,
+            page,
+            limit,
+            size: rows.length,
+        });
     });
 };
 const getGeneralInfoByUserId = (req, res) => {

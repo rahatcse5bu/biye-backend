@@ -10,10 +10,19 @@ import httpsStatus from "http-status";
 const getGeneralInfo = (req: Request, res: Response) => {
 	const { bio_type, marital_status, zilla } = req.query;
 
+	let limit: number = 10;
+	let page: number = 1;
+	if (req.query?.limit) {
+		limit = Number(req.query.limit);
+	}
+	if (req.query?.page) {
+		page = Number(req.query.page);
+	}
+
 	console.log("bio-type~", bio_type);
 	console.log("marital-status~", marital_status);
 	// console.log(req.query);
-	let conditions = "";
+	let conditions: string | null = "";
 
 	if (bio_type) {
 		conditions += `general_info.bio_type = '${bio_type}' AND `;
@@ -35,6 +44,8 @@ const getGeneralInfo = (req: Request, res: Response) => {
 		conditions =
 			"WHERE user_info.user_status = 'in review' OR user_info.user_status = 'active' ";
 	}
+
+	conditions += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
 
 	const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender,general_info.views , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info 
 	JOIN address ON general_info.user_id = address.user_id 
@@ -61,14 +72,14 @@ const getGeneralInfo = (req: Request, res: Response) => {
 			});
 		}
 
-		res
-			.status(200)
-			.json(
-				sendSuccess<RowDataPacket[]>(
-					"All General info  retrieved successfully",
-					rows
-				)
-			);
+		res.status(200).json({
+			success: true,
+			message: "All General info  retrieved successfully",
+			data: rows,
+			page,
+			limit,
+			size: rows.length,
+		});
 	});
 };
 
