@@ -8,11 +8,11 @@ const occupation_controller_1 = require("./occupation.controller");
 const auth_1 = require("../../middlewares/auth");
 const OccupationRouter = express_1.default.Router();
 OccupationRouter.route("/")
-    .get(occupation_controller_1.OccupationController.getOccupation)
+    .get((0, auth_1.auth)("admin"), occupation_controller_1.OccupationController.getAllOccupationes)
     .put((0, auth_1.auth)("user", "admin"), occupation_controller_1.OccupationController.updateOccupation)
     .post((0, auth_1.auth)("user", "admin"), occupation_controller_1.OccupationController.createOccupation);
-OccupationRouter.route("/:id/user-id").get(occupation_controller_1.OccupationController.getOccupationByUserId);
+OccupationRouter.route("/token").get((0, auth_1.auth)("user", "admin"), occupation_controller_1.OccupationController.getOccupationByToken);
 OccupationRouter.route("/:id")
-    .get(occupation_controller_1.OccupationController.getSingleOccupation)
-    .delete(occupation_controller_1.OccupationController.deleteOccupation);
+    .get((0, auth_1.auth)("admin"), occupation_controller_1.OccupationController.getOccupationById)
+    .delete((0, auth_1.auth)("admin"), occupation_controller_1.OccupationController.deleteOccupation);
 exports.default = OccupationRouter;

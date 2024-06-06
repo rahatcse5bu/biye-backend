@@ -1,23 +1,23 @@
-import express from "express";
-import { FavouritesController } from "./favourites.controller";
-import { auth } from "../../middlewares/auth";
-const FavouritesRouter = express.Router();
+// import express from "express";
+// import { FavouritesController } from "./favourites.controller";
+// import { auth } from "../../middlewares/auth";
+// const FavouritesRouter = express.Router();
 
-FavouritesRouter.route("/")
-	.get(auth("user", "admin"), FavouritesController.getFavouritesListByUserId)
-	.post(auth("user", "admin"), FavouritesController.createFavourites);
+// FavouritesRouter.route("/")
+// 	.get(auth("user", "admin"), FavouritesController.getFavouritesListByUserId)
+// 	.post(auth("user", "admin"), FavouritesController.createFavourites);
 
-FavouritesRouter.route("/likes-who").get(
-	auth("user", "admin"),
-	FavouritesController.getFavouritesByWhoByUserId
-);
+// FavouritesRouter.route("/likes-who").get(
+// 	auth("user", "admin"),
+// 	FavouritesController.getFavouritesByWhoByUserId
+// );
 
-FavouritesRouter.route("/user-data/:userId/:bioId").get(
-	FavouritesController.getFavouritesByUserId
-);
-FavouritesRouter.route("/bio-data/:id")
-	.get(FavouritesController.getFavouritesCountByBioId)
-	.put(FavouritesController.updateFavourites)
-	.delete(FavouritesController.deleteFavourites);
+// FavouritesRouter.route("/user-data/:userId/:bioId").get(
+// 	FavouritesController.getFavouritesByUserId
+// );
+// FavouritesRouter.route("/bio-data/:id")
+// 	.get(FavouritesController.getFavouritesCountByBioId)
+// 	.put(FavouritesController.updateFavourites)
+// 	.delete(FavouritesController.deleteFavourites);
 
-export default FavouritesRouter;
+// export default FavouritesRouter;

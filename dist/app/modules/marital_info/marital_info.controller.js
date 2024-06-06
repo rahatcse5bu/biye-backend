@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __rest = (this && this.__rest) || function (s, e) {
     var t = {};
     for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
@@ -15,309 +24,130 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MaritalInfoController = void 0;
-const db_1 = __importDefault(require("../../../config/db"));
-const SendSuccess_1 = require("../../../shared/SendSuccess");
-const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
-const response_1 = require("../../../utils/response");
 const http_status_1 = __importDefault(require("http-status"));
-const getMaritalInfo = (req, res) => {
-    const sql = "SELECT * FROM marital_info";
-    db_1.default.query(sql, (err, rows) => {
-        if (err) {
-            res.send({
-                message: err === null || err === void 0 ? void 0 : err.message,
+const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const user_info_model_1 = require("../user_info/user_info.model");
+const mongoose_1 = __importDefault(require("mongoose"));
+const marital_info_service_1 = require("./marital_info.service");
+exports.MaritalInfoController = {
+    getAllMaritalInfos: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const maritalInfos = yield marital_info_service_1.MaritalInfoService.getAllMaritalInfos();
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "All maritalInfos retrieved successfully",
+            data: maritalInfos,
+        });
+    })),
+    getMaritalInfoById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        const maritalInfo = yield marital_info_service_1.MaritalInfoService.getMaritalInfoById(id);
+        if (!maritalInfo) {
+            res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,
-            });
-        }
-        res
-            .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("All Marital info  retrieved successfully", rows));
-    });
-};
-const getSingleMaritalInfo = (req, res) => {
-    const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-    const sql = "SELECT * FROM marital_info WHERE id = ?";
-    db_1.default.query(sql, [userId], (err, rows) => {
-        if (err) {
-            return res.status(500).json({
-                message: err === null || err === void 0 ? void 0 : err.message,
-                success: false,
-            });
-        }
-        if (rows.length === 0) {
-            return res.status(404).json({
-                message: "Marital info not found",
-                success: false,
-            });
-        }
-        res
-            .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("Marital info retrieved", rows, 200));
-    });
-};
-const createMaritalInfo = (req, res) => {
-    var _a;
-    const data = req.body;
-    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let { user_form } = data, others = __rest(data, ["user_form"]);
-    let user_id = null;
-    // console.log(req.user);
-    if (!token_id) {
-        return res.status(401).send({
-            statusCode: http_status_1.default.UNAUTHORIZED,
-            message: "You are not authorized",
-            success: false,
-        });
-    }
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
-        }
-        //! get user_id using token_id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
-            var _a;
-            if (err) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            //console.log(result);
-            user_id = (_a = result[0]) === null || _a === void 0 ? void 0 : _a.id;
-            //! Check if the user_id already exists in the database
-            const checkSql = "SELECT COUNT(*) AS count FROM marital_info  WHERE user_id = ?";
-            db_1.default.query(checkSql, [user_id], (err, results) => {
-                if (err) {
-                    console.error("Error checking User Id:", err);
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                }
-                const count = results[0].count;
-                if (count > 0) {
-                    //! User with this user_id already exists, return an error response
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                        success: false,
-                        message: "User with this user id already exists",
-                    });
-                }
-                others = Object.assign(Object.assign({}, others), { user_id });
-                const keys = Object.keys(others);
-                const values = Object.values(others);
-                //! Insert  into the database
-                const insertSql = `INSERT INTO marital_info (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
-                const expectedLifePartner = [];
-                keys.forEach((field) => {
-                    expectedLifePartner.push(others[field]);
-                });
-                //! Insert family status information
-                db_1.default.query(insertSql, expectedLifePartner, (err, results) => {
-                    if (err) {
-                        console.error("Error inserting General info:", err);
-                        return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                    }
-                    //! Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
-                    const updateUserInfoSql = `
-            UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
-          `;
-                    db_1.default.query(updateUserInfoSql, [user_id], (err, results) => {
-                        if (err) {
-                            console.error("Error updating user_info:", err);
-                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                        }
-                        // Commit the transaction if everything is successful
-                        db_1.default.commit((err) => {
-                            if (err) {
-                                console.error("Error committing transaction:", err);
-                                return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                            }
-                            res.status(201).json({
-                                success: true,
-                                message: "Marital info created and user_info updated successfully",
-                            });
-                        });
-                    });
-                });
-            });
-        });
-    });
-};
-const updateMaritalInfo = (req, res) => {
-    var _a, _b;
-    const data = req.body;
-    const token_id = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id) !== null && _b !== void 0 ? _b : null;
-    let user_id = null;
-    if (!token_id) {
-        return res.status(401).send({
-            statusCode: http_status_1.default.UNAUTHORIZED,
-            message: "You are not authorized",
-            success: false,
-        });
-    }
-    //! Begin a database transaction
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
-        }
-        // get user id using token id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
-            var _a;
-            if (err) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            console.log(result);
-            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
-            if (isNaN(user_id)) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            //! Check if General info for the user with the given ID exists
-            const checkUserSql = "SELECT user_id FROM marital_info WHERE user_id = ?";
-            db_1.default.query(checkUserSql, [user_id], (err, userResults) => {
-                if (err) {
-                    console.error("Error checking Marital info:", err);
-                    db_1.default.rollback(() => {
-                        res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
-                    });
-                    return;
-                }
-                const userCount = userResults.length;
-                //! If Marital info doesn't exist, send an error response
-                if (userCount === 0) {
-                    db_1.default.rollback(() => {
-                        res.status(404).json({
-                            success: false,
-                            message: "Marital info not found",
-                        });
-                    });
-                    return;
-                }
-                //! Build the update SQL statement dynamically based on changed values
-                const updateFields = [];
-                const updateValues = [];
-                Object.keys(data).forEach((key) => {
-                    updateFields.push(`${key} = ?`);
-                    updateValues.push(data[key]);
-                });
-                if (updateFields.length === 0) {
-                    // No fields to update
-                    db_1.default.commit(() => {
-                        res
-                            .status(200)
-                            .json({ success: true, message: "No changes to update" });
-                    });
-                    return;
-                }
-                // Construct the final update SQL statement
-                const updateSql = `UPDATE marital_info  SET ${updateFields.join(", ")} WHERE user_id = ?`;
-                updateValues.push(user_id);
-                // Execute the update query within the transaction
-                db_1.default.query(updateSql, updateValues, (err, results) => {
-                    if (err) {
-                        console.error("Error updating Marital info:", err);
-                        db_1.default.rollback(() => {
-                            res.status(500).json({
-                                success: false,
-                                message: "Internal Server Error",
-                                error: err,
-                            });
-                        });
-                    }
-                    else {
-                        // Commit the transaction if the update was successful
-                        db_1.default.commit(() => {
-                            res.status(200).json({
-                                message: "Update successfully completed",
-                                success: true,
-                                data: results,
-                            });
-                        });
-                    }
-                });
-            });
-        });
-    });
-};
-const deleteMaritalInfo = (req, res) => {
-    const userId = req.params.id; // Assuming you pass the user ID in the URL
-    // Check if marital_info for the user with the given ID exists
-    const checkUserSql = "SELECT COUNT(*) AS userCount FROM marital_info WHERE id = ?";
-    db_1.default.query(checkUserSql, [userId], (err, userResults) => {
-        if (err) {
-            console.error("Error checking Marital info:", err);
-            return res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
-        }
-        const userCount = userResults[0].userCount;
-        // If marital_info doesn't exist, send an error response
-        if (userCount === 0) {
-            return res
-                .status(404)
-                .json({ success: false, message: "marital_info not found" });
-        }
-        // If Marital info exists, proceed with the deletion
-        const deleteSql = "DELETE FROM marital_info WHERE id = ?";
-        db_1.default.query(deleteSql, [userId], (err, results) => {
-            if (err) {
-                console.error("Error deleting Marital info:", err);
-                res
-                    .status(500)
-                    .json({ success: false, message: "Internal Server Error" });
-            }
-            else {
-                res.status(200).json({
-                    success: true,
-                    message: "Marital info deleted successfully",
-                });
-            }
-        });
-    });
-};
-const getMaritalInfoByUserId = (req, res) => {
-    const userId = req.params.id; // Assuming the user_id is in the route parameter
-    const sql = "SELECT * FROM marital_info WHERE user_id = ?";
-    db_1.default.query(sql, [userId], (err, rows) => {
-        if (err) {
-            res.send({
-                message: err === null || err === void 0 ? void 0 : err.message,
-                success: false,
+                message: "MaritalInfo not found",
             });
         }
         else {
-            if (rows.length === 0) {
-                res.status(404).json({
-                    message: "Marital info not found for the specified user_id",
-                    success: false,
-                });
-            }
-            else {
-                res.status(200).json({
-                    message: "Marital info retrieved successfully",
-                    success: true,
-                    data: rows[0], // Assuming you expect only one row per user_id
-                });
-            }
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "MaritalInfo retrieved successfully",
+                data: maritalInfo,
+            });
         }
-    });
-};
-exports.MaritalInfoController = {
-    getMaritalInfo,
-    getSingleMaritalInfo,
-    createMaritalInfo,
-    updateMaritalInfo,
-    deleteMaritalInfo,
-    getMaritalInfoByUserId,
+    })),
+    getMaritalInfoByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!userId) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const maritalInfo = yield marital_info_service_1.MaritalInfoService.getMaritalInfoByToken(userId);
+        if (!maritalInfo) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "MaritalInfo not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "MaritalInfo retrieved successfully",
+                data: maritalInfo,
+            });
+        }
+    })),
+    createMaritalInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b, _c;
+        const session = yield mongoose_1.default.startSession();
+        session.startTransaction();
+        try {
+            let _d = req.body, { user_form } = _d, maritalInfoData = __rest(_d, ["user_form"]);
+            maritalInfoData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+            // Create maritalInfo
+            const createdMaritalInfo = yield marital_info_service_1.MaritalInfoService.createMaritalInfo(maritalInfoData, {
+                session,
+            });
+            // Find user and update the fields
+            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
+            user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
+            user.last_edited_timeline_index = user_form;
+            yield user.save({ session });
+            // Commit the transaction
+            yield session.commitTransaction();
+            session.endSession();
+            res.status(http_status_1.default.CREATED).json({
+                success: true,
+                message: "MaritalInfo created successfully",
+                data: createdMaritalInfo,
+            });
+        }
+        catch (error) {
+            // If any error occurs, abort the transaction
+            yield session.abortTransaction();
+            session.endSession();
+            res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An error occurred while creating the maritalInfo",
+                error: error.message,
+            });
+        }
+    })),
+    updateMaritalInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _e;
+        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const updatedFields = req.body;
+        const updatedMaritalInfo = yield marital_info_service_1.MaritalInfoService.updateMaritalInfo(id, updatedFields);
+        if (!updatedMaritalInfo) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "MaritalInfo not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "MaritalInfo updated successfully",
+                data: updatedMaritalInfo,
+            });
+        }
+    })),
+    deleteMaritalInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        yield marital_info_service_1.MaritalInfoService.deleteMaritalInfo(id);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "MaritalInfo deleted successfully",
+        });
+    })),
 };

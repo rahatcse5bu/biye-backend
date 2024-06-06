@@ -8,11 +8,11 @@ const marital_info_controller_1 = require("./marital_info.controller");
 const auth_1 = require("../../middlewares/auth");
 const MaritalInfoRouter = express_1.default.Router();
 MaritalInfoRouter.route("/")
-    .get(marital_info_controller_1.MaritalInfoController.getMaritalInfo)
+    .get((0, auth_1.auth)("admin"), marital_info_controller_1.MaritalInfoController.getAllMaritalInfos)
     .post((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.createMaritalInfo)
     .put((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.updateMaritalInfo);
-MaritalInfoRouter.route("/:id/user-id").get(marital_info_controller_1.MaritalInfoController.getMaritalInfoByUserId);
+MaritalInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.getMaritalInfoByToken);
 MaritalInfoRouter.route("/:id")
-    .get(marital_info_controller_1.MaritalInfoController.getSingleMaritalInfo)
-    .delete(marital_info_controller_1.MaritalInfoController.deleteMaritalInfo);
+    .get((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.getMaritalInfoById)
+    .delete((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.deleteMaritalInfo);
 exports.default = MaritalInfoRouter;

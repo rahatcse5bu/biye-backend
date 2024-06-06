@@ -8,300 +8,140 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PaymentsController = void 0;
-const db_1 = __importDefault(require("../../../config/db"));
-const SendSuccess_1 = require("../../../shared/SendSuccess");
-const generatePlaceholders_1 = require("../../../utils/generatePlaceholders");
-const payments_constant_1 = require("./payments.constant");
-const response_1 = require("../../../utils/response");
+exports.PaymentController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
-const getPaymentsByUser = (req, res) => {
-    var _a;
-    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let user_id = null;
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
-        }
-        //? get user id using token id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
-            var _a;
-            if (err) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            console.log(result);
-            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
-            if (isNaN(user_id)) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            //! now get all payment history by individuals
-            const getPaymentsHistorySql = `SELECT p.*, b.bio_details, b.feedback, b.status AS bio_choice_status FROM payments AS p LEFT JOIN bio_choice_data AS b ON p.user_id = b.user_id WHERE p.user_id = ? GROUP BY p.payment_id;`;
-            db_1.default.query(getPaymentsHistorySql, [user_id], (err, result) => {
-                if (err) {
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                        success: false,
-                        message: "something wrong",
-                        error: err,
-                    });
-                }
-                db_1.default.commit(() => {
-                    res.status(200).json({
-                        message: "successfully completed",
-                        success: true,
-                        data: result,
-                    });
-                });
-            });
+const payments_service_1 = require("./payments.service");
+const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const mongoose_1 = __importDefault(require("mongoose"));
+exports.PaymentController = {
+    getAllPayments: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const payments = yield payments_service_1.PaymentService.getAllPayments();
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "All payments retrieved successfully",
+            data: payments,
         });
-    });
-};
-const getSinglePayments = (req, res) => {
-    const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-    const sql = "SELECT * FROM payments WHERE id = ?";
-    db_1.default.query(sql, [userId], (err, rows) => {
-        if (err) {
-            return res.status(500).json({
-                message: err === null || err === void 0 ? void 0 : err.message,
+    })),
+    getPaymentById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        const payment = yield payments_service_1.PaymentService.getPaymentById(id);
+        if (!payment) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Payment not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Payment retrieved successfully",
+                data: payment,
+            });
+        }
+    })),
+    getPaymentByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!userId) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
                 success: false,
             });
         }
-        if (rows.length === 0) {
-            return res.status(404).json({
-                message: "payments not found",
+        const payment = yield payments_service_1.PaymentService.getPaymentByToken(userId);
+        if (!payment) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Payment not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Payment retrieved successfully",
+                data: payment,
+            });
+        }
+    })),
+    createPayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const session = yield mongoose_1.default.startSession();
+        session.startTransaction();
+        try {
+            let _c = req.body, { user_form } = _c, paymentData = __rest(_c, ["user_form"]);
+            paymentData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+            // Create payment
+            const createdPayment = yield payments_service_1.PaymentService.createPayment(paymentData, {
+                session,
+            });
+            // Commit the transaction
+            yield session.commitTransaction();
+            session.endSession();
+            res.status(http_status_1.default.CREATED).json({
+                success: true,
+                message: "Payment created successfully",
+                data: createdPayment,
+            });
+        }
+        catch (error) {
+            // If any error occurs, abort the transaction
+            yield session.abortTransaction();
+            session.endSession();
+            res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An error occurred while creating the payment",
+                error: error.message,
+            });
+        }
+    })),
+    updatePayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _d;
+        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
                 success: false,
             });
         }
-        res
-            .status(200)
-            .json((0, SendSuccess_1.sendSuccess)("payments retrieved", rows, 200));
-    });
-};
-const createPayments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    let data = req.body;
-    const token_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.token_id;
-    let user_id = null;
-    // console.log(req.user);
-    if (!token_id) {
-        return res.status(401).send({
-            statusCode: http_status_1.default.UNAUTHORIZED,
-            message: "You are not authorized",
-            success: false,
-        });
-    }
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error", error: err });
-        }
-        //? get user id using token id
-        const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-        db_1.default.query(getUserIdByTokenSql, [token_id], (err, result) => {
-            var _a;
-            if (err) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            console.log(result);
-            user_id = Number((_a = result[0]) === null || _a === void 0 ? void 0 : _a.id);
-            if (isNaN(user_id)) {
-                return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                    success: false,
-                    message: "You are not authorized",
-                    error: err,
-                });
-            }
-            //! now save payment information to payments table
-            data = Object.assign(Object.assign({}, data), { user_id });
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-            console.log(keys.length);
-            console.log(values.length);
-            //! Insert  into the database
-            const insertSql = `INSERT INTO payments (${keys.join(",")}) VALUES (${(0, generatePlaceholders_1.generatePlaceholders)(values.length)})`;
-            console.log(insertSql);
-            const payment = [];
-            keys.forEach((field) => {
-                payment.push(data[field]);
+        const updatedFields = req.body;
+        const updatedPayment = yield payments_service_1.PaymentService.updatePayment(id, updatedFields);
+        if (!updatedPayment) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Payment not found",
             });
-            console.log(payment);
-            db_1.default.query(insertSql, payment, (err, result) => {
-                if (err) {
-                    return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                        success: false,
-                        message: "something wrong",
-                        error: err,
-                    });
-                }
-                const paymentStatus = data["status"];
-                const amount = Number(data["amount"]);
-                let points = 0;
-                if (paymentStatus === "Completed") {
-                    points = payments_constant_1.amountToPoints[amount]
-                        ? Number(payments_constant_1.amountToPoints[amount])
-                        : amount;
-                }
-                else {
-                    points = 0;
-                }
-                console.log(points);
-                const updateGeneralInfoSql = `UPDATE user_info SET points = points + ? where id = ?`;
-                db_1.default.query(updateGeneralInfoSql, [points, user_id], (err, results) => {
-                    if (err) {
-                        return (0, response_1.rollbackAndRespond)(res, db_1.default, null, {
-                            success: false,
-                            message: "something wrong",
-                            error: err,
-                        });
-                    }
-                    db_1.default.commit(() => {
-                        res.status(200).json({
-                            message: "successfully completed",
-                            success: true,
-                            data: results,
-                        });
-                    });
-                });
-            });
-        });
-    });
-});
-const updatePayments = (req, res) => {
-    const data = req.body;
-    const userId = req.params.id; // Assuming you pass the user ID in the URL
-    console.log(data);
-    // Begin a database transaction
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.error("Error starting transaction:", err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal Server Error" });
         }
-        // Check if payments for the user with the given ID exists
-        const checkUserSql = "SELECT * FROM payments WHERE id = ?";
-        db_1.default.query(checkUserSql, [userId], (err, userResults) => {
-            if (err) {
-                console.error("Error checking payments:", err);
-                db_1.default.rollback(() => {
-                    res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
-                });
-                return;
-            }
-            const userCount = userResults.length;
-            // If payments doesn't exist, send an error response
-            if (userCount === 0) {
-                db_1.default.rollback(() => {
-                    res
-                        .status(404)
-                        .json({ success: false, message: "payments not found" });
-                });
-                return;
-            }
-            const currentUserData = userResults[0];
-            // Build the update SQL statement dynamically based on changed values
-            const updateFields = [];
-            const updateValues = [];
-            Object.keys(data).forEach((key) => {
-                updateFields.push(`${key} = ?`);
-                updateValues.push(data[key]);
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Payment updated successfully",
+                data: updatedPayment,
             });
-            if (updateFields.length === 0) {
-                // No fields to update
-                db_1.default.commit(() => {
-                    res
-                        .status(200)
-                        .json({ success: true, message: "No changes to update" });
-                });
-                return;
-            }
-            // Construct the final update SQL statement
-            const updateSql = `UPDATE payments SET ${updateFields.join(", ")} WHERE id = ?`;
-            updateValues.push(userId);
-            // Execute the update query within the transaction
-            db_1.default.query(updateSql, updateValues, (err, results) => {
-                if (err) {
-                    console.error("Error updating payments:", err);
-                    db_1.default.rollback(() => {
-                        res
-                            .status(500)
-                            .json({ success: false, message: "Internal Server Error" });
-                    });
-                }
-                else {
-                    // Commit the transaction if the update was successful
-                    db_1.default.commit((err) => {
-                        if (err) {
-                            console.error("Error committing transaction:", err);
-                            return (0, response_1.rollbackAndRespond)(res, db_1.default, err);
-                        }
-                        res
-                            .status(200)
-                            .json((0, SendSuccess_1.sendSuccess)("Update sucessfully completed", results, 200));
-                    });
-                }
-            });
-        });
-    });
-};
-const deletePayments = (req, res) => {
-    const userId = req.params.id; // Assuming you pass the user ID in the URL
-    // Check if payments for the user with the given ID exists
-    const checkUserSql = "SELECT COUNT(*) AS userCount FROM payments WHERE id = ?";
-    db_1.default.query(checkUserSql, [userId], (err, userResults) => {
-        if (err) {
-            console.error("Error checking payments:", err);
-            return res.status(500).json({ success: false, message: err === null || err === void 0 ? void 0 : err.message });
         }
-        const userCount = userResults[0].userCount;
-        // If payments doesn't exist, send an error response
-        if (userCount === 0) {
-            return res
-                .status(404)
-                .json({ success: false, message: "payments not found" });
-        }
-        // If payments exists, proceed with the deletion
-        const deleteSql = "DELETE FROM payments WHERE id = ?";
-        db_1.default.query(deleteSql, [userId], (err, results) => {
-            if (err) {
-                console.error("Error deleting payments:", err);
-                res
-                    .status(500)
-                    .json({ success: false, message: "Internal Server Error" });
-            }
-            else {
-                res
-                    .status(200)
-                    .json({ success: true, message: "payments deleted successfully" });
-            }
+    })),
+    deletePayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        yield payments_service_1.PaymentService.deletePayment(id);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Payment deleted successfully",
         });
-    });
-};
-exports.PaymentsController = {
-    getPaymentsByUser,
-    getSinglePayments,
-    createPayments,
-    updatePayments,
-    deletePayments,
+    })),
 };

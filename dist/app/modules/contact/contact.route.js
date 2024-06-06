@@ -10,7 +10,10 @@ const ContactRouter = express_1.default.Router();
 ContactRouter.route("/")
     .post((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.createContact)
     .put((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.updateContact);
-ContactRouter.route("/bio-contact/:userId/:bioId").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactForBuyer);
-ContactRouter.route("/:id/user-id").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactByUserId);
+// ContactRouter.route("/bio-contact/:userId/:bioId").get(
+//   auth("user", "admin"),
+//   ContactController.getContactForBuyer
+// );
+ContactRouter.route("/token").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactByToken);
 ContactRouter.route("/:id").delete(contact_controller_1.ContactController.deleteContact);
 exports.default = ContactRouter;

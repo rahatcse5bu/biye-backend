@@ -1,235 +1,79 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BioDataController = void 0;
 const SendSuccess_1 = require("../../../shared/SendSuccess");
-const db_1 = __importDefault(require("../../../config/db"));
-const getBioData = (req, res) => {
+const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const user_info_model_1 = require("../user_info/user_info.model");
+const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
+const address_model_1 = __importDefault(require("../address/address.model"));
+const educational_qualification_model_1 = __importDefault(require("../educational_qualification/educational_qualification.model"));
+const personal_info_model_1 = __importDefault(require("../personal_info/personal_info.model"));
+const family_status_model_1 = __importDefault(require("../family_status/family_status.model"));
+const occupation_model_1 = __importDefault(require("../occupation/occupation.model"));
+const marital_info_model_1 = __importDefault(require("../marital_info/marital_info.model"));
+const expected_lifepartner_model_1 = __importDefault(require("../expected_lifepartner/expected_lifepartner.model"));
+const ongikar_nama_model_1 = __importDefault(require("../ongikar_nama/ongikar_nama.model"));
+const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const bioId = req.params.id;
-    let bioData = {};
-    db_1.default.beginTransaction((err) => {
-        if (err) {
-            console.log(err);
-            return res
-                .status(500)
-                .json({ success: false, message: "Internal server error" });
-        }
-        const userInfoSql = "SELECT email,username,phone FROM user_info where id = ? ";
-        db_1.default.query(userInfoSql, [bioId], (err, userInfo) => {
-            if (err) {
-                console.log(err);
-                // Rollback the transaction in case of an error
-                db_1.default.rollback(() => {
-                    console.log("Transaction rolled back.");
-                    return res
-                        .status(500)
-                        .json({ success: false, message: "Internal server error" });
-                });
-            }
-            else {
-                bioData = {
-                    userInfo: userInfo[0],
-                };
-                const personalInfoSql = "SELECT * FROM personal_info WHERE user_id = ?";
-                db_1.default.query(personalInfoSql, [bioId], (err, personalInfo) => {
-                    if (err) {
-                        console.log(err);
-                        // Rollback the transaction in case of an error
-                        db_1.default.rollback(() => {
-                            console.log("Transaction rolled back.");
-                            return res
-                                .status(500)
-                                .json({ success: false, message: "Internal server error" });
-                        });
-                    }
-                    else {
-                        bioData = Object.assign(Object.assign({}, bioData), { personalInfo: personalInfo[0] });
-                        const generalInfoSql = "SELECT * FROM general_info WHERE user_id = ?";
-                        db_1.default.query(generalInfoSql, [bioId], (err, generalInfo) => {
-                            if (err) {
-                                console.log(err);
-                                // Rollback the transaction in case of an error
-                                db_1.default.rollback(() => {
-                                    console.log("Transaction rolled back.");
-                                    return res.status(500).json({
-                                        success: false,
-                                        message: "Internal server error",
-                                    });
-                                });
-                            }
-                            else {
-                                bioData = Object.assign(Object.assign({}, bioData), { generalInfo: generalInfo[0] });
-                                const educationQualificationSql = "SELECT * FROM educational_qualification WHERE user_id = ?";
-                                db_1.default.query(educationQualificationSql, [bioId], (err, educationQualification) => {
-                                    if (err) {
-                                        console.log(err);
-                                        // Rollback the transaction in case of an error
-                                        db_1.default.rollback(() => {
-                                            console.log("Transaction rolled back.");
-                                            return res.status(500).json({
-                                                success: false,
-                                                message: "Internal server error",
-                                            });
-                                        });
-                                    }
-                                    else {
-                                        bioData = Object.assign(Object.assign({}, bioData), { educationQualification: educationQualification[0] });
-                                        const addressSql = "SELECT * FROM address WHERE user_id = ?";
-                                        db_1.default.query(addressSql, [bioId], (err, address) => {
-                                            if (err) {
-                                                console.log(err);
-                                                // Rollback the transaction in case of an error
-                                                db_1.default.rollback(() => {
-                                                    console.log("Transaction rolled back.");
-                                                    return res.status(500).json({
-                                                        success: false,
-                                                        message: "Internal server error",
-                                                    });
-                                                });
-                                            }
-                                            else {
-                                                bioData = Object.assign(Object.assign({}, bioData), { address: address[0] });
-                                                const occupationSql = "SELECT * FROM occupation WHERE user_id = ?";
-                                                db_1.default.query(occupationSql, [bioId], (err, occupation) => {
-                                                    if (err) {
-                                                        console.log(err);
-                                                        // Rollback the transaction in case of an error
-                                                        db_1.default.rollback(() => {
-                                                            console.log("Transaction rolled back.");
-                                                            return res.status(500).json({
-                                                                success: false,
-                                                                message: "Internal server error",
-                                                            });
-                                                        });
-                                                    }
-                                                    else {
-                                                        bioData = Object.assign(Object.assign({}, bioData), { occupation: occupation[0] });
-                                                        const expectedLifePartnerSql = "SELECT * FROM expected_lifepartner WHERE user_id =? ";
-                                                        db_1.default.query(expectedLifePartnerSql, [bioId], (err, expectedLifePartner) => {
-                                                            if (err) {
-                                                                console.log(err);
-                                                                // Rollback the transaction in case of an error
-                                                                db_1.default.rollback(() => {
-                                                                    console.log("Transaction rolled back.");
-                                                                    return res.status(500).json({
-                                                                        success: false,
-                                                                        message: "Internal server error",
-                                                                    });
-                                                                });
-                                                            }
-                                                            else {
-                                                                bioData = Object.assign(Object.assign({}, bioData), { expectedLifePartner: expectedLifePartner[0] });
-                                                                const familyStatusSql = "select * from family_status where user_id = ?";
-                                                                db_1.default.query(familyStatusSql, [bioId], (err, familyStatus) => {
-                                                                    if (err) {
-                                                                        console.log(err);
-                                                                        // Rollback the transaction in case of an error
-                                                                        db_1.default.rollback(() => {
-                                                                            console.log("Transaction rolled back.");
-                                                                            return res
-                                                                                .status(500)
-                                                                                .json({
-                                                                                success: false,
-                                                                                message: "Internal server error",
-                                                                            });
-                                                                        });
-                                                                    }
-                                                                    else {
-                                                                        bioData = Object.assign(Object.assign({}, bioData), { familyStatus: familyStatus[0] });
-                                                                        const maritalInfoSql = "SELECT * FROM marital_info WHERE user_id =?";
-                                                                        db_1.default.query(maritalInfoSql, [bioId], (err, maritalInfo) => {
-                                                                            if (err) {
-                                                                                console.log(err);
-                                                                                // Rollback the transaction in case of an error
-                                                                                db_1.default.rollback(() => {
-                                                                                    console.log("Transaction rolled back.");
-                                                                                    return res
-                                                                                        .status(500)
-                                                                                        .json({
-                                                                                        success: false,
-                                                                                        message: "Internal server error",
-                                                                                    });
-                                                                                });
-                                                                            }
-                                                                            else {
-                                                                                bioData = Object.assign(Object.assign({}, bioData), { maritalInfo: maritalInfo[0] });
-                                                                                const ongikarNamaSql = "SELECT * FROM ongikar_nama WHERE user_id = ?";
-                                                                                db_1.default.query(ongikarNamaSql, [bioId], (err, ongikarNama) => {
-                                                                                    if (err) {
-                                                                                        console.log(err);
-                                                                                        // Rollback the transaction in case of an error
-                                                                                        db_1.default.rollback(() => {
-                                                                                            console.log("Transaction rolled back.");
-                                                                                            return res
-                                                                                                .status(500)
-                                                                                                .json({
-                                                                                                success: false,
-                                                                                                message: "Internal server error",
-                                                                                            });
-                                                                                        });
-                                                                                    }
-                                                                                    else {
-                                                                                        bioData = Object.assign(Object.assign({}, bioData), { ongikarNama: ongikarNama[0] });
-                                                                                        const updateViews = `UPDATE general_info SET views=views+1 where user_id=?`;
-                                                                                        db_1.default.query(updateViews, [bioId], (err, rows) => {
-                                                                                            if (err) {
-                                                                                                // Rollback the transaction in case of an error
-                                                                                                db_1.default.rollback(() => {
-                                                                                                    console.log("Transaction rolled back.");
-                                                                                                    return res
-                                                                                                        .status(500)
-                                                                                                        .json({
-                                                                                                        success: false,
-                                                                                                        message: "Internal server error",
-                                                                                                    });
-                                                                                                });
-                                                                                            }
-                                                                                            else {
-                                                                                                db_1.default.commit((err) => {
-                                                                                                    if (err) {
-                                                                                                        console.log(err);
-                                                                                                        db_1.default.rollback(() => {
-                                                                                                            console.log("Transaction rolled back.");
-                                                                                                            return res
-                                                                                                                .status(500)
-                                                                                                                .json({
-                                                                                                                success: false,
-                                                                                                                message: "Internal server error",
-                                                                                                            });
-                                                                                                        });
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        return res
-                                                                                                            .status(200)
-                                                                                                            .json((0, SendSuccess_1.sendSuccess)("Retrieved bio data successfully", bioData, 200));
-                                                                                                    }
-                                                                                                });
-                                                                                            }
-                                                                                        });
-                                                                                    }
-                                                                                });
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            }
+    const user = yield user_info_model_1.UserInfoModel.findOne({
+        user_id: bioId,
+    }).lean();
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found",
+            success: false,
         });
-    });
-};
+    }
+    // console.log(user);
+    const userId = user._id;
+    const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    const address = yield address_model_1.default.findOne({ user: userId }).lean();
+    const educationQualification = yield educational_qualification_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const personalInfo = yield personal_info_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const familyStatus = yield family_status_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const occupation = yield occupation_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const maritalInfo = yield marital_info_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const expectedLifePartner = yield expected_lifepartner_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const ongikarNama = yield ongikar_nama_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    let data = {
+        generalInfo,
+        address,
+        educationQualification,
+        personalInfo,
+        familyStatus,
+        occupation,
+        maritalInfo,
+        expectedLifePartner,
+        ongikarNama,
+    };
+    res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
+}));
 exports.BioDataController = {
     getBioData,
 };

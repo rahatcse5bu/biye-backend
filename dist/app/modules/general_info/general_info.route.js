@@ -11,8 +11,9 @@ GeneralInfoRouter.route("/")
     .get(general_info_controller_1.GeneralInfoController.getGeneralInfo)
     .post((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.createGeneralInfo)
     .put((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.updateGeneralInfo);
+GeneralInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoByToken);
 GeneralInfoRouter.route("/:id/user-id").get(general_info_controller_1.GeneralInfoController.getGeneralInfoByUserId);
 GeneralInfoRouter.route("/:id")
-    .get(general_info_controller_1.GeneralInfoController.getSingleGeneralInfo)
-    .delete((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.deleteGeneralInfo);
+    .get((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.getSingleGeneralInfo)
+    .delete((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.deleteGeneralInfo);
 exports.default = GeneralInfoRouter;

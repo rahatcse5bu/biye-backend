@@ -10,20 +10,19 @@ import GeneralInfoRouter from "./app/modules/general_info/general_info.route";
 import FamilyStatusRouter from "./app/modules/family_status/family_status.route";
 import ExpectedLifePartnerRouter from "./app/modules/expected_lifepartner/expected_lifepartner.route";
 import EducationalQualificationRouter from "./app/modules/educational_qualification/educational_qualification.route";
-import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
+// import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
 import AddressRouter from "./app/modules/address/address.route";
 import ContactRouter from "./app/modules/contact/contact.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
-import FavouritesRouter from "./app/modules/favourites/favourites.route";
+// import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
-import userTokenRouter from "./app/modules/user_token/user_token.route";
-import RefundsRouter from "./app/modules/refunds/refunds.route";
+// import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 import cors from "cors";
 import config from "./config";
 import bkashRouter from "./app/modules/bkash/bkash.route";
-import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
-import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
+// import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
+// import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
 const app = express();
 
@@ -40,19 +39,19 @@ app.use(morgan("dev"));
 // );
 
 app.use(function (req, res, next) {
-	res.header("Access-Control-Allow-Origin", "*");
-	res.header("Access-Control-Allow-Headers", "X-Requested-With");
-	next();
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
 });
 
 app.use(
-	cors({
-		origin: "*",
-	})
+  cors({
+    origin: "*",
+  })
 );
 
 app.get("/", async (req: Request, res: Response) => {
-	res.send("server is running!");
+  res.send("server is running!");
 });
 
 app.use("/api/v1/user-info", userRouter);
@@ -64,17 +63,16 @@ app.use("/api/v1/general-info", GeneralInfoRouter);
 app.use("/api/v1/family-status", FamilyStatusRouter);
 app.use("/api/v1/expected-life-partner", ExpectedLifePartnerRouter);
 app.use("/api/v1/educational-qualification", EducationalQualificationRouter);
-app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
+// app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
-app.use("/api/v1/favorites", FavouritesRouter);
-app.use("/api/v1/un-favorites", UnFavoritesRouter);
+// app.use("/api/v1/favorites", FavouritesRouter);
+// app.use("/api/v1/un-favorites", UnFavoritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
-app.use("/api/v1/token", userTokenRouter);
 app.use("/api/v1/bkash", bkashRouter);
-app.use("/api/v1/refund", RefundsRouter);
-app.use("/api/v1/contact-purchase-data", ContactPurchaseDataRouter);
+// app.use("/api/v1/refund", RefundsRouter);
+// app.use("/api/v1/contact-purchase-data", ContactPurchaseDataRouter);
 app.use(GlobalErrorHandler);
 
 export default app;

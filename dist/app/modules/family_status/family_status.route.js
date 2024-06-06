@@ -8,11 +8,11 @@ const family_status_controller_1 = require("./family_status.controller");
 const auth_1 = require("../../middlewares/auth");
 const FamilyStatusRouter = express_1.default.Router();
 FamilyStatusRouter.route("/")
-    .get(family_status_controller_1.FamilyStatusController.getFamilyStatus)
+    .get((0, auth_1.auth)("admin"), family_status_controller_1.FamilyStatusController.getFamilyStatus)
     .post((0, auth_1.auth)("user", "admin"), family_status_controller_1.FamilyStatusController.createFamilyStatus)
     .put((0, auth_1.auth)("user", "admin"), family_status_controller_1.FamilyStatusController.updateFamilyStatus);
-FamilyStatusRouter.route("/:id/user-id").get(family_status_controller_1.FamilyStatusController.getFamilyStatusByUserId);
+FamilyStatusRouter.route("/token").get((0, auth_1.auth)("user", "admin"), family_status_controller_1.FamilyStatusController.getFamilyStatusByToken);
 FamilyStatusRouter.route("/:id")
-    .get(family_status_controller_1.FamilyStatusController.getSingleFamilyStatus)
-    .delete(family_status_controller_1.FamilyStatusController.deleteFamilyStatus);
+    .get((0, auth_1.auth)("admin"), family_status_controller_1.FamilyStatusController.getSingleFamilyStatus)
+    .delete((0, auth_1.auth)("admin"), family_status_controller_1.FamilyStatusController.deleteFamilyStatus);
 exports.default = FamilyStatusRouter;

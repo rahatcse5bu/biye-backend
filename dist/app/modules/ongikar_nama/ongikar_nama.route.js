@@ -9,14 +9,14 @@ const auth_1 = require("../../middlewares/auth");
 const ongikarNamaRouter = express_1.default.Router();
 ongikarNamaRouter
     .route("/")
-    .get(ongikar_nama_controller_1.OngikarNamaController.getOngikarNama)
+    .get((0, auth_1.auth)("admin"), ongikar_nama_controller_1.OngikarNamaController.getAllOngikarNamaes)
     .post((0, auth_1.auth)("user", "admin"), ongikar_nama_controller_1.OngikarNamaController.createOngikarNama)
     .put((0, auth_1.auth)("user", "admin"), ongikar_nama_controller_1.OngikarNamaController.updateOngikarNama);
 ongikarNamaRouter
-    .route("/:id/user-id")
-    .get(ongikar_nama_controller_1.OngikarNamaController.getOngikarNamaByUserId);
+    .route("/token")
+    .get((0, auth_1.auth)("user", "admin"), ongikar_nama_controller_1.OngikarNamaController.getOngikarNamaByToken);
 ongikarNamaRouter
     .route("/:id")
-    .get(ongikar_nama_controller_1.OngikarNamaController.getSingleOngikarNama)
-    .delete(ongikar_nama_controller_1.OngikarNamaController.deleteOngikarNama);
+    .get((0, auth_1.auth)("admin"), ongikar_nama_controller_1.OngikarNamaController.getOngikarNamaById)
+    .delete((0, auth_1.auth)("admin"), ongikar_nama_controller_1.OngikarNamaController.deleteOngikarNama);
 exports.default = ongikarNamaRouter;

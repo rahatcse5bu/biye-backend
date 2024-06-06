@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const user_info_controller_1 = require("./user_info.controller");
 const auth_1 = require("../../middlewares/auth");
+const user_info_controller_1 = require("./user_info.controller");
 const userRouter = express_1.default.Router();
 userRouter.route("/").post(user_info_controller_1.UserInfoController.createUserInfo);
 userRouter
@@ -16,5 +16,5 @@ userRouter.route("/email/:email").get(user_info_controller_1.UserInfoController.
 userRouter
     .route("/create-login-user")
     .post(user_info_controller_1.UserInfoController.createUserForGoogleSignIn);
-userRouter.route("/:id").get(user_info_controller_1.UserInfoController.getSingleUserInfo);
+// userRouter.route("/:id").get(UserInfoController.getSingleUserInfo);
 exports.default = userRouter;

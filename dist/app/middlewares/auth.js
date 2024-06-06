@@ -18,24 +18,24 @@ const jwtHelpers_1 = require("../../helpers/jwtHelpers");
 const config_1 = __importDefault(require("../../config"));
 const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        //get authorization token
-        const token = req.headers.authorization;
-        if (!token) {
-            // throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
+        // Get the authorization token from the header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).send({
                 statusCode: http_status_1.default.UNAUTHORIZED,
                 message: "You are not authorized",
                 success: false,
             });
         }
-        // verify token
-        let verifiedUser = null;
-        verifiedUser = jwtHelpers_1.jwtHelpers.verifyToken(token, config_1.default.jwt_secret);
-        req.user = verifiedUser; // user_role  , token_id
+        // Extract the token from the header
+        const token = authHeader.split(" ")[1];
+        // Verify the token
+        const verifiedUser = jwtHelpers_1.jwtHelpers.verifyToken(token, config_1.default.jwt_secret);
+        req.user = verifiedUser; // user_role, token_id
+        // Check if the user has one of the required roles
         if (requiredRoles.length &&
             !requiredRoles.includes(verifiedUser.user_role)) {
-            // throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
-            res.send({
+            return res.status(403).send({
                 statusCode: http_status_1.default.FORBIDDEN,
                 message: "Forbidden",
                 success: false,
@@ -44,9 +44,10 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         next();
     }
     catch (error) {
-        res.send({
+        res.status(500).send({
             statusCode: 500,
-            error: error,
+            message: "Internal Server Error",
+            error: error.message,
             success: false,
         });
     }
