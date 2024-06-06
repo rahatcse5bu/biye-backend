@@ -1,373 +1,144 @@
 import { Request, Response } from "express";
-import db from "../../../config/db";
-import { RowDataPacket } from "mysql2";
-import { sendSuccess } from "../../../shared/SendSuccess";
-import { rollbackAndRespond } from "../../../utils/response";
-import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-import { JwtPayload } from "jsonwebtoken";
 import httpStatus from "http-status";
-
-const getOngikarNama = (req: Request, res: Response) => {
-	const sql = "SELECT * FROM ongikar_nama";
-	db.query<RowDataPacket[]>(sql, (err, rows) => {
-		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
-		}
-
-		res
-			.status(200)
-			.json(
-				sendSuccess<RowDataPacket[]>(
-					"All Ongikar nama  retrieved successfully",
-					rows
-				)
-			);
-	});
-};
-
-const getSingleOngikarNama = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-	const sql = "SELECT * FROM ongikar_nama WHERE id = ?";
-
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-		if (err) {
-			return res.status(500).json({
-				message: err?.message,
-				success: false,
-			});
-		}
-
-		if (rows.length === 0) {
-			return res.status(404).json({
-				message: "Ongikar nama not found",
-				success: false,
-			});
-		}
-
-		res
-			.status(200)
-			.json(sendSuccess<RowDataPacket[]>("Ongikar nama retrieved", rows, 200));
-	});
-};
-
-const createOngikarNama = (req: Request, res: Response) => {
-	const data = req.body;
-	const token_id = req.user?.token_id;
-	let { user_form, ...others } = data;
-
-	let user_id: string | null = null;
-	// console.log(req.user);
-	if (!token_id) {
-		return res.status(401).send({
-			statusCode: httpStatus.UNAUTHORIZED,
-			message: "You are not authorized",
-			success: false,
-		});
-	}
-
-	db.beginTransaction((err) => {
-		if (err) {
-			console.error("Error starting transaction:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
-		}
-
-		//! get user_id using token_id
-		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-		db.query<RowDataPacket[]>(
-			getUserIdByTokenSql,
-			[token_id],
-			(err, result) => {
-				if (err) {
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "You are not authorized",
-						error: err,
-					});
-				}
-				//console.log(result);
-
-				user_id = result[0]?.id;
-
-				//! Check if the user_id already exists in the database
-
-				const checkSql =
-					"SELECT COUNT(*) AS count FROM ongikar_nama WHERE user_id = ?";
-
-				db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
-					if (err) {
-						console.error("Error checking User Id:", err);
-						return rollbackAndRespond(res, db, err);
-					}
-
-					const count = results[0].count;
-
-					if (count > 0) {
-						//! User with this user_id already exists, return an error response
-						return rollbackAndRespond(res, db, null, {
-							success: false,
-							message: "User with this user id already exists",
-						});
-					}
-
-					others = {
-						...others,
-						user_id,
-					};
-
-					const keys = Object.keys(others);
-					const values = Object.values(others);
-
-					//! Insert  into the database
-					const insertSql = `INSERT INTO ongikar_nama (${keys.join(
-						","
-					)}) VALUES (${generatePlaceholders(values.length)})`;
-					const expectedLifePartner: string[] = [];
-					keys.forEach((field) => {
-						expectedLifePartner.push(others[field]);
-					});
-
-					//! Insert Ongikar Nama information
-					db.query(insertSql, expectedLifePartner, (err, results) => {
-						if (err) {
-							console.error("Error inserting Expected Life Partner:", err);
-							return rollbackAndRespond(res, db, err);
-						}
-
-						//! Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
-						const updateUserInfoSql = `
-            UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
-          `;
-						db.query(updateUserInfoSql, [user_id], (err, results) => {
-							if (err) {
-								console.error("Error updating user_info:", err);
-								return rollbackAndRespond(res, db, err);
-							}
-
-							// Commit the transaction if everything is successful
-							db.commit((err) => {
-								if (err) {
-									console.error("Error committing transaction:", err);
-									return rollbackAndRespond(res, db, err);
-								}
-
-								res.status(201).json({
-									success: true,
-									message:
-										"Ongikar Nama created and user_info updated successfully",
-								});
-							});
-						});
-					});
-				});
-			}
-		);
-	});
-};
-
-const updateOngikarNama = (req: Request, res: Response) => {
-	const data = req.body;
-	const token_id = (req.user?.token_id as JwtPayload) ?? null;
-	let user_id: number | null = null;
-	if (!token_id) {
-		return res.status(401).send({
-			statusCode: httpStatus.UNAUTHORIZED,
-			message: "You are not authorized",
-			success: false,
-		});
-	}
-
-	//! Begin a database transaction
-	db.beginTransaction((err) => {
-		if (err) {
-			console.error("Error starting transaction:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
-		}
-		// get user id using token id
-		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-		db.query<RowDataPacket[]>(
-			getUserIdByTokenSql,
-			[token_id],
-			(err, result) => {
-				if (err) {
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "You are not authorized",
-						error: err,
-					});
-				}
-
-				console.log(result);
-
-				user_id = Number(result[0]?.id);
-
-				if (isNaN(user_id)) {
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "You are not authorized",
-						error: err,
-					});
-				}
-				//! Check if Expected Life Partner for the user with the given ID exists
-				const checkUserSql =
-					"SELECT user_id FROM ongikar_nama WHERE user_id = ?";
-
-				db.query<RowDataPacket[]>(
-					checkUserSql,
-					[user_id],
-					(err, userResults) => {
-						if (err) {
-							console.error("Error checking Ongikar Nama:", err);
-							db.rollback(() => {
-								res.status(500).json({ success: false, message: err?.message });
-							});
-							return;
-						}
-
-						const userCount = userResults.length;
-
-						//! If Ongikar Nama doesn't exist, send an error response
-						if (userCount === 0) {
-							db.rollback(() => {
-								res.status(404).json({
-									success: false,
-									message: "Ongikar Nama not found",
-								});
-							});
-							return;
-						}
-
-						//! Build the update SQL statement dynamically based on changed values
-						const updateFields: string[] = [];
-						const updateValues = [];
-
-						Object.keys(data).forEach((key) => {
-							updateFields.push(`${key} = ?`);
-							updateValues.push(data[key]);
-						});
-
-						if (updateFields.length === 0) {
-							// No fields to update
-							db.commit(() => {
-								res
-									.status(200)
-									.json({ success: true, message: "No changes to update" });
-							});
-							return;
-						}
-
-						// Construct the final update SQL statement
-						const updateSql = `UPDATE ongikar_nama SET ${updateFields.join(
-							", "
-						)} WHERE user_id = ?`;
-
-						updateValues.push(user_id);
-
-						// Execute the update query within the transaction
-						db.query(updateSql, updateValues, (err, results) => {
-							if (err) {
-								console.error("Error updating Ongikar Nama:", err);
-								db.rollback(() => {
-									res.status(500).json({
-										success: false,
-										message: "Internal Server Error",
-										error: err,
-									});
-								});
-							} else {
-								// Commit the transaction if the update was successful
-								db.commit(() => {
-									res.status(200).json({
-										message: "Update successfully completed",
-										success: true,
-										data: results,
-									});
-								});
-							}
-						});
-					}
-				);
-			}
-		);
-	});
-};
-
-const deleteOngikarNama = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming you pass the user ID in the URL
-
-	// Check if Ongikar nama for the user with the given ID exists
-	const checkUserSql =
-		"SELECT COUNT(*) AS userCount FROM ongikar_nama WHERE id = ?";
-	db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-		if (err) {
-			console.error("Error checking Ongikar nama:", err);
-			return res.status(500).json({ success: false, message: err?.message });
-		}
-
-		const userCount = userResults[0].userCount;
-
-		// If Ongikar nama doesn't exist, send an error response
-		if (userCount === 0) {
-			return res
-				.status(404)
-				.json({ success: false, message: "Ongikar nama not found" });
-		}
-
-		// If Ongikar nama exists, proceed with the deletion
-		const deleteSql = "DELETE FROM ongikar_nama WHERE id = ?";
-		db.query(deleteSql, [userId], (err, results) => {
-			if (err) {
-				console.error("Error deleting Ongikar nama:", err);
-				res
-					.status(500)
-					.json({ success: false, message: "Internal Server Error" });
-			} else {
-				res.status(200).json({
-					success: true,
-					message: "Ongikar nama deleted successfully",
-				});
-			}
-		});
-	});
-};
-
-const getOngikarNamaByUserId = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming the user_id is in the route parameter
-	const sql = "SELECT * FROM ongikar_nama WHERE user_id = ?";
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
-		} else {
-			if (rows.length === 0) {
-				res.status(404).json({
-					message: "Ongikar Nama not found for the specified user_id",
-					success: false,
-				});
-			} else {
-				res.status(200).json({
-					message: "Ongikar Nama retrieved successfully",
-					success: true,
-					data: rows[0], // Assuming you expect only one row per user_id
-				});
-			}
-		}
-	});
-};
+import catchAsync from "../../../shared/catchAsync";
+import { UserInfoModel } from "../user_info/user_info.model";
+import mongoose from "mongoose";
+import { OngikarNamaService } from "./ongikar_nama.service";
 
 export const OngikarNamaController = {
-	getOngikarNama,
-	getSingleOngikarNama,
-	createOngikarNama,
-	updateOngikarNama,
-	deleteOngikarNama,
-	getOngikarNamaByUserId,
+  getAllOngikarNamaes: catchAsync(async (req: Request, res: Response) => {
+    const ongikarNamaes = await OngikarNamaService.getAllOngikarNamaes();
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "All ongikarNamaes retrieved successfully",
+      data: ongikarNamaes,
+    });
+  }),
+
+  getOngikarNamaById: catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const ongikarNama = await OngikarNamaService.getOngikarNamaById(id);
+    if (!ongikarNama) {
+      res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "OngikarNama not found",
+      });
+    } else {
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "OngikarNama retrieved successfully",
+        data: ongikarNama,
+      });
+    }
+  }),
+  getOngikarNamaByToken: catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+    const ongikarNama = await OngikarNamaService.getOngikarNamaByToken(userId);
+    if (!ongikarNama) {
+      res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "OngikarNama not found",
+      });
+    } else {
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "OngikarNama retrieved successfully",
+        data: ongikarNama,
+      });
+    }
+  }),
+
+  createOngikarNama: catchAsync(async (req: Request, res: Response) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      let { user_form, ...ongikarNamaData } = req.body;
+      ongikarNamaData.user = req.user?._id;
+
+      // Create ongikarNama
+      const createdOngikarNama = await OngikarNamaService.createOngikarNama(
+        ongikarNamaData,
+        {
+          session,
+        }
+      );
+
+      // Find user and update the fields
+      const user: any = await UserInfoModel.findById(req.user?._id).session(
+        session
+      );
+
+      user.edited_timeline_index = Math.max(
+        user.edited_timeline_index,
+        user_form
+      );
+      user.last_edited_timeline_index = user_form;
+      await user.save({ session });
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(httpStatus.CREATED).json({
+        success: true,
+        message: "OngikarNama created successfully",
+        data: createdOngikarNama,
+      });
+    } catch (error: any) {
+      // If any error occurs, abort the transaction
+      await session.abortTransaction();
+      session.endSession();
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "An error occurred while creating the ongikarNama",
+        error: error.message,
+      });
+    }
+  }),
+
+  updateOngikarNama: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    if (!id) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+    const updatedFields = req.body;
+    const updatedOngikarNama = await OngikarNamaService.updateOngikarNama(
+      id,
+      updatedFields
+    );
+    if (!updatedOngikarNama) {
+      res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "OngikarNama not found",
+      });
+    } else {
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "OngikarNama updated successfully",
+        data: updatedOngikarNama,
+      });
+    }
+  }),
+
+  deleteOngikarNama: catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id;
+    await OngikarNamaService.deleteOngikarNama(id);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "OngikarNama deleted successfully",
+    });
+  }),
 };

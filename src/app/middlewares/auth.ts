@@ -6,47 +6,50 @@ import config from "../../config";
 import { Secret } from "jsonwebtoken";
 
 export const auth =
-	(...requiredRoles: string[]) =>
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			//get authorization token
-			const token = req.headers.authorization;
+  (...requiredRoles: string[]) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Get the authorization token from the header
+      const authHeader = req.headers.authorization;
 
-			if (!token) {
-				// throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
-				return res.status(401).send({
-					statusCode: httpStatus.UNAUTHORIZED,
-					message: "You are not authorized",
-					success: false,
-				});
-			}
-			// verify token
-			let verifiedUser = null;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).send({
+          statusCode: httpStatus.UNAUTHORIZED,
+          message: "You are not authorized",
+          success: false,
+        });
+      }
 
-			verifiedUser = jwtHelpers.verifyToken(
-				token as string,
-				config.jwt_secret as Secret
-			);
+      // Extract the token from the header
+      const token = authHeader.split(" ")[1];
 
-			req.user = verifiedUser; // user_role  , token_id
+      // Verify the token
+      const verifiedUser = jwtHelpers.verifyToken(
+        token,
+        config.jwt_secret as Secret
+      );
 
-			if (
-				requiredRoles.length &&
-				!requiredRoles.includes(verifiedUser.user_role)
-			) {
-				// throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
-				res.send({
-					statusCode: httpStatus.FORBIDDEN,
-					message: "Forbidden",
-					success: false,
-				});
-			}
-			next();
-		} catch (error) {
-			res.send({
-				statusCode: 500,
-				error: error,
-				success: false,
-			});
-		}
-	};
+      req.user = verifiedUser; // user_role, token_id
+
+      // Check if the user has one of the required roles
+      if (
+        requiredRoles.length &&
+        !requiredRoles.includes(verifiedUser.user_role)
+      ) {
+        return res.status(403).send({
+          statusCode: httpStatus.FORBIDDEN,
+          message: "Forbidden",
+          success: false,
+        });
+      }
+
+      next();
+    } catch (error: any) {
+      res.status(500).send({
+        statusCode: 500,
+        message: "Internal Server Error",
+        error: error.message,
+        success: false,
+      });
+    }
+  };

@@ -4,15 +4,16 @@ import { auth } from "../../middlewares/auth";
 const OccupationRouter = express.Router();
 
 OccupationRouter.route("/")
-	.get(OccupationController.getOccupation)
-	.put(auth("user", "admin"), OccupationController.updateOccupation)
-	.post(auth("user", "admin"), OccupationController.createOccupation);
+  .get(auth("admin"), OccupationController.getAllOccupationes)
+  .put(auth("user", "admin"), OccupationController.updateOccupation)
+  .post(auth("user", "admin"), OccupationController.createOccupation);
 
-OccupationRouter.route("/:id/user-id").get(
-	OccupationController.getOccupationByUserId
+OccupationRouter.route("/token").get(
+  auth("user", "admin"),
+  OccupationController.getOccupationByToken
 );
 OccupationRouter.route("/:id")
-	.get(OccupationController.getSingleOccupation)
-	.delete(OccupationController.deleteOccupation);
+  .get(auth("admin"), OccupationController.getOccupationById)
+  .delete(auth("admin"), OccupationController.deleteOccupation);
 
 export default OccupationRouter;

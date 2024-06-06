@@ -1,19 +1,19 @@
 import express from "express";
-import { AddressController } from "./address.controller";
 import { auth } from "../../middlewares/auth";
+import { AddressController } from "./address.controller";
 const AddressRouter = express.Router();
 
 AddressRouter.route("/")
-	.get(AddressController.getAddress)
-	.put(auth("user", "admin"), AddressController.updateAddress)
-	.post(auth("user", "admin"), AddressController.createAddress);
+  .get(AddressController.getAllAddresses)
+  .put(auth("user", "admin"), AddressController.updateAddress)
+  .post(auth("user", "admin"), AddressController.createAddress);
 
-AddressRouter.route("/:id/user-id").get(
-	AddressController.getAddressInfoByUserId
+AddressRouter.route("/token").get(
+  auth("user", "admin"),
+  AddressController.getAddressByToken
 );
-
 AddressRouter.route("/:id")
-	.get(AddressController.getSingleAddress)
-	.delete(AddressController.deleteAddress);
+  .get(AddressController.getAddressById)
+  .delete(AddressController.deleteAddress);
 
 export default AddressRouter;

@@ -1,24 +1,19 @@
 import express from "express";
-import { ExpectedLifePartnerController } from "./expected_lifepartner.controller";
 import { auth } from "../../middlewares/auth";
+import { ExpectedPartnerController } from "./expected_lifepartner.controller";
 const ExpectedLifePartnerRouter = express.Router();
 
 ExpectedLifePartnerRouter.route("/")
-	.get(ExpectedLifePartnerController.getExpectedLifePartner)
-	.post(
-		auth("user", "admin"),
-		ExpectedLifePartnerController.createExpectedLifePartner
-	)
-	.put(
-		auth("user", "admin"),
-		ExpectedLifePartnerController.updateExpectedLifePartner
-	);
+  .get(ExpectedPartnerController.getAllExpectedPartners)
+  .post(auth("user", "admin"), ExpectedPartnerController.createExpectedPartner)
+  .put(auth("user", "admin"), ExpectedPartnerController.updateExpectedPartner);
 
-ExpectedLifePartnerRouter.route("/:id/user-id").get(
-	ExpectedLifePartnerController.getExpectedLifePartnerByUserId
+ExpectedLifePartnerRouter.route("/token").get(
+  auth("admin", "user"),
+  ExpectedPartnerController.getExpectedPartnerByToken
 );
 ExpectedLifePartnerRouter.route("/:id")
-	.get(ExpectedLifePartnerController.getSingleExpectedLifePartner)
-	.delete(ExpectedLifePartnerController.deleteExpectedLifePartner);
+  .get(auth("admin"), ExpectedPartnerController.getExpectedPartnerById)
+  .delete(auth("admin"), ExpectedPartnerController.deleteExpectedPartner);
 
 export default ExpectedLifePartnerRouter;

@@ -1,12 +1,37 @@
-import mysql, { ConnectionOptions } from "mysql2";
+import mongoose from "mongoose";
+import http from "http";
+import "colors";
+import config from "./index";
 
-const access: ConnectionOptions = {
-	user: "root",
-	password: "",
-	database: "pnc_matrimony",
-	multipleStatements: true,
-};
+export async function connectDb(app: any) {
+  let server: any;
+  try {
+    await mongoose.connect(config.mongo_url as string);
+    console.log(
+      "connection established successfully into database".green.underline
+    );
 
-const db = mysql.createConnection(access);
+    server = http.createServer(app);
+    server.listen(config.port, () => {
+      console.log(`app listening on port=> ${config.port}`.yellow.underline);
+    });
+  } catch (err) {
+    console.error(err);
+  }
 
-export default db;
+  process.on("unhandledRejection", (error) => {
+    // eslint-disable-next-line no-console
+    console.log(
+      "Unhandled Rejection is detected ,we are closing our server".red.underline
+    );
+    if (server) {
+      server.close(() => {
+        console.error(error);
+        process.exit(1);
+      });
+    } else {
+      console.log(error);
+      process.exit(1);
+    }
+  });
+}

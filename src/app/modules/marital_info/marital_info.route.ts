@@ -4,15 +4,16 @@ import { auth } from "../../middlewares/auth";
 const MaritalInfoRouter = express.Router();
 
 MaritalInfoRouter.route("/")
-	.get(MaritalInfoController.getMaritalInfo)
-	.post(auth("user", "admin"), MaritalInfoController.createMaritalInfo)
-	.put(auth("user", "admin"), MaritalInfoController.updateMaritalInfo);
+  .get(auth("admin"), MaritalInfoController.getAllMaritalInfos)
+  .post(auth("user", "admin"), MaritalInfoController.createMaritalInfo)
+  .put(auth("user", "admin"), MaritalInfoController.updateMaritalInfo);
 
-MaritalInfoRouter.route("/:id/user-id").get(
-	MaritalInfoController.getMaritalInfoByUserId
+MaritalInfoRouter.route("/token").get(
+  auth("user", "admin"),
+  MaritalInfoController.getMaritalInfoByToken
 );
 MaritalInfoRouter.route("/:id")
-	.get(MaritalInfoController.getSingleMaritalInfo)
-	.delete(MaritalInfoController.deleteMaritalInfo);
+  .get(auth("user", "admin"), MaritalInfoController.getMaritalInfoById)
+  .delete(auth("user", "admin"), MaritalInfoController.deleteMaritalInfo);
 
 export default MaritalInfoRouter;

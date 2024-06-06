@@ -4,16 +4,20 @@ import { auth } from "../../middlewares/auth";
 const GeneralInfoRouter = express.Router();
 
 GeneralInfoRouter.route("/")
-	.get(GeneralInfoController.getGeneralInfo)
-	.post(auth("user", "admin"), GeneralInfoController.createGeneralInfo)
-	.put(auth("user", "admin"), GeneralInfoController.updateGeneralInfo);
+  .get(GeneralInfoController.getGeneralInfo)
+  .post(auth("user", "admin"), GeneralInfoController.createGeneralInfo)
+  .put(auth("user", "admin"), GeneralInfoController.updateGeneralInfo);
 
+GeneralInfoRouter.route("/token").get(
+  auth("user", "admin"),
+  GeneralInfoController.getGeneralInfoByToken
+);
 GeneralInfoRouter.route("/:id/user-id").get(
-	GeneralInfoController.getGeneralInfoByUserId
+  GeneralInfoController.getGeneralInfoByUserId
 );
 
 GeneralInfoRouter.route("/:id")
-	.get(GeneralInfoController.getSingleGeneralInfo)
-	.delete(auth("user", "admin"), GeneralInfoController.deleteGeneralInfo);
+  .get(auth("admin"), GeneralInfoController.getSingleGeneralInfo)
+  .delete(auth("admin"), GeneralInfoController.deleteGeneralInfo);
 
 export default GeneralInfoRouter;

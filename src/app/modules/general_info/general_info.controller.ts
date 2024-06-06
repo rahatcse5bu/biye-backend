@@ -1,444 +1,259 @@
+// src/controllers/GeneralInfoController.ts
 import { Request, Response } from "express";
-import db from "../../../config/db";
-import { RowDataPacket } from "mysql2";
 import { sendSuccess } from "../../../shared/SendSuccess";
-import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-import { GeneralInfoFields } from "./general_info.constant";
-import { JwtPayload } from "jsonwebtoken";
 import httpsStatus from "http-status";
+import GeneralInfo from "./general_info.model";
+import catchAsync from "../../../shared/catchAsync";
+import { UserInfoService } from "../user_info/user_info.services";
+import mongoose from "mongoose";
 
-const getGeneralInfo = (req: Request, res: Response) => {
-	const { bio_type, marital_status, zilla } = req.query;
+const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+  const { bio_type, marital_status, zilla, limit = 10, page = 1 } = req.query;
 
-	let limit: number = 10;
-	let page: number = 1;
-	if (req.query?.limit) {
-		limit = Number(req.query.limit);
-	}
-	if (req.query?.page) {
-		page = Number(req.query.page);
-	}
+  // Parse limit and page to numbers
+  const limitNumber = Number(limit);
+  const pageNumber = Number(page);
 
-	console.log("bio-type~", bio_type);
-	console.log("marital-status~", marital_status);
-	// console.log(req.query);
-	let conditions: string | null = "";
+  // Construct aggregation pipeline
+  const pipeline = [
+    {
+      $lookup: {
+        from: "users", // Collection name for User model
+        localField: "user",
+        foreignField: "_id",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: "$userDetails", // Unwind the joined user details
+    },
+    {
+      $match: {
+        $or: [{ "userDetails.user_status": "active" }],
+      },
+    },
+    // Optional match stage for additional filters
+    ...(bio_type || marital_status || zilla
+      ? [
+          {
+            $match: {
+              ...(bio_type && { bio_type }),
+              ...(marital_status && { marital_status }),
+              ...(zilla && { zilla }),
+            },
+          },
+        ]
+      : []),
+    // Pagination stages
+    { $skip: limitNumber * (pageNumber - 1) },
+    { $limit: limitNumber },
+    // Optionally project to remove user details from final output if not needed
+    {
+      $project: {
+        _id: 1, // Include _id of GeneralInfo
+        user_id: "$userDetails.user_id", // Include user_id from User schema
+        bio_type: 1,
+        date_of_birth: 1,
+        height: 1,
+        gender: 1,
+        weight: 1,
+        blood_group: 1,
+        screen_color: 1,
+        nationality: 1,
+        marital_status: 1,
+        views_count: 1,
+        purchases_count: 1,
+        isFbPosted: 1,
+        isFeatured: 1,
+        zilla: 1,
+      },
+    },
+  ];
 
-	if (bio_type) {
-		conditions += `general_info.bio_type = '${bio_type}' AND `;
-	}
-	if (marital_status) {
-		conditions += `general_info.marital_status = '${marital_status}' AND `;
-	}
-	if (zilla) {
-		conditions += `general_info.zilla = '${zilla}' AND `;
-	}
-	if (conditions) {
-		console.log("conditions~", conditions);
-		conditions = conditions.slice(0, -5);
-		console.log("conditions~", conditions);
-		conditions += ` AND user_info.user_status = 'in review' OR user_info.user_status = 'active' `;
-		console.log("conditions~", conditions);
-		conditions = "WHERE " + conditions;
-	} else {
-		conditions =
-			"WHERE user_info.user_status = 'in review' OR user_info.user_status = 'active' ";
-	}
+  // Execute the aggregation pipeline
+  const generalInfos = await GeneralInfo.aggregate(pipeline);
 
-	conditions += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+  res.status(200).json({
+    success: true,
+    message: "All General info retrieved successfully",
+    data: generalInfos,
+    page: pageNumber,
+    limit: limitNumber,
+    size: generalInfos.length,
+  });
+});
 
-	const sql = `SELECT general_info.bio_type,general_info.user_id, general_info.gender,general_info.views , general_info.height , general_info.date_of_birth , general_info.screen_color  FROM general_info 
-	JOIN address ON general_info.user_id = address.user_id 
-	JOIN expected_lifepartner ON general_info.user_id = expected_lifepartner.user_id
-	JOIN user_info ON general_info.user_id = user_info.id 
-	${conditions}`;
-	// console.log(sql);
-	// db.query<RowDataPacket[]>(tempSql, (err, rows) => {
-	// 	if (err) {
-	// 		console.log(err);
-	// 	}
-	// 	console.log(rows);
-	// });
-	// console.log(tempSql);
-	// let sql = `SELECT * FROM general_info`;
+const getGeneralInfoByUserId = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.id;
 
-	// console.log({ conditions });
-	// console.log({ sql });
-	db.query<RowDataPacket[]>(sql, (err, rows) => {
-		if (err) {
-			return res.send({
-				message: err?.message,
-				success: false,
-			});
-		}
+    const generalInfo = await GeneralInfo.findOne({ user_id: userId });
 
-		res.status(200).json({
-			success: true,
-			message: "All General info  retrieved successfully",
-			data: rows,
-			page,
-			limit,
-			size: rows.length,
-		});
-	});
-};
+    if (!generalInfo) {
+      return res.status(404).json({
+        message: "General info not found for the specified user_id",
+        success: false,
+      });
+    }
 
-const getGeneralInfoByUserId = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming the user_id is in the route parameter
-	const sql = "SELECT * FROM general_info WHERE user_id = ?";
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-		if (err) {
-			res.send({
-				message: err?.message,
-				success: false,
-			});
-		} else {
-			if (rows.length === 0) {
-				res.status(404).json({
-					message: "General info not found for the specified user_id",
-					success: false,
-				});
-			} else {
-				res.status(200).json({
-					message: "General info retrieved successfully",
-					success: true,
-					data: rows[0], // Assuming you expect only one row per user_id
-				});
-			}
-		}
-	});
-};
+    res.status(200).json({
+      message: "General info retrieved successfully",
+      success: true,
+      data: generalInfo,
+    });
+  }
+);
+const getGeneralInfoByToken = catchAsync(
+  async (req: Request, res: Response) => {
+    console.log(req.user);
+    const generalInfo = await GeneralInfo.findOne({ user: req.user?._id });
 
-const getSingleGeneralInfo = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-	const sql = "SELECT * FROM general_info WHERE id = ?";
+    if (!generalInfo) {
+      return res.status(404).json({
+        message: "General info not found",
+        success: false,
+      });
+    }
 
-	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-		if (err) {
-			return res.status(500).json({
-				message: err?.message,
-				success: false,
-			});
-		}
+    res.status(200).json({
+      message: "General info retrieved successfully",
+      success: true,
+      data: generalInfo,
+    });
+  }
+);
 
-		if (rows.length === 0) {
-			return res.status(404).json({
-				message: "General info not found",
-				success: false,
-			});
-		}
+const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.params.id;
 
-		res
-			.status(200)
-			.json(sendSuccess<RowDataPacket[]>("General info retrieved", rows, 200));
-	});
-};
+  const generalInfo = await GeneralInfo.findById(userId);
 
-const createGeneralInfo = (req: Request, res: Response) => {
-	const data = req.body;
-	const { user_form, ...others } = data;
-	let user_id: string | null = null;
-	// console.log(req.user);
-	const tokenId = (req.user?.token_id as JwtPayload) ?? null;
-	if (!tokenId) {
-		return res.status(401).send({
-			statusCode: httpsStatus.UNAUTHORIZED,
-			message: "You are not authorized",
-			success: false,
-		});
-	}
+  if (!generalInfo) {
+    return res.status(404).json({
+      message: "General info not found",
+      success: false,
+    });
+  }
 
-	// Start a transaction
-	db.beginTransaction((err) => {
-		if (err) {
-			console.error("Error starting transaction:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
-		}
+  res.status(200).json(sendSuccess("General info retrieved", generalInfo, 200));
+});
 
-		// get user id using token id
-		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
+const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+  const { user_form, ...data } = req.body;
 
-		db.query<RowDataPacket[]>(getUserIdByTokenSql, [tokenId], (err, result) => {
-			if (err) {
-				return rollbackAndRespond(res, db, null, {
-					success: false,
-					message: "You are not authorized",
-					error: err,
-				});
-			}
+  if (!req.user?._id) {
+    return res.status(401).send({
+      statusCode: httpsStatus.UNAUTHORIZED,
+      message: "You are not authorized",
+      success: false,
+    });
+  }
 
-			if (!result[0]?.id) {
-				return rollbackAndRespond(res, db, null, {
-					success: false,
-					message: "You are not authorized",
-					error: err,
-				});
-			}
-			console.log(result);
-			user_id = result[0]?.id;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-			// Check if the user_id already exists in the database
-			const checkSql =
-				"SELECT COUNT(*) AS count FROM general_info WHERE user_id = ?";
+  try {
+    data.user = req.user._id;
 
-			db.query<RowDataPacket[]>(checkSql, [user_id], (err, results) => {
-				if (err) {
-					console.error("Error checking User Id:", err);
-					return rollbackAndRespond(res, db, err);
-				}
+    // Insert general_information into the database
+    const generalInfo = new GeneralInfo(data);
+    await generalInfo.save({ session });
 
-				const count = results[0].count;
+    const user: any = await UserInfoService.getUserInfoByIdWithSession(
+      req.user._id,
+      { session }
+    );
 
-				if (count > 0) {
-					// User with this user_id already exists, return an error response
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "User with this user id already exists",
-					});
-				}
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).send({
+        statusCode: httpsStatus.NOT_FOUND,
+        message: "User not found",
+        success: false,
+      });
+    }
 
-				// Insert general_information into the database
-				const insertSql = `INSERT INTO general_info (${GeneralInfoFields.join(
-					","
-				)}) VALUES (${generatePlaceholders(GeneralInfoFields.length)})`;
-				const GeneralInfo: string[] = [];
-				GeneralInfoFields.forEach((field) => {
-					GeneralInfo.push(data[field]);
-				});
+    // Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
+    user.edited_timeline_index = Math.max(
+      user.edited_timeline_index,
+      user_form
+    );
+    user.last_edited_timeline_index = user_form;
+    await user.save({ session });
 
-				// Insert general information
-				db.query(insertSql, GeneralInfo, (err, results) => {
-					if (err) {
-						console.error("Error inserting General info:", err);
-						return rollbackAndRespond(res, db, err);
-					}
+    await session.commitTransaction();
+    session.endSession();
 
-					// Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
-					const updateUserInfoSql = `
-        UPDATE user_info SET edited_timeline_index = CASE WHEN ${user_form} > edited_timeline_index THEN ${user_form} ELSE edited_timeline_index END,last_edited_timeline_index = ${user_form} WHERE id=?
-      `;
-					db.query(updateUserInfoSql, [user_id], (err, results) => {
-						if (err) {
-							console.error("Error updating user_info:", err);
-							return rollbackAndRespond(res, db, err);
-						}
+    res.status(201).json({
+      success: true,
+      message: "General info created and user_info updated successfully",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error; // You might want to handle the error more gracefully in a real application
+  }
+});
 
-						// Commit the transaction if everything is successful
-						db.commit((err) => {
-							if (err) {
-								console.error("Error committing transaction:", err);
-								return rollbackAndRespond(res, db, err);
-							}
+const updateGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+  const data = req.body;
+  const userId = req.user?._id;
 
-							res.status(201).json({
-								success: true,
-								message:
-									"General info created and user_info updated successfully",
-							});
-						});
-					});
-				});
-			});
-		});
-	});
-};
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: "You are not authorized",
+    });
+  }
 
-// Helper function to rollback the transaction and respond with an error
-function rollbackAndRespond(
-	res: Response,
-	db: any,
-	err: any,
-	responseObj?: any
-) {
-	db.rollback(() => {
-		console.error("Transaction rolled back due to error:", err);
-		if (responseObj) {
-			res.status(500).json(responseObj);
-		} else {
-			res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
-		}
-	});
-}
+  // Check if General info for the user with the given ID exists
+  const generalInfo = await GeneralInfo.findOne({ user: userId });
+  if (!generalInfo) {
+    return res.status(404).json({
+      success: false,
+      message: "General info not found",
+    });
+  }
 
-const updateGeneralInfo = (req: Request, res: Response) => {
-	const data = req.body;
-	const token_id = (req.user?.token_id as JwtPayload) ?? null;
-	let user_id: number | null = null;
-	if (!token_id) {
-		return res.status(401).send({
-			statusCode: httpsStatus.UNAUTHORIZED,
-			message: "You are not authorized",
-			success: false,
-		});
-	}
+  // Update the general info with the new data
+  Object.assign(generalInfo, data);
+  await generalInfo.save();
 
-	// Begin a database transaction
-	db.beginTransaction((err) => {
-		if (err) {
-			console.error("Error starting transaction:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: "Internal Server Error", error: err });
-		}
-		// get user id using token id
-		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-		db.query<RowDataPacket[]>(
-			getUserIdByTokenSql,
-			[token_id],
-			(err, result) => {
-				if (err) {
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "You are not authorized",
-						error: err,
-					});
-				}
+  res.status(200).json({
+    message: "Update successfully completed",
+    success: true,
+    data: generalInfo,
+  });
+});
 
-				console.log(result);
+const deleteGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.params.id;
 
-				user_id = Number(result[0]?.id);
+  // Check if general_info for the user with the given ID exists
+  const generalInfo = await GeneralInfo.findById(userId);
+  if (!generalInfo) {
+    return res.status(404).json({
+      success: false,
+      message: "general_info not found",
+    });
+  }
 
-				if (isNaN(user_id)) {
-					return rollbackAndRespond(res, db, null, {
-						success: false,
-						message: "You are not authorized",
-						error: err,
-					});
-				}
-				// Check if General info for the user with the given ID exists
-				const checkUserSql = "SELECT * FROM general_info WHERE user_id = ?";
+  // Delete the general info
+  await GeneralInfo.findByIdAndDelete(userId);
 
-				db.query<RowDataPacket[]>(
-					checkUserSql,
-					[user_id],
-					(err, userResults) => {
-						if (err) {
-							console.error("Error checking General info:", err);
-							db.rollback(() => {
-								res.status(500).json({ success: false, message: err?.message });
-							});
-							return;
-						}
-
-						const userCount = userResults.length;
-
-						// If General info doesn't exist, send an error response
-						if (userCount === 0) {
-							db.rollback(() => {
-								res
-									.status(404)
-									.json({ success: false, message: "General info not found" });
-							});
-							return;
-						}
-
-						// Build the update SQL statement dynamically based on changed values
-						const updateFields: string[] = [];
-						const updateValues = [];
-
-						Object.keys(data).forEach((key) => {
-							updateFields.push(`${key} = ?`);
-							updateValues.push(data[key]);
-						});
-
-						if (updateFields.length === 0) {
-							// No fields to update
-							db.commit(() => {
-								res
-									.status(200)
-									.json({ success: true, message: "No changes to update" });
-							});
-							return;
-						}
-
-						// Construct the final update SQL statement
-						const updateSql = `UPDATE general_info SET ${updateFields.join(
-							", "
-						)} WHERE user_id = ?`;
-
-						updateValues.push(user_id);
-
-						// Execute the update query within the transaction
-						db.query(updateSql, updateValues, (err, results) => {
-							if (err) {
-								console.error("Error updating General info:", err);
-								db.rollback(() => {
-									res.status(500).json({
-										success: false,
-										message: "Internal Server Error",
-										error: err,
-									});
-								});
-							} else {
-								// Commit the transaction if the update was successful
-								db.commit(() => {
-									res.status(200).json({
-										message: "Update successfully completed",
-										success: true,
-										data: results,
-									});
-								});
-							}
-						});
-					}
-				);
-			}
-		);
-	});
-};
-
-const deleteGeneralInfo = (req: Request, res: Response) => {
-	const userId = req.params.id; // Assuming you pass the user ID in the URL
-
-	// Check if general_info for the user with the given ID exists
-	const checkUserSql =
-		"SELECT COUNT(*) AS userCount FROM general_info WHERE id = ?";
-	db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-		if (err) {
-			console.error("Error checking General info:", err);
-			return res
-				.status(500)
-				.json({ success: false, message: err?.message, error: err });
-		}
-
-		const userCount = userResults[0].userCount;
-
-		// If general_info doesn't exist, send an error response
-		if (userCount === 0) {
-			return res
-				.status(404)
-				.json({ success: false, message: "general_info not found" });
-		}
-
-		// If General info exists, proceed with the deletion
-		const deleteSql = "DELETE FROM general_info WHERE id = ?";
-		db.query(deleteSql, [userId], (err, results) => {
-			if (err) {
-				console.error("Error deleting General info:", err);
-				res.status(500).json({
-					success: false,
-					message: "Internal Server Error",
-					error: err,
-				});
-			} else {
-				res.status(200).json({
-					success: true,
-					message: "General info deleted successfully",
-				});
-			}
-		});
-	});
-};
+  res.status(200).json({
+    success: true,
+    message: "General info deleted successfully",
+  });
+});
 
 export const GeneralInfoController = {
-	getGeneralInfo,
-	getSingleGeneralInfo,
-	createGeneralInfo,
-	updateGeneralInfo,
-	deleteGeneralInfo,
-	getGeneralInfoByUserId,
+  getGeneralInfo,
+  getSingleGeneralInfo,
+  createGeneralInfo,
+  updateGeneralInfo,
+  deleteGeneralInfo,
+  getGeneralInfoByUserId,
+  getGeneralInfoByToken,
 };

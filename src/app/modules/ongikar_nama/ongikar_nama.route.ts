@@ -4,17 +4,17 @@ import { auth } from "../../middlewares/auth";
 const ongikarNamaRouter = express.Router();
 
 ongikarNamaRouter
-	.route("/")
-	.get(OngikarNamaController.getOngikarNama)
-	.post(auth("user", "admin"), OngikarNamaController.createOngikarNama)
-	.put(auth("user", "admin"), OngikarNamaController.updateOngikarNama);
+  .route("/")
+  .get(auth("admin"), OngikarNamaController.getAllOngikarNamaes)
+  .post(auth("user", "admin"), OngikarNamaController.createOngikarNama)
+  .put(auth("user", "admin"), OngikarNamaController.updateOngikarNama);
 
 ongikarNamaRouter
-	.route("/:id/user-id")
-	.get(OngikarNamaController.getOngikarNamaByUserId);
+  .route("/token")
+  .get(auth("user", "admin"), OngikarNamaController.getOngikarNamaByToken);
 ongikarNamaRouter
-	.route("/:id")
-	.get(OngikarNamaController.getSingleOngikarNama)
-	.delete(OngikarNamaController.deleteOngikarNama);
+  .route("/:id")
+  .get(auth("admin"), OngikarNamaController.getOngikarNamaById)
+  .delete(auth("admin"), OngikarNamaController.deleteOngikarNama);
 
 export default ongikarNamaRouter;
