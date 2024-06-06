@@ -19,7 +19,7 @@ jobs:
       - name: 📂 Sync files
         uses: SamKirkland/FTP-Deploy-Action@4.3.3
         with:
-          username: "pnc-nikah-server@server.pncsoft.tech"
+          username: "server-pnc-nikah@server.pnc-nikah.com"
           server: "ftp.pncsoft.tech"
           password: "ipv5J5PpHnl3"
           port: 21
