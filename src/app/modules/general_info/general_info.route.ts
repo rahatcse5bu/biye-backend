@@ -16,6 +16,9 @@ GeneralInfoRouter.route("/:id/user-id").get(
   GeneralInfoController.getGeneralInfoByUserId
 );
 
+GeneralInfoRouter.route("/watch/:id").get(
+  GeneralInfoController.updateWatchOfBioData
+);
 GeneralInfoRouter.route("/:id")
   .get(auth("admin"), GeneralInfoController.getSingleGeneralInfo)
   .delete(auth("admin"), GeneralInfoController.deleteGeneralInfo);

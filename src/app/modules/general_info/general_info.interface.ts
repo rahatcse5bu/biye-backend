@@ -16,6 +16,8 @@ export interface IGeneralInfo {
   marital_status: string;
   views_count: number;
   purchases_count: number;
+  dislikes_count: number;
+  likes_count: number;
   isFbPosted: boolean;
   isFeatured: boolean;
   zilla?: string; // Add this if `zilla` is part of the schema in some cases

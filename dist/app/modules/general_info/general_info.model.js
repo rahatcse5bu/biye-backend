@@ -38,6 +38,8 @@ const GeneralInfoSchema = new mongoose_1.Schema({
     nationality: { type: String, required: true },
     marital_status: { type: String, required: true },
     views_count: { type: Number, default: 0 },
+    likes_count: { type: Number, default: 0 },
+    dislikes_count: { type: Number, default: 0 },
     purchases_count: { type: Number, default: 0 },
     isFbPosted: { type: Boolean, required: true },
     isFeatured: { type: Boolean, required: true },

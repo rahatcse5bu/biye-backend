@@ -14,13 +14,14 @@ import EducationalQualificationRouter from "./app/modules/educational_qualificat
 import AddressRouter from "./app/modules/address/address.route";
 import ContactRouter from "./app/modules/contact/contact.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
-// import FavouritesRouter from "./app/modules/favourites/favourites.route";
+import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
 // import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 import cors from "cors";
 import config from "./config";
 import bkashRouter from "./app/modules/bkash/bkash.route";
+import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
@@ -66,8 +67,8 @@ app.use("/api/v1/educational-qualification", EducationalQualificationRouter);
 // app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
-// app.use("/api/v1/favorites", FavouritesRouter);
-// app.use("/api/v1/un-favorites", UnFavoritesRouter);
+app.use("/api/v1/favorites", FavouritesRouter);
+app.use("/api/v1/un-favorites", UnFavouritesRouter);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/bkash", bkashRouter);

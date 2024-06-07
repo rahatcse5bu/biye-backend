@@ -13,6 +13,7 @@ GeneralInfoRouter.route("/")
     .put((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.updateGeneralInfo);
 GeneralInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoByToken);
 GeneralInfoRouter.route("/:id/user-id").get(general_info_controller_1.GeneralInfoController.getGeneralInfoByUserId);
+GeneralInfoRouter.route("/watch/:id").get(general_info_controller_1.GeneralInfoController.updateWatchOfBioData);
 GeneralInfoRouter.route("/:id")
     .get((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.getSingleGeneralInfo)
     .delete((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.deleteGeneralInfo);

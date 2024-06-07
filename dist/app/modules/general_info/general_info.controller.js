@@ -69,6 +69,7 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $project: {
                 _id: 1,
                 user_id: "$userDetails.user_id",
+                user: "$userDetails._id",
                 bio_type: 1,
                 date_of_birth: 1,
                 height: 1,
@@ -82,6 +83,8 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 purchases_count: 1,
                 isFbPosted: 1,
                 isFeatured: 1,
+                dislikes_count: 1,
+                likes_count: 1,
                 zilla: 1,
             },
         },
@@ -210,6 +213,23 @@ const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
         data: generalInfo,
     });
 }));
+const updateWatchOfBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const bioId = req.params.id;
+    // Check if General info for the user with the given ID exists
+    const generalInfo = yield general_info_model_1.default.findById(bioId);
+    if (!generalInfo) {
+        return res.status(404).json({
+            success: false,
+            message: "General info not found",
+        });
+    }
+    generalInfo.views_count = generalInfo.views_count + 1;
+    yield generalInfo.save();
+    res.status(200).json({
+        message: "Updated watch count",
+        success: true,
+    });
+}));
 const deleteGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.params.id;
     // Check if general_info for the user with the given ID exists
@@ -235,4 +255,5 @@ exports.GeneralInfoController = {
     deleteGeneralInfo,
     getGeneralInfoByUserId,
     getGeneralInfoByToken,
+    updateWatchOfBioData,
 };

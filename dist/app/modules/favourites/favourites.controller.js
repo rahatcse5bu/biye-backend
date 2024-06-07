@@ -1,558 +1,282 @@
 "use strict";
-// import { Request, Response } from "express";
-// import db from "../../../config/db";
-// import { RowDataPacket } from "mysql2";
-// import { sendSuccess } from "../../../shared/SendSuccess";
-// import httpStatus from "http-status";
-// import { rollbackAndRespond } from "../../../utils/response";
-// import { JwtPayload } from "jsonwebtoken";
-// const getFavouritesListByUserId = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	//! Get user_id using token_id
-// 	const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
-// 	db.query<RowDataPacket[]>(getUserIdByTokenSql, [token_id], (err, result) => {
-// 		if (err) {
-// 			return rollbackAndRespond(res, db, null, {
-// 				success: false,
-// 				message: "You are not authorized",
-// 				error: err,
-// 			});
-// 		}
-// 		user_id = result[0]?.id;
-// 		//? get all bio data that likes an users
-// 		// const sql1 = `SELECT favourites.user_id,favourites.bio_id,address.permanent_address, general_info.date_of_birth,general_info.screen_color  from favourites
-// 		// 	LEFT JOIN address ON favourites.bio_id = address.user_id
-// 		// 	LEFT JOIN general_info ON favourites.bio_id = general_info.user_id
-// 		// 	LEFT JOIN bio_choice_data ON favourites.bio_id = bio_choice_data.user_id
-// 		// 	where favourites.user_id = ?
-// 		// 	`;
-// 		const sql1 = `SELECT DISTINCT
-// 		f.user_id,
-// 		f.bio_id,
-// 		a.permanent_address,
-// 		gf.date_of_birth,
-// 		gf.screen_color,
-// 		(
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE bc.bio_id = f.bio_id
-// 		) AS total_count,
-// 		(
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 		) AS total_pending,
-// 		(
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
-// 		) AS total_approved,
-// 		(
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
-// 		) AS total_rejected,
-// 		COALESCE(
-// 			(
-// 				SELECT (COUNT(*) * 100)
-// 				FROM bio_choice_data bc
-// 				WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
-// 			) / (     (
-// 				SELECT COUNT(*)
-// 				FROM bio_choice_data bc
-// 				WHERE bc.bio_id = f.bio_id
-// 			)- (
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 		)), 0
-// 		) AS approval_rate,
-// 		COALESCE(
-// 			(
-// 				SELECT (COUNT(*) * 100)
-// 				FROM bio_choice_data bc
-// 				WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
-// 			) / ((
-// 				SELECT COUNT(*)
-// 				FROM bio_choice_data bc
-// 				WHERE bc.bio_id = f.bio_id
-// 			)- (
-// 			SELECT COUNT(*)
-// 			FROM bio_choice_data bc
-// 			WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 		)), 0
-// 		) AS rejection_rate
-// 	FROM favourites AS f
-// 	JOIN address AS a ON f.bio_id = a.user_id
-// 	JOIN general_info AS gf ON f.bio_id = gf.user_id
-// 	WHERE f.user_id = ? AND f.bio_id <> ? AND f.type='like';`;
-// 		db.query<RowDataPacket[]>(sql1, [user_id, user_id], (err, result) => {
-// 			if (err) {
-// 				console.error("Error updating favourites:", err);
-// 				return rollbackAndRespond(res, db, err);
-// 			}
-// 			db.commit((err) => {
-// 				if (err) {
-// 					console.error("Error committing transaction:", err);
-// 					return rollbackAndRespond(res, db, err);
-// 				}
-// 				res.status(201).json({
-// 					success: true,
-// 					message: "Favourites created successfully",
-// 					data: result,
-// 				});
-// 			});
-// 		});
-// 	});
-// };
-// const getFavouritesByWhoByUserId = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res.status(500).json({
-// 				success: false,
-// 				message: "Internal Server Error",
-// 				error: err,
-// 			});
-// 		}
-// 		//! Get user_id using token_id
-// 		const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//? get type from favourites
-// 				const getTypeSql = `SELECT DISTINCT
-// 				f.user_id,
-// 				f.bio_id,
-// 				a.permanent_address,
-// 				gf.date_of_birth,
-// 				gf.screen_color,
-// 				(
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE bc.bio_id = f.bio_id
-// 				) AS total_count,
-// 				(
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 				) AS total_pending,
-// 				(
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
-// 				) AS total_approved,
-// 				(
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
-// 				) AS total_rejected,
-// 				COALESCE(
-// 					(
-// 						SELECT (COUNT(*) * 100)
-// 						FROM bio_choice_data bc
-// 						WHERE (bc.bio_id = f.bio_id AND bc.status = 'Approved') OR (bc.bio_id = f.bio_id AND bc.status = 'approved')
-// 					) / (     (
-// 						SELECT COUNT(*)
-// 						FROM bio_choice_data bc
-// 						WHERE bc.bio_id = f.bio_id
-// 					)- (
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 				)), 0
-// 				) AS approval_rate,
-// 				COALESCE(
-// 					(
-// 						SELECT (COUNT(*) * 100)
-// 						FROM bio_choice_data bc
-// 						WHERE (bc.bio_id = f.bio_id AND bc.status = 'Rejected') OR (bc.bio_id = f.bio_id AND bc.status = 'rejected')
-// 					) / ((
-// 						SELECT COUNT(*)
-// 						FROM bio_choice_data bc
-// 						WHERE bc.bio_id = f.bio_id
-// 					)- (
-// 					SELECT COUNT(*)
-// 					FROM bio_choice_data bc
-// 					WHERE (bc.bio_id = f.bio_id AND bc.status = 'Pending') OR (bc.bio_id = f.bio_id AND bc.status = 'pending')
-// 				)), 0
-// 				) AS rejection_rate
-// 			FROM favourites AS f
-// 			JOIN address AS a ON f.user_id = a.user_id
-// 			JOIN general_info AS gf ON f.user_id = gf.user_id
-// 			WHERE f.bio_id = ? AND f.user_id <> ? AND f.type = 'like';
-// 				`;
-// 				db.query<RowDataPacket[]>(
-// 					getTypeSql,
-// 					[user_id, user_id],
-// 					(err, result) => {
-// 						if (err) {
-// 							console.error("Error updating favourites:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						db.commit((err) => {
-// 							if (err) {
-// 								console.error("Error committing transaction:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							res.status(201).json({
-// 								success: true,
-// 								message: "Retrieve all Favourites  successfully",
-// 								data: result,
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const getFavouritesByUserId = (req: Request, res: Response) => {
-// 	const user_id = req.params.userId;
-// 	const bio_id = req.params.bioId;
-// 	const sql =
-// 		"SELECT type FROM favourites WHERE user_id = ? AND bio_id = ? AND type=?";
-// 	db.query<RowDataPacket[]>(sql, [user_id, bio_id, "like"], (err, rows) => {
-// 		if (err) {
-// 			return res.send({
-// 				message: err?.message,
-// 				success: false,
-// 			});
-// 		}
-// 		res
-// 			.status(200)
-// 			.json(
-// 				sendSuccess<RowDataPacket>(
-// 					"All favourites  retrieved successfully",
-// 					rows[0]
-// 				)
-// 			);
-// 	});
-// };
-// const getFavouritesCountByBioId = (req: Request, res: Response) => {
-// 	const bio_id = req.params.id;
-// 	console.log(bio_id);
-// 	const sql =
-// 		"SELECT COUNT(*) AS count FROM favourites WHERE bio_id = ? AND type = ?"; // Updated SQL query
-// 	db.query<RowDataPacket[]>(sql, [bio_id, "like"], (err, rows) => {
-// 		console.log(err);
-// 		if (err) {
-// 			return res.send({
-// 				message: err?.message,
-// 				success: false,
-// 			});
-// 		}
-// 		const count = rows[0].count; // Extract the count from the result
-// 		res.status(200).json({
-// 			success: true,
-// 			count: count,
-// 		});
-// 	});
-// };
-// const getSingleFavourites = (req: Request, res: Response) => {
-// 	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-// 	const sql = "SELECT * FROM favourites WHERE id = ?";
-// 	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-// 		if (err) {
-// 			return res.status(500).json({
-// 				message: err?.message,
-// 				success: false,
-// 			});
-// 		}
-// 		if (rows.length === 0) {
-// 			return res.status(404).json({
-// 				message: "favourites not found",
-// 				success: false,
-// 			});
-// 		}
-// 		res
-// 			.status(200)
-// 			.json(sendSuccess<RowDataPacket[]>("favourites retrieved", rows, 200));
-// 	});
-// };
-// const createFavourites = (req: Request, res: Response) => {
-// 	const { bio_id } = req.body;
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res.status(500).json({
-// 				success: false,
-// 				message: "Internal Server Error",
-// 				error: err,
-// 			});
-// 		}
-// 		//! Get user_id using token_id
-// 		const getUserIdByTokenSql = `SELECT id FROM user_info WHERE token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				user_id = result[0]?.id;
-// 				//? get type from favourites
-// 				const getTypeSql =
-// 					"SELECT type from favourites where user_id = ? AND bio_id = ?";
-// 				db.query<RowDataPacket[]>(
-// 					getTypeSql,
-// 					[user_id, bio_id],
-// 					(err, result) => {
-// 						if (err) {
-// 							console.error("Error updating favourites:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						//! If existing type is 'like', update it to 'dislike', and vice versa
-// 						if (result.length) {
-// 							const newType = result[0]?.type === "like" ? "not-like" : "like";
-// 							const updateSql = `UPDATE favourites SET type=?  WHERE user_id = ? AND bio_id=?`;
-// 							db.query(
-// 								updateSql,
-// 								[newType, user_id, bio_id],
-// 								(err, results) => {
-// 									if (err) {
-// 										console.error("Error updating favourites:", err);
-// 										return rollbackAndRespond(res, db, err);
-// 									}
-// 									db.commit((err) => {
-// 										if (err) {
-// 											console.error("Error committing transaction:", err);
-// 											return rollbackAndRespond(res, db, err);
-// 										}
-// 										res.status(201).json({
-// 											success: true,
-// 											message: "Favourites updated successfully",
-// 											data: results,
-// 										});
-// 									});
-// 								}
-// 							);
-// 						} else {
-// 							const createSql = `Insert into favourites(user_id,bio_id,type) values(?,?,?)`;
-// 							db.query(createSql, [user_id, bio_id, "like"], (err, results) => {
-// 								if (err) {
-// 									console.error("Error updating favourites:", err);
-// 									return rollbackAndRespond(res, db, err);
-// 								}
-// 								db.commit((err) => {
-// 									if (err) {
-// 										console.error("Error committing transaction:", err);
-// 										return rollbackAndRespond(res, db, err);
-// 									}
-// 									res.status(201).json({
-// 										success: true,
-// 										message: "Favourites created successfully",
-// 										data: results,
-// 									});
-// 								});
-// 							});
-// 						}
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const updateFavourites = (req: Request, res: Response) => {
-// 	const data = req.body;
-// 	const token_id = (req.user?.token_id as JwtPayload) ?? null;
-// 	let user_id: number | null = null;
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	//! Begin a database transaction
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		// get user id using token id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				console.log(result);
-// 				user_id = Number(result[0]?.id);
-// 				if (isNaN(user_id)) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! Check if Expected Life Partner for the user with the given ID exists
-// 				const checkUserSql = "SELECT user_id FROM favourites WHERE user_id = ?";
-// 				db.query<RowDataPacket[]>(
-// 					checkUserSql,
-// 					[user_id],
-// 					(err, userResults) => {
-// 						if (err) {
-// 							console.error("Error checking Favourites:", err);
-// 							db.rollback(() => {
-// 								res.status(500).json({ success: false, message: err?.message });
-// 							});
-// 							return;
-// 						}
-// 						const userCount = userResults.length;
-// 						//! If Favourites doesn't exist, send an error response
-// 						if (userCount === 0) {
-// 							db.rollback(() => {
-// 								res.status(404).json({
-// 									success: false,
-// 									message: "Favourites not found",
-// 								});
-// 							});
-// 							return;
-// 						}
-// 						//! Build the update SQL statement dynamically based on changed values
-// 						const updateFields: string[] = [];
-// 						const updateValues = [];
-// 						Object.keys(data).forEach((key) => {
-// 							updateFields.push(`${key} = ?`);
-// 							updateValues.push(data[key]);
-// 						});
-// 						if (updateFields.length === 0) {
-// 							// No fields to update
-// 							db.commit(() => {
-// 								res
-// 									.status(200)
-// 									.json({ success: true, message: "No changes to update" });
-// 							});
-// 							return;
-// 						}
-// 						// Construct the final update SQL statement
-// 						const updateSql = `UPDATE favourites SET ${updateFields.join(
-// 							", "
-// 						)} WHERE user_id = ?`;
-// 						updateValues.push(user_id);
-// 						// Execute the update query within the transaction
-// 						db.query(updateSql, updateValues, (err, results) => {
-// 							if (err) {
-// 								console.error("Error updating Favourites:", err);
-// 								db.rollback(() => {
-// 									res.status(500).json({
-// 										success: false,
-// 										message: "Internal Server Error",
-// 										error: err,
-// 									});
-// 								});
-// 							} else {
-// 								// Commit the transaction if the update was successful
-// 								db.commit(() => {
-// 									res.status(200).json({
-// 										message: "Update successfully completed",
-// 										success: true,
-// 										data: results,
-// 									});
-// 								});
-// 							}
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const deleteFavourites = (req: Request, res: Response) => {
-// 	const userId = req.params.id; // Assuming you pass the user ID in the URL
-// 	// Check if favourites for the user with the given ID exists
-// 	const checkUserSql =
-// 		"SELECT COUNT(*) AS userCount FROM favourites WHERE id = ?";
-// 	db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-// 		if (err) {
-// 			console.error("Error checking favourites:", err);
-// 			return res.status(500).json({ success: false, message: err?.message });
-// 		}
-// 		const userCount = userResults[0].userCount;
-// 		// If favourites doesn't exist, send an error response
-// 		if (userCount === 0) {
-// 			return res
-// 				.status(404)
-// 				.json({ success: false, message: "favourites not found" });
-// 		}
-// 		// If favourites exists, proceed with the deletion
-// 		const deleteSql = "DELETE FROM favourites WHERE id = ?";
-// 		db.query(deleteSql, [userId], (err, results) => {
-// 			if (err) {
-// 				console.error("Error deleting favourites:", err);
-// 				res
-// 					.status(500)
-// 					.json({ success: false, message: "Internal Server Error" });
-// 			} else {
-// 				res
-// 					.status(200)
-// 					.json({ success: true, message: "favourites deleted successfully" });
-// 			}
-// 		});
-// 	});
-// };
-// export const FavouritesController = {
-// 	getSingleFavourites,
-// 	createFavourites,
-// 	updateFavourites,
-// 	deleteFavourites,
-// 	getFavouritesByUserId,
-// 	getFavouritesCountByBioId,
-// 	getFavouritesListByUserId,
-// 	getFavouritesByWhoByUserId,
-// };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FavoriteController = void 0;
+const http_status_1 = __importDefault(require("http-status"));
+const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const mongoose_1 = __importDefault(require("mongoose"));
+const favourites_services_1 = require("./favourites.services");
+const favourites_model_1 = __importDefault(require("./favourites.model"));
+const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
+exports.FavoriteController = {
+    getAllFavorites: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const favorites = yield favourites_services_1.FavoriteService.getAllFavorites();
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "All favorites retrieved successfully",
+            data: favorites,
+        });
+    })),
+    getFavoriteById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        const favorite = yield favourites_services_1.FavoriteService.getFavoriteById(id);
+        if (!favorite) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Favorite not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Favorite retrieved successfully",
+                data: favorite,
+            });
+        }
+    })),
+    getFavoriteByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!userId) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const favorite = yield favourites_services_1.FavoriteService.getFavoriteByToken(userId);
+        if (!favorite) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Favorite not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Favorite retrieved successfully",
+                data: favorite,
+            });
+        }
+    })),
+    createFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const MAX_RETRIES = 3; // Maximum number of retries for transient errors
+        const { bio_user } = req.body;
+        const user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        let retries = 0;
+        while (retries < MAX_RETRIES) {
+            const session = yield mongoose_1.default.startSession();
+            session.startTransaction();
+            try {
+                const existingFavorite = yield favourites_model_1.default.findOne({
+                    user,
+                    bio_user,
+                }).session(session);
+                if (existingFavorite) {
+                    const response = yield favourites_model_1.default.findOneAndDelete({
+                        user,
+                        bio_user,
+                    }).session(session);
+                    if (response) {
+                        const updateUser = yield general_info_model_1.default.findOneAndUpdate({ user: bio_user }, { $inc: { likes_count: -1 } }, { new: true, session });
+                        yield session.commitTransaction();
+                        session.endSession();
+                        return res.json({
+                            success: true,
+                            message: "Favorite was successfully deleted.",
+                        });
+                    }
+                }
+                else {
+                    const response = yield favourites_model_1.default.create([{ user, bio_user }], {
+                        session,
+                    });
+                    if (response) {
+                        const updateUser = yield general_info_model_1.default.findOneAndUpdate({ user: bio_user }, { $inc: { likes_count: 1 } }, { new: true, session });
+                        yield session.commitTransaction();
+                        session.endSession();
+                        return res.json({
+                            success: true,
+                            message: "Favorite was successfully added.",
+                        });
+                    }
+                }
+            }
+            catch (error) {
+                yield session.abortTransaction();
+                session.endSession();
+                if (error.code === 112) {
+                    // Transient error code
+                    retries++;
+                    console.warn(`Retrying transaction, attempt ${retries}`);
+                    yield new Promise((resolve) => setTimeout(resolve, 100 * retries)); // Exponential backoff
+                }
+                else {
+                    console.error("Error creating or deleting favorite:", error);
+                    return res.status(500).json({
+                        success: false,
+                        message: "Internal server error",
+                    });
+                }
+            }
+        }
+        // If all retries fail
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create or delete favorite after multiple attempts.",
+        });
+    })),
+    // createFavorite: catchAsync(async (req: Request, res: Response) => {
+    //   const { bio_user } = req.body;
+    //   const user = req.user?._id;
+    //   if (!user) {
+    //     return res.status(httpStatus.UNAUTHORIZED).json({
+    //       statusCode: httpStatus.UNAUTHORIZED,
+    //       message: "You are not authorized",
+    //       success: false,
+    //     });
+    //   }
+    //   // Start a session
+    //   const session = await mongoose.startSession();
+    //   session.startTransaction();
+    //   try {
+    //     const existingFavorite = await Favorite.findOne({
+    //       user,
+    //       bio_user,
+    //     })
+    //       .lean()
+    //       .session(session);
+    //     if (existingFavorite) {
+    //       // If the favorite exists, delete it and decrement likes_count
+    //       const response = await Favorite.findOneAndDelete({
+    //         user,
+    //         bio_user,
+    //       })
+    //         .lean()
+    //         .session(session);
+    //       if (response) {
+    //         const updateUser = await GeneralInfo.findOne({
+    //           user: bio_user,
+    //         }).session(session);
+    //         if (updateUser) {
+    //           updateUser.likes_count = updateUser.likes_count - 1;
+    //           await updateUser.save({ session });
+    //         }
+    //         await session.commitTransaction();
+    //         session.endSession();
+    //         return res.json({
+    //           success: true,
+    //           message: "Favorite was successfully deleted.",
+    //         });
+    //       }
+    //     } else {
+    //       // If the favorite doesn't exist, create it and increment likes_count
+    //       const response = await Favorite.create([{ user, bio_user }], {
+    //         session,
+    //       });
+    //       if (response) {
+    //         const updateUser = await GeneralInfo.findOne({
+    //           user: bio_user,
+    //         }).session(session);
+    //         if (updateUser) {
+    //           updateUser.likes_count = updateUser.likes_count + 1;
+    //           await updateUser.save({ session });
+    //         }
+    //         await session.commitTransaction();
+    //         session.endSession();
+    //         return res.json({
+    //           success: true,
+    //           message: "Favorite was successfully added.",
+    //         });
+    //       }
+    //     }
+    //   } catch (error) {
+    //     // If any error occurs, abort the transaction
+    //     await session.abortTransaction();
+    //     session.endSession();
+    //     console.error("Error creating or deleting favorite:", error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: "Internal server error",
+    //     });
+    //   }
+    // }),
+    updateFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const updatedFields = req.body;
+        const updatedFavorite = yield favourites_services_1.FavoriteService.updateFavorite(id, updatedFields);
+        if (!updatedFavorite) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Favorite not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Favorite updated successfully",
+                data: updatedFavorite,
+            });
+        }
+    })),
+    checkLikes: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _d, _e;
+        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        const bio_user = (_e = req.params) === null || _e === void 0 ? void 0 : _e.id;
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        let data = yield favourites_model_1.default.findOne({
+            user,
+            bio_user,
+        });
+        let result = false;
+        if (data) {
+            result = true;
+        }
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Retrieve checks",
+            data: result,
+        });
+    })),
+    deleteFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        yield favourites_services_1.FavoriteService.deleteFavorite(id);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Favorite deleted successfully",
+        });
+    })),
+};

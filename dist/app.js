@@ -28,12 +28,13 @@ const educational_qualification_route_1 = __importDefault(require("./app/modules
 const address_route_1 = __importDefault(require("./app/modules/address/address.route"));
 const contact_route_1 = __importDefault(require("./app/modules/contact/contact.route"));
 const payments_route_1 = __importDefault(require("./app/modules/payments/payments.route"));
-// import FavouritesRouter from "./app/modules/favourites/favourites.route";
+const favourites_route_1 = __importDefault(require("./app/modules/favourites/favourites.route"));
 const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_data.route"));
 // import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 const cors_1 = __importDefault(require("cors"));
 const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route"));
+const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
@@ -71,8 +72,8 @@ app.use("/api/v1/educational-qualification", educational_qualification_route_1.d
 // app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use("/api/v1/address", address_route_1.default);
 app.use("/api/v1/contact", contact_route_1.default);
-// app.use("/api/v1/favorites", FavouritesRouter);
-// app.use("/api/v1/un-favorites", UnFavoritesRouter);
+app.use("/api/v1/favorites", favourites_route_1.default);
+app.use("/api/v1/un-favorites", unfavorites_route_1.default);
 app.use("/api/v1/payments", payments_route_1.default);
 app.use("/api/v1/bio-data", bio_data_route_1.default);
 app.use("/api/v1/bkash", bkash_route_1.default);

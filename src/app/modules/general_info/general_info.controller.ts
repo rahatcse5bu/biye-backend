@@ -52,6 +52,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $project: {
         _id: 1, // Include _id of GeneralInfo
         user_id: "$userDetails.user_id", // Include user_id from User schema
+        user: "$userDetails._id", // Include user_id from User schema
         bio_type: 1,
         date_of_birth: 1,
         height: 1,
@@ -65,6 +66,8 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         purchases_count: 1,
         isFbPosted: 1,
         isFeatured: 1,
+        dislikes_count: 1,
+        likes_count: 1,
         zilla: 1,
       },
     },
@@ -226,6 +229,27 @@ const updateGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     data: generalInfo,
   });
 });
+const updateWatchOfBioData = catchAsync(async (req: Request, res: Response) => {
+  const bioId = req.params.id;
+
+  // Check if General info for the user with the given ID exists
+  const generalInfo = await GeneralInfo.findById(bioId);
+  if (!generalInfo) {
+    return res.status(404).json({
+      success: false,
+      message: "General info not found",
+    });
+  }
+
+  generalInfo.views_count = generalInfo.views_count + 1;
+
+  await generalInfo.save();
+
+  res.status(200).json({
+    message: "Updated watch count",
+    success: true,
+  });
+});
 
 const deleteGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const userId = req.params.id;
@@ -256,4 +280,5 @@ export const GeneralInfoController = {
   deleteGeneralInfo,
   getGeneralInfoByUserId,
   getGeneralInfoByToken,
+  updateWatchOfBioData,
 };

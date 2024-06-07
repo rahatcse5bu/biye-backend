@@ -1,20 +1,23 @@
 "use strict";
-// import express from "express";
-// import { FavouritesController } from "./favourites.controller";
-// import { auth } from "../../middlewares/auth";
-// const FavouritesRouter = express.Router();
-// FavouritesRouter.route("/")
-// 	.get(auth("user", "admin"), FavouritesController.getFavouritesListByUserId)
-// 	.post(auth("user", "admin"), FavouritesController.createFavourites);
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_1 = require("../../middlewares/auth");
+const favourites_controller_1 = require("./favourites.controller");
+const FavouritesRouter = express_1.default.Router();
+FavouritesRouter.route("/").post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.createFavorite);
+FavouritesRouter.route("/check/:id").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.checkLikes);
 // FavouritesRouter.route("/likes-who").get(
 // 	auth("user", "admin"),
-// 	FavouritesController.getFavouritesByWhoByUserId
+// 	FavoriteController.getFavouritesByWhoByUserId
 // );
 // FavouritesRouter.route("/user-data/:userId/:bioId").get(
-// 	FavouritesController.getFavouritesByUserId
+// 	FavoriteController.getFavouritesByUserId
 // );
 // FavouritesRouter.route("/bio-data/:id")
-// 	.get(FavouritesController.getFavouritesCountByBioId)
-// 	.put(FavouritesController.updateFavourites)
-// 	.delete(FavouritesController.deleteFavourites);
-// export default FavouritesRouter;
+// 	.get(FavoriteController.getFavouritesCountByBioId)
+// 	.put(FavoriteController.updateFavourites)
+// 	.delete(FavoriteController.deleteFavourites);
+exports.default = FavouritesRouter;
