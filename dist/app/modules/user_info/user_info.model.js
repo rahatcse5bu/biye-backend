@@ -12,7 +12,7 @@ const userInfoSchema = new mongoose_1.Schema({
     user_status: {
         type: String,
         required: false,
-        enum: ["pending", "active", "in review", "inactive"],
+        enum: ["pending", "active", "in review", "inactive", "banned"],
         default: "pending",
     },
     email: { type: String, required: true, unique: true },

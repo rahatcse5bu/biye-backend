@@ -1,10 +1,16 @@
 "use strict";
-// export const BioChoiceDataFields: string[] = [
-//   "user_id",
-//   "bio_id",
-//   "bio_details",
-//   "feedback",
-//   "status",
-//   "order_time",
-//   "updated_time",
-// ];
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.bioChoiceStatus = exports.BioChoiceDataFields = void 0;
+exports.BioChoiceDataFields = [
+    "user",
+    "bio_user",
+    "bio_details",
+    "feedback",
+    "status",
+];
+exports.bioChoiceStatus = [
+    "pending",
+    "rejected",
+    "accepted",
+    "approved",
+];

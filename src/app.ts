@@ -10,7 +10,7 @@ import GeneralInfoRouter from "./app/modules/general_info/general_info.route";
 import FamilyStatusRouter from "./app/modules/family_status/family_status.route";
 import ExpectedLifePartnerRouter from "./app/modules/expected_lifepartner/expected_lifepartner.route";
 import EducationalQualificationRouter from "./app/modules/educational_qualification/educational_qualification.route";
-// import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
+import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
 import AddressRouter from "./app/modules/address/address.route";
 import ContactRouter from "./app/modules/contact/contact.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
@@ -28,7 +28,10 @@ import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 const app = express();
 
 app.use(express.json());
-app.use(morgan("dev"));
+
+if (config.node_env === "development") {
+  app.use(morgan("dev"));
+}
 // app.use(
 //   cors({
 //     origin: [
@@ -64,7 +67,7 @@ app.use("/api/v1/general-info", GeneralInfoRouter);
 app.use("/api/v1/family-status", FamilyStatusRouter);
 app.use("/api/v1/expected-life-partner", ExpectedLifePartnerRouter);
 app.use("/api/v1/educational-qualification", EducationalQualificationRouter);
-// app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
+app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
 app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
 app.use("/api/v1/favorites", FavouritesRouter);

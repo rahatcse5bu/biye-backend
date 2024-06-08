@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import ApiError from "./ApiError";
+import { ZodError } from "zod";
+import handleZodError from "../../errors/handleZodError";
 
 const GlobalErrorHandler = (
   err: Error,
@@ -7,15 +9,23 @@ const GlobalErrorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  // console.error("anis",err); // Log the error for debugging purposes
-
-  // Handle different types of errors
-  if (err instanceof ApiError) {
+  if (err instanceof ZodError) {
+    const simplifiedError = handleZodError(err);
+    const statusCode = simplifiedError.statusCode;
+    const message = simplifiedError.message;
+    return res.status(statusCode).json({
+      statusCode: statusCode,
+      message: message,
+      success: false,
+      error: simplifiedError.errorMessages,
+    });
+  } else if (err instanceof ApiError) {
     // Handle custom errors with specific status codes and error messages
     return res.status(err.statusCode).json({
       status: err.status,
       statusCode: err.statusCode,
       error: err.message,
+      success: false,
     });
   } else if (err instanceof SyntaxError) {
     // Handle JSON parsing errors

@@ -24,7 +24,7 @@ const general_info_route_1 = __importDefault(require("./app/modules/general_info
 const family_status_route_1 = __importDefault(require("./app/modules/family_status/family_status.route"));
 const expected_lifepartner_route_1 = __importDefault(require("./app/modules/expected_lifepartner/expected_lifepartner.route"));
 const educational_qualification_route_1 = __importDefault(require("./app/modules/educational_qualification/educational_qualification.route"));
-// import BioChoiceDataRouter from "./app/modules/bio_choice_data/bio_choice_data.route";
+const bio_choice_data_route_1 = __importDefault(require("./app/modules/bio_choice_data/bio_choice_data.route"));
 const address_route_1 = __importDefault(require("./app/modules/address/address.route"));
 const contact_route_1 = __importDefault(require("./app/modules/contact/contact.route"));
 const payments_route_1 = __importDefault(require("./app/modules/payments/payments.route"));
@@ -33,13 +33,16 @@ const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_dat
 // import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 const cors_1 = __importDefault(require("cors"));
+const config_1 = __importDefault(require("./config"));
 const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route"));
 const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-app.use((0, morgan_1.default)("dev"));
+if (config_1.default.node_env === "development") {
+    app.use((0, morgan_1.default)("dev"));
+}
 // app.use(
 //   cors({
 //     origin: [
@@ -69,7 +72,7 @@ app.use("/api/v1/general-info", general_info_route_1.default);
 app.use("/api/v1/family-status", family_status_route_1.default);
 app.use("/api/v1/expected-life-partner", expected_lifepartner_route_1.default);
 app.use("/api/v1/educational-qualification", educational_qualification_route_1.default);
-// app.use("/api/v1/bio-choice-data", BioChoiceDataRouter);
+app.use("/api/v1/bio-choice-data", bio_choice_data_route_1.default);
 app.use("/api/v1/address", address_route_1.default);
 app.use("/api/v1/contact", contact_route_1.default);
 app.use("/api/v1/favorites", favourites_route_1.default);

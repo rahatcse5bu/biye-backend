@@ -1,827 +1,520 @@
 "use strict";
-// import { Request, Response } from "express";
-// import db from "../../../config/db";
-// import { RowDataPacket } from "mysql2";
-// import { sendSuccess } from "../../../shared/SendSuccess";
-// import { generatePlaceholders } from "../../../utils/generatePlaceholders";
-// import { rollbackAndRespond } from "../../../utils/response";
-// import httpStatus from "http-status";
-// import { JwtPayload } from "jsonwebtoken";
-// const getBioChoiceData = (req: Request, res: Response) => {
-// 	const sql = "SELECT * FROM bio_choice_data";
-// 	db.query<RowDataPacket[]>(sql, (err, rows) => {
-// 		if (err) {
-// 			res.send({
-// 				message: err?.message,
-// 				success: false,
-// 			});
-// 		}
-// 		res
-// 			.status(200)
-// 			.json(
-// 				sendSuccess<RowDataPacket[]>(
-// 					"All Bio choice data  retrieved successfully",
-// 					rows
-// 				)
-// 			);
-// 	});
-// };
-// const getBioChoiceStatisticsData = (req: Request, res: Response) => {
-// 	const bioId = req.params.id;
-// 	const rejectedSql = `SELECT COUNT(*) AS rejectedCount FROM bio_choice_data WHERE status = 'Rejected' AND bio_id =? `;
-// 	let responseResults = {};
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			return rollbackAndRespond(res, db, null, {
-// 				success: false,
-// 				message: "Something went wrong",
-// 				error: err,
-// 			});
-// 		}
-// 		db.query<RowDataPacket[]>(rejectedSql, [bioId], (err, results) => {
-// 			if (err) {
-// 				return rollbackAndRespond(res, db, null, {
-// 					success: false,
-// 					message: "Something went wrong",
-// 					error: err,
-// 				});
-// 			}
-// 			responseResults = {
-// 				...responseResults,
-// 				rejected: results[0]?.rejectedCount,
-// 			};
-// 			const approvedSql = `SELECT COUNT(*) AS approvedCount FROM bio_choice_data WHERE status = 'Approved' AND bio_id=? `;
-// 			db.query<RowDataPacket[]>(approvedSql, [bioId], (err, results) => {
-// 				if (err) {
-// 					return db.rollback(() => {
-// 						res.send({
-// 							message: err?.message,
-// 							success: false,
-// 							error: err,
-// 						});
-// 					});
-// 				}
-// 				responseResults = {
-// 					...responseResults,
-// 					approved: results[0]?.approvedCount,
-// 				};
-// 				const pendingSql = `SELECT COUNT(*) AS pendingCount FROM bio_choice_data WHERE status = 'Pending' AND bio_id=? `;
-// 				db.query<RowDataPacket[]>(pendingSql, [bioId], (err, results) => {
-// 					if (err) {
-// 						return db.rollback(() => {
-// 							res.send({
-// 								message: err?.message,
-// 								success: false,
-// 								error: err,
-// 							});
-// 						});
-// 					}
-// 					responseResults = {
-// 						...responseResults,
-// 						pending: results[0]?.pendingCount,
-// 					};
-// 					db.commit((err) => {
-// 						if (err) {
-// 							return db.rollback(() => {
-// 								throw err;
-// 							});
-// 						}
-// 						res.status(200).json({
-// 							success: true,
-// 							results: responseResults,
-// 							message: "All statistics retrieve successfully",
-// 						});
-// 					});
-// 				});
-// 			});
-// 		});
-// 	});
-// };
-// const getSingleBioChoiceData = (req: Request, res: Response) => {
-// 	const userId = req.params.id; // Assuming you pass the user ID as a route parameter
-// 	const sql = "SELECT * FROM bio_choice_data WHERE id = ?";
-// 	db.query<RowDataPacket[]>(sql, [userId], (err, rows) => {
-// 		if (err) {
-// 			return res.status(500).json({
-// 				message: err?.message,
-// 				success: false,
-// 			});
-// 		}
-// 		if (rows.length === 0) {
-// 			return res.status(404).json({
-// 				message: "Bio choice data not found",
-// 				success: false,
-// 			});
-// 		}
-// 		res
-// 			.status(200)
-// 			.json(
-// 				sendSuccess<RowDataPacket[]>("Bio choice data retrieved", rows, 200)
-// 			);
-// 	});
-// };
-// const createBioChoiceData = (req: Request, res: Response) => {
-// 	let data = req.body;
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! Check if the user_id already exists in the database
-// 				const checkSql =
-// 					"SELECT COUNT(*) AS count FROM bio_choice_data WHERE user_id = ? AND bio_id = ?";
-// 				db.query<RowDataPacket[]>(
-// 					checkSql,
-// 					[user_id, data?.bio_id],
-// 					(err, results) => {
-// 						if (err) {
-// 							console.error("Error checking User Id:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						const count = results[0].count;
-// 						if (count > 0) {
-// 							//! User with this user_id already exists, return an error response
-// 							return rollbackAndRespond(res, db, null, {
-// 								success: false,
-// 								message: "You already requested",
-// 							});
-// 						}
-// 						data = {
-// 							...data,
-// 							user_id,
-// 						};
-// 						const keys = Object.keys(data);
-// 						const values = Object.values(data);
-// 						//! Insert  into the database
-// 						const insertSql = `INSERT INTO bio_choice_data (${keys.join(
-// 							","
-// 						)}) VALUES (${generatePlaceholders(values.length)})`;
-// 						const bio_choice_data: string[] = [];
-// 						keys.forEach((field) => {
-// 							bio_choice_data.push(data[field]);
-// 						});
-// 						//! Insert bio choice data  information
-// 						db.query(insertSql, bio_choice_data, (err, results) => {
-// 							if (err) {
-// 								console.error("Error inserting Occupation:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							// ! reduced points
-// 							const updateUserInfoSql = `UPDATE user_info SET points = points - ? WHERE id=?`;
-// 							db.query(updateUserInfoSql, [30, user_id], (err, results) => {
-// 								if (err) {
-// 									console.error("Error updating user_info:", err);
-// 									return rollbackAndRespond(res, db, err);
-// 								}
-// 								// Commit the transaction if everything is successful
-// 								db.commit((err) => {
-// 									if (err) {
-// 										console.error("Error committing transaction:", err);
-// 										return rollbackAndRespond(res, db, err);
-// 									}
-// 									res.status(201).json({
-// 										success: true,
-// 										message: "Bio Choice data created successfully",
-// 										data: results,
-// 									});
-// 								});
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const updateBioChoiceData = (req: Request, res: Response) => {
-// 	const bio_id = req.params?.id;
-// 	const data = req.body;
-// 	const token_id = (req.user?.token_id as JwtPayload) ?? null;
-// 	let user_id: number | null = null;
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	//! Begin a database transaction
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		// get user id using token id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				console.log(result);
-// 				user_id = Number(result[0]?.id);
-// 				if (isNaN(user_id)) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! Check if Expected Life Partner for the user with the given ID exists
-// 				const checkUserSql =
-// 					"SELECT COUNT(*) as rowCount FROM bio_choice_data WHERE user_id = ? AND bio_id = ?";
-// 				db.query<RowDataPacket[]>(
-// 					checkUserSql,
-// 					[bio_id, user_id],
-// 					(err, rows) => {
-// 						if (err) {
-// 							console.error("Error checking Contact:", err);
-// 							db.rollback(() => {
-// 								res.status(500).json({ success: false, message: err?.message });
-// 							});
-// 							return;
-// 						}
-// 						const count = rows[0].rowCount;
-// 						//! If Contact doesn't exist, send an error response
-// 						if (count === 0) {
-// 							db.rollback(() => {
-// 								res.status(404).json({
-// 									success: false,
-// 									message: "bio choice data not found",
-// 								});
-// 							});
-// 							return;
-// 						}
-// 						//! Build the update SQL statement dynamically based on changed values
-// 						const updateFields: string[] = [];
-// 						const updateValues = [];
-// 						Object.keys(data).forEach((key) => {
-// 							updateFields.push(`${key} = ?`);
-// 							updateValues.push(data[key]);
-// 						});
-// 						if (updateFields.length === 0) {
-// 							// No fields to update
-// 							db.commit(() => {
-// 								res
-// 									.status(200)
-// 									.json({ success: true, message: "No changes to update" });
-// 							});
-// 							return;
-// 						}
-// 						// Construct the final update SQL statement
-// 						const updateSql = `UPDATE bio_choice_data SET ${updateFields.join(
-// 							", "
-// 						)} WHERE user_id = ? AND bio_id = ?`;
-// 						updateValues.push(bio_id);
-// 						updateValues.push(user_id);
-// 						// Execute the update query within the transaction
-// 						db.query(updateSql, updateValues, (err, results) => {
-// 							if (err) {
-// 								console.error("Error updating Contact:", err);
-// 								db.rollback(() => {
-// 									res.status(500).json({
-// 										success: false,
-// 										message: "Internal Server Error",
-// 										error: err,
-// 									});
-// 								});
-// 							} else {
-// 								// Commit the transaction if the update was successful
-// 								db.commit(() => {
-// 									res.status(200).json({
-// 										message: "Update successfully completed",
-// 										success: true,
-// 										data: results,
-// 									});
-// 								});
-// 							}
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const deleteBioChoiceData = (req: Request, res: Response) => {
-// 	const userId = req.params.id; // Assuming you pass the user ID in the URL
-// 	// Check if bio_choice_data for the user with the given ID exists
-// 	const checkUserSql =
-// 		"SELECT COUNT(*) AS userCount FROM bio_choice_data WHERE id = ?";
-// 	db.query<RowDataPacket[]>(checkUserSql, [userId], (err, userResults) => {
-// 		if (err) {
-// 			console.error("Error checking Bio choice data:", err);
-// 			return res.status(500).json({ success: false, message: err?.message });
-// 		}
-// 		const userCount = userResults[0].userCount;
-// 		// If bio_choice_data doesn't exist, send an error response
-// 		if (userCount === 0) {
-// 			return res.status(404).json({
-// 				success: false,
-// 				message: "bio_choice_data not found",
-// 			});
-// 		}
-// 		// If Bio choice data exists, proceed with the deletion
-// 		const deleteSql = "DELETE FROM bio_choice_data WHERE id = ?";
-// 		db.query(deleteSql, [userId], (err, results) => {
-// 			if (err) {
-// 				console.error("Error deleting Bio choice data:", err);
-// 				res
-// 					.status(500)
-// 					.json({ success: false, message: "Internal Server Error" });
-// 			} else {
-// 				res.status(200).json({
-// 					success: true,
-// 					message: "Bio choice data deleted successfully",
-// 				});
-// 			}
-// 		});
-// 	});
-// };
-// const getBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! get bio choice data first step
-// 				const getSqlFirstStep = `SELECT subquery.bio_id,a.permanent_area,a.present_area,a.zilla,a.upzilla,a.division,a.city,
-// 				subquery.status,subquery.feedback,subquery.bio_details,
-// 				COUNT(main.user_id) AS total_count,
-// 				SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
-// 				SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
-// 				SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) AS pending_count,
-// 				CASE
-//         WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
-//         THEN 0.0
-//         ELSE
-//             (
-//                 SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) * 100.0
-//             ) / (
-//                 COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
-//             )
-// 				END AS approval_rate,
-// 				CASE
-//         WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
-//         THEN 0.0
-//         ELSE
-//             (
-//                 SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) * 100.0
-//             ) / (
-//                 COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END)
-//             )
-// 								END AS rejection_rate
-// 						FROM (
-// 								SELECT DISTINCT *
-// 								FROM bio_choice_data
-// 								WHERE user_id = ? AND bio_id <> ?
-// 						) AS subquery
-// 						LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id LEFT JOIN address a ON a.user_id=subquery.bio_id WHERE subquery.bio_id NOT IN (SELECT bio_id FROM contact_purchase_data WHERE user_id= ?)
-// 						GROUP BY subquery.bio_id;
-// 				`;
-// 				db.query<RowDataPacket[]>(
-// 					getSqlFirstStep,
-// 					[user_id, user_id, user_id],
-// 					(err, results) => {
-// 						if (err) {
-// 							console.error("Error checking User Id:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						// Commit the transaction if everything is successful
-// 						db.commit((err) => {
-// 							if (err) {
-// 								console.error("Error committing transaction:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							res.status(201).json({
-// 								success: true,
-// 								message: "Bio Choice first step data get successfully",
-// 								data: results,
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const getBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! get bio choice data of second step
-// 				const getSqlSecondStep = `SELECT
-// 				subquery.bio_id,
-// 				a.permanent_area as permanent_address,
-// 				a.present_area as present_address,
-// 				a.zilla as zilla,
-// 				a.upzilla as upzilla,
-// 				a.division as divison,
-// 				a.city as city,
-// 				gi.date_of_birth as date_of_birth,
-// 				c.full_name,
-// 				c.family_number,
-// 				c.relation,
-// 				subquery.status as choice_bio_status,
-// 				subquery.feedback,
-// 				COUNT(main.user_id) AS total_count,
-// 				SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) AS approval_count,
-// 				SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) AS rejection_count,
-// 				SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) AS pending_count,
-// 				CASE
-// 					WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
-// 					THEN 0.0
-// 					ELSE
-// 						(SUM(CASE WHEN main.status = 'Approved' THEN 1 ELSE 0 END) * 100.0)
-// 						/ (COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END))
-// 				END AS approval_rate,
-// 				CASE
-// 					WHEN COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END) = 0
-// 					THEN 0.0
-// 					ELSE
-// 						(SUM(CASE WHEN main.status = 'Rejected' THEN 1 ELSE 0 END) * 100.0)
-// 						/ (COUNT(main.user_id) - SUM(CASE WHEN main.status = 'Pending' THEN 1 ELSE 0 END))
-// 				END AS rejection_rate
-// 			FROM (
-// 				SELECT DISTINCT *
-// 				FROM bio_choice_data
-// 				WHERE user_id = ? AND bio_id <> ?
-// 			) AS subquery
-// 			LEFT JOIN bio_choice_data AS main ON subquery.bio_id = main.user_id
-// 			LEFT JOIN address a ON a.user_id = subquery.bio_id
-// 			LEFT JOIN contact c ON c.user_id = subquery.bio_id
-// 			LEFT JOIN general_info gi ON gi.user_id = subquery.bio_id
-// 			LEFT JOIN contact_purchase_data cpd ON (cpd.user_id = subquery.user_id AND cpd.bio_id = subquery.bio_id)
-// 			WHERE subquery.status = 'Approved' AND cpd.user_id= ?
-// 			GROUP BY subquery.bio_id;
-// 				`;
-// 				db.query<RowDataPacket[]>(
-// 					getSqlSecondStep,
-// 					[user_id, user_id, user_id],
-// 					(err, results) => {
-// 						if (err) {
-// 							console.error("Error checking User Id:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						// Commit the transaction if everything is successful
-// 						db.commit((err) => {
-// 							if (err) {
-// 								console.error("Error committing transaction:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							res.status(201).json({
-// 								success: true,
-// 								message: "Bio Choice second step data get successfully",
-// 								data: results,
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const getBioChoiceDataOfShare = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! get bio choice data of share
-// 				const getSqlOfShare = `SELECT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area
-// 				FROM bio_choice_data as bc
-// 				LEFT JOIN general_info as gi ON gi.user_id = bc.user_id
-// 				LEFT JOIN address ON address.user_id = bc.user_id
-// 				WHERE bc.bio_id = ?
-// 				`;
-// 				// const getSqlOfShare = `
-// 				// SELECT DISTINCT bc.user_id, gi.date_of_birth as date_of_birth, bc.status, bc.feedback,bc.bio_details,address.present_address,address.city,address.present_area
-// 				// FROM bio_choice_data as bc
-// 				// LEFT JOIN general_info as gi ON gi.user_id = bc.user_id
-// 				// LEFT JOIN address ON address.user_id = bc.user_id
-// 				// WHERE bc.user_id IN (
-// 				// 		SELECT DISTINCT user_id
-// 				// 		FROM bio_choice_data
-// 				// 		WHERE bio_id = ? AND user_id <> ?
-// 				// )
-// 				// `;
-// 				db.query<RowDataPacket[]>(getSqlOfShare, [user_id], (err, results) => {
-// 					if (err) {
-// 						console.error("Error checking User Id:", err);
-// 						return rollbackAndRespond(res, db, err);
-// 					}
-// 					// Commit the transaction if everything is successful
-// 					db.commit((err) => {
-// 						if (err) {
-// 							console.error("Error committing transaction:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						res.status(201).json({
-// 							success: true,
-// 							message: "Bio Choice of share data get successfully",
-// 							data: results,
-// 						});
-// 					});
-// 				});
-// 			}
-// 		);
-// 	});
-// };
-// const checkBioChoiceDataOfFirstStep = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	const bio_id = req.params.id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! get bio choice data of second step
-// 				const checkSqlFirstStep =
-// 					"SELECT COUNT(*) as count , bcd.status FROM `bio_choice_data` bcd WHERE bcd.user_id= ? AND bcd.bio_id = ?";
-// 				db.query<RowDataPacket[]>(
-// 					checkSqlFirstStep,
-// 					[user_id, bio_id],
-// 					(err, results) => {
-// 						if (err) {
-// 							console.error("Error checking User Id:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						// Commit the transaction if everything is successful
-// 						db.commit((err) => {
-// 							if (err) {
-// 								console.error("Error committing transaction:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							res.status(201).json({
-// 								success: true,
-// 								message: "Bio Choice check first step data get successfully",
-// 								data: results[0],
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// const checkBioChoiceDataOfSecondStep = (req: Request, res: Response) => {
-// 	const token_id = req.user?.token_id;
-// 	const bio_id = req.params.id;
-// 	let user_id: string | null = null;
-// 	// console.log(req.user);
-// 	if (!token_id) {
-// 		return res.status(401).send({
-// 			statusCode: httpStatus.UNAUTHORIZED,
-// 			message: "You are not authorized",
-// 			success: false,
-// 		});
-// 	}
-// 	db.beginTransaction((err) => {
-// 		if (err) {
-// 			console.error("Error starting transaction:", err);
-// 			return res
-// 				.status(500)
-// 				.json({ success: false, message: "Internal Server Error", error: err });
-// 		}
-// 		//! get user_id using token_id
-// 		const getUserIdByTokenSql = `select id from user_info where token_id = ?`;
-// 		db.query<RowDataPacket[]>(
-// 			getUserIdByTokenSql,
-// 			[token_id],
-// 			(err, result) => {
-// 				if (err) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//console.log(result);
-// 				user_id = result[0]?.id;
-// 				if (!user_id) {
-// 					return rollbackAndRespond(res, db, null, {
-// 						success: false,
-// 						message: "You are not authorized",
-// 						error: err,
-// 					});
-// 				}
-// 				//! get bio choice data of second step
-// 				const checkSqlSecondStep =
-// 					"SELECT COUNT(*) as count,p.status as payment_status, p.refund_status as refund_status FROM payments p LEFT JOIN contact_purchase_data cpd on (p.user_id=cpd.user_id AND p.transaction_id=cpd.transaction_id) WHERE p.status='Completed' AND p.refund_status NOT LIKE '%processing%' AND p.reason='contact_purchase' AND p.user_id=? AND cpd.bio_id=?";
-// 				db.query<RowDataPacket[]>(
-// 					checkSqlSecondStep,
-// 					[user_id, bio_id],
-// 					(err, results) => {
-// 						if (err) {
-// 							console.error("Error checking User Id:", err);
-// 							return rollbackAndRespond(res, db, err);
-// 						}
-// 						// Commit the transaction if everything is successful
-// 						db.commit((err) => {
-// 							if (err) {
-// 								console.error("Error committing transaction:", err);
-// 								return rollbackAndRespond(res, db, err);
-// 							}
-// 							res.status(201).json({
-// 								success: true,
-// 								message: "Bio Choice check second step data get successfully",
-// 								data: results[0],
-// 							});
-// 						});
-// 					}
-// 				);
-// 			}
-// 		);
-// 	});
-// };
-// export const BioChoiceDataController = {
-// 	getBioChoiceData,
-// 	getSingleBioChoiceData,
-// 	createBioChoiceData,
-// 	updateBioChoiceData,
-// 	deleteBioChoiceData,
-// 	getBioChoiceStatisticsData,
-// 	getBioChoiceDataOfFirstStep,
-// 	getBioChoiceDataOfSecondStep,
-// 	checkBioChoiceDataOfFirstStep,
-// 	checkBioChoiceDataOfSecondStep,
-// 	getBioChoiceDataOfShare,
-// };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BioChoiceController = void 0;
+const SendSuccess_1 = require("./../../../shared/SendSuccess");
+const http_status_1 = __importDefault(require("http-status"));
+const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const user_info_model_1 = require("../user_info/user_info.model");
+const mongoose_1 = __importDefault(require("mongoose"));
+const bio_choice_data_services_1 = require("./bio_choice_data.services");
+const bio_choice_data_model_1 = __importDefault(require("./bio_choice_data.model"));
+const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
+exports.BioChoiceController = {
+    getAllBioChoices: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const bioChoices = yield bio_choice_data_services_1.BioChoiceService.getAllBioChoices();
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "All bioChoices retrieved successfully",
+            data: bioChoices,
+        });
+    })),
+    getBioChoiceById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        const bioChoice = yield bio_choice_data_services_1.BioChoiceService.getBioChoiceById(id);
+        if (!bioChoice) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "BioChoice not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "BioChoice retrieved successfully",
+                data: bioChoice,
+            });
+        }
+    })),
+    getBioChoiceDataOfFirstStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                success: false,
+                message: "You are not authorized",
+            });
+        }
+        const mongoUserId = new mongoose_1.default.Types.ObjectId(user);
+        const mongoBioUserId = new mongoose_1.default.Types.ObjectId(user);
+        // const data = await BioChoice.aggregate([
+        //   {
+        //     $match: {
+        //       user: mongoUserId,
+        //     },
+        //   },
+        //   {
+        //     $lookup: {
+        //       from: "addresses",
+        //       localField: "bio_user",
+        //       foreignField: "user",
+        //       as: "address",
+        //     },
+        //   },
+        //   { $unwind: "$address" },
+        //   {
+        //     $lookup: {
+        //       from: "biochoices",
+        //       localField: "bio_user",
+        //       foreignField: "user",
+        //       as: "main",
+        //     },
+        //   },
+        //   {
+        //     $unwind: { path: "$main", preserveNullAndEmptyArrays: true },
+        //   },
+        //   {
+        //     $match: {
+        //       bio_user: {
+        //         $nin: await ContactPurchase.find(
+        //           { user: mongoUserId },
+        //           "bio_user"
+        //         ).distinct("bio_user"),
+        //       },
+        //     },
+        //   },
+        //   {
+        //     $group: {
+        //       _id: "$bio_user",
+        //       bio_user: { $first: "$bio_user" },
+        //       permanent_area: { $first: "$address.permanent_area" },
+        //       present_area: { $first: "$address.present_area" },
+        //       zilla: { $first: "$address.zilla" },
+        //       upzilla: { $first: "$address.upzilla" },
+        //       division: { $first: "$address.division" },
+        //       city: { $first: "$address.city" },
+        //       status: { $first: "$status" },
+        //       feedback: { $first: "$feedback" },
+        //       bio_details: { $first: "$bio_details" },
+        //       total_count: { $sum: 1 },
+        //       approval_count: {
+        //         $sum: {
+        //           $cond: [{ $eq: ["$main.status", "approved"] }, 1, 0],
+        //         },
+        //       },
+        //       rejection_count: {
+        //         $sum: {
+        //           $cond: [{ $eq: ["$main.status", "rejected"] }, 1, 0],
+        //         },
+        //       },
+        //       pending_count: {
+        //         $sum: {
+        //           $cond: [{ $eq: ["$main.status", "pending"] }, 1, 0],
+        //         },
+        //       },
+        //     },
+        //   },
+        //   {
+        //     $project: {
+        //       bio_user: 1,
+        //       permanent_area: 1,
+        //       present_area: 1,
+        //       zilla: 1,
+        //       upzilla: 1,
+        //       division: 1,
+        //       city: 1,
+        //       status: 1,
+        //       feedback: 1,
+        //       bio_details: 1,
+        //       total_count: 1,
+        //       approval_count: 1,
+        //       rejection_count: 1,
+        //       pending_count: 1,
+        //       approval_rate: {
+        //         $cond: {
+        //           if: {
+        //             $eq: [{ $subtract: ["$total_count", "$pending_count"] }, 0],
+        //           },
+        //           then: 0.0,
+        //           else: {
+        //             $multiply: [
+        //               {
+        //                 $divide: [
+        //                   "$approval_count",
+        //                   { $subtract: ["$total_count", "$pending_count"] },
+        //                 ],
+        //               },
+        //               100.0,
+        //             ],
+        //           },
+        //         },
+        //       },
+        //       rejection_rate: {
+        //         $cond: {
+        //           if: {
+        //             $eq: [{ $subtract: ["$total_count", "$pending_count"] }, 0],
+        //           },
+        //           then: 0.0,
+        //           else: {
+        //             $multiply: [
+        //               {
+        //                 $divide: [
+        //                   "$rejection_count",
+        //                   { $subtract: ["$total_count", "$pending_count"] },
+        //                 ],
+        //               },
+        //               100.0,
+        //             ],
+        //           },
+        //         },
+        //       },
+        //     },
+        //   },
+        // ]);
+        const data = yield bio_choice_data_model_1.default.aggregate([
+            {
+                $match: {
+                    user: user,
+                },
+            },
+            {
+                $group: {
+                    _id: "$bio_user",
+                    status: { $first: "$status" },
+                    feedback: { $first: "$feedback" },
+                    bio_details: { $first: "$bio_details" },
+                    total_count: { $sum: 1 },
+                    approval_count: {
+                        $sum: { $cond: [{ $eq: ["$status", "Approved"] }, 1, 0] },
+                    },
+                    rejection_count: {
+                        $sum: { $cond: [{ $eq: ["$status", "Rejected"] }, 1, 0] },
+                    },
+                    pending_count: {
+                        $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] },
+                    },
+                },
+            },
+            {
+                $lookup: {
+                    from: "address",
+                    localField: "_id",
+                    foreignField: "user",
+                    as: "address",
+                },
+            },
+            {
+                $unwind: "$address",
+            },
+            {
+                $match: {
+                    "address.user": {
+                        $nin: yield contact_purchase_data_model_1.default.distinct("bio_user", {
+                            user: user,
+                        }),
+                    },
+                },
+            },
+            {
+                $project: {
+                    bio_id: "$_id",
+                    permanent_area: "$address.permanent_area",
+                    present_area: "$address.present_area",
+                    zilla: "$address.zilla",
+                    upzilla: "$address.upzilla",
+                    division: "$address.division",
+                    city: "$address.city",
+                    status: 1,
+                    feedback: 1,
+                    bio_details: 1,
+                    total_count: 1,
+                    approval_count: 1,
+                    rejection_count: 1,
+                    pending_count: 1,
+                    approval_rate: {
+                        $cond: [
+                            { $eq: ["$total_count", "$pending_count"] },
+                            0,
+                            {
+                                $multiply: [
+                                    {
+                                        $divide: [
+                                            { $multiply: ["$approval_count", 100] },
+                                            { $subtract: ["$total_count", "$pending_count"] },
+                                        ],
+                                    },
+                                    1.0,
+                                ],
+                            },
+                        ],
+                    },
+                    rejection_rate: {
+                        $cond: [
+                            { $eq: ["$total_count", "$pending_count"] },
+                            0,
+                            {
+                                $multiply: [
+                                    {
+                                        $divide: [
+                                            { $multiply: ["$rejection_count", 100] },
+                                            { $subtract: ["$total_count", "$pending_count"] },
+                                        ],
+                                    },
+                                    1.0,
+                                ],
+                            },
+                        ],
+                    },
+                },
+            },
+        ]).exec();
+        res.json((0, SendSuccess_1.sendSuccess)("Retrieve first bio", data, 200));
+    })),
+    getBioChoiceByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        if (!userId) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const bioChoice = yield bio_choice_data_services_1.BioChoiceService.getBioChoiceByToken(userId);
+        if (!bioChoice) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "BioChoice not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "BioChoice retrieved successfully",
+                data: bioChoice,
+            });
+        }
+    })),
+    getBioChoiceDataOfShare: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _c;
+        const bio_user = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        console.log("bio_user~~", bio_user);
+        if (!bio_user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const mongoId = new mongoose_1.default.Types.ObjectId(bio_user);
+        const data = yield bio_choice_data_model_1.default.aggregate([
+            { $match: { bio_user: mongoId } },
+            {
+                $lookup: {
+                    from: "generalinfos",
+                    localField: "user",
+                    foreignField: "user",
+                    as: "general_info",
+                },
+            },
+            { $unwind: "$general_info" },
+            {
+                $lookup: {
+                    from: "addresses",
+                    localField: "user",
+                    foreignField: "user",
+                    as: "address",
+                },
+            },
+            { $unwind: "$address" },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "users",
+                },
+            },
+            { $unwind: "$users" },
+            {
+                $project: {
+                    user_id: "$users.user_id",
+                    user: "$users._id",
+                    date_of_birth: "$general_info.date_of_birth",
+                    status: 1,
+                    feedback: 1,
+                    bio_details: 1,
+                    present_address: "$address.present_address",
+                    city: "$address.city",
+                    present_area: "$address.present_area",
+                },
+            },
+        ]);
+        // const data = await BioChoice.findOne({
+        //   bio_user,
+        // });
+        res.json((0, SendSuccess_1.sendSuccess)("Retrieve bio share successfully", data, 200));
+    })),
+    // createBioChoice: catchAsync(async (req: Request, res: Response) => {
+    //   const data = req.body;
+    //   const user = req.user?._id;
+    //   // for un authorized check
+    //   if (!user) {
+    //     return res.status(httpStatus.UNAUTHORIZED).json({
+    //       statusCode: httpStatus.UNAUTHORIZED,
+    //       message: "You are not authorized",
+    //       success: false,
+    //     });
+    //   }
+    //   // check exists
+    //   const bioChoice = await BioChoiceService.checkBioChoiceExist({
+    //     user: user,
+    //     bio_user: data.bio_user,
+    //   });
+    //   if (bioChoice) {
+    //     return res.status(httpStatus.CONFLICT).json({
+    //       success: false,
+    //       message: "BioChoice already exists",
+    //     });
+    //   }
+    //   data.user = user;
+    //   const userInfo: any = await UserInfoModel.findOne({ user: user });
+    //   if (userInfo.points < 30) {
+    //     throw new ApiError(httpStatus.FORBIDDEN, "You have less than 30 points");
+    //   }
+    //   userInfo.points = userInfo.points - 30;
+    //   await userInfo.save();
+    //   const response = await BioChoiceService.createBioChoice(data);
+    //   res.json({
+    //     success: true,
+    //     message: "BioChoice created successfully",
+    //     data: response,
+    //   });
+    // }),
+    createBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _d;
+        const data = req.body;
+        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        // for unauthorized check
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        // Start a session and transaction
+        const session = yield mongoose_1.default.startSession();
+        session.startTransaction();
+        try {
+            // Check if the BioChoice already exists
+            const bioChoice = yield bio_choice_data_services_1.BioChoiceService.checkBioChoiceExist({
+                user: user,
+                bio_user: data.bio_user,
+            });
+            if (bioChoice) {
+                yield session.abortTransaction();
+                return res.status(http_status_1.default.CONFLICT).json({
+                    success: false,
+                    message: "BioChoice already exists",
+                });
+            }
+            data.user = user;
+            // Fetch user info and check points
+            const userInfo = yield user_info_model_1.UserInfoModel.findById(user).session(session);
+            if (!userInfo || userInfo.points < 30) {
+                yield session.abortTransaction();
+                return res.status(http_status_1.default.FORBIDDEN).json({
+                    success: false,
+                    message: "You have less than 30 points",
+                });
+            }
+            // Deduct points and save user info
+            userInfo.points -= 30;
+            yield userInfo.save({ session });
+            // Create the BioChoice
+            const response = yield bio_choice_data_services_1.BioChoiceService.createBioChoice(data, {
+                session,
+            });
+            // Commit the transaction
+            yield session.commitTransaction();
+            return res.json({
+                success: true,
+                message: "BioChoice created successfully",
+                data: response,
+            });
+        }
+        catch (error) {
+            try {
+                yield session.abortTransaction();
+            }
+            catch (abortError) {
+                console.error("Error aborting transaction:", abortError);
+            }
+            console.error("Error creating BioChoice:", error);
+            return res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "Internal server error",
+            });
+        }
+        finally {
+            session.endSession();
+        }
+    })),
+    updateBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _e;
+        const bio_user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        const _f = req.body, { user } = _f, others = __rest(_f, ["user"]);
+        if (!bio_user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const updatedBioChoice = yield bio_choice_data_services_1.BioChoiceService.updateBioChoice({ bio_user, user }, others);
+        if (!updatedBioChoice) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "BioChoice not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "BioChoice updated successfully",
+                data: updatedBioChoice,
+            });
+        }
+    })),
+    deleteBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const id = req.params.id;
+        yield bio_choice_data_services_1.BioChoiceService.deleteBioChoice(id);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "BioChoice deleted successfully",
+        });
+    })),
+};

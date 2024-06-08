@@ -1,9 +1,14 @@
-// export const BioChoiceDataFields: string[] = [
-//   "user_id",
-//   "bio_id",
-//   "bio_details",
-//   "feedback",
-//   "status",
-//   "order_time",
-//   "updated_time",
-// ];
+export const BioChoiceDataFields: string[] = [
+  "user",
+  "bio_user",
+  "bio_details",
+  "feedback",
+  "status",
+];
+
+export const bioChoiceStatus: string[] = [
+  "pending",
+  "rejected",
+  "accepted",
+  "approved",
+];
