@@ -48,9 +48,9 @@ BioChoiceDataRouter.route("/bio-share").get(
 //   BioChoiceDataController.checkBioChoiceDataOfFirstStep
 // );
 
-// BioChoiceDataRouter.route("/statistics/:id").get(
-//   BioChoiceDataController.getBioChoiceStatisticsData
-// );
+BioChoiceDataRouter.route("/statistics/:bio_user").get(
+  BioChoiceController.getBioChoiceStatisticsData
+);
 // BioChoiceDataRouter.route("/:id")
 //   .get(BioChoiceDataController.getSingleBioChoiceData)
 //   .put(BioChoiceDataController.updateBioChoiceData)

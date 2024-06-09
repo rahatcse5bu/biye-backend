@@ -8,11 +8,35 @@ import { UserInfoService } from "../user_info/user_info.services";
 import mongoose from "mongoose";
 
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
-  const { bio_type, marital_status, zilla, limit = 10, page = 1 } = req.query;
+  const {
+    bio_type,
+    marital_status,
+    isFeatured,
+    zilla,
+    limit = 10,
+    page = 1,
+    user_status = "active",
+  } = req.query;
+
+  const andConditions: any = [
+    {
+      "userDetails.user_status": user_status,
+    },
+  ];
 
   // Parse limit and page to numbers
   const limitNumber = Number(limit);
   const pageNumber = Number(page);
+
+  // Parse isFeatured to boolean
+
+  if (isFeatured) {
+    // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
+    const isFeaturedBool = isFeatured === "true";
+    andConditions.push({
+      isFeatured: isFeaturedBool,
+    });
+  }
 
   // Construct aggregation pipeline
   const pipeline = [
@@ -29,7 +53,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     },
     {
       $match: {
-        $or: [{ "userDetails.user_status": "active" }],
+        $and: andConditions,
       },
     },
     // Optional match stage for additional filters
@@ -85,6 +109,87 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     size: generalInfos.length,
   });
 });
+
+const getFeaturedGeneralInfo = catchAsync(
+  async (req: Request, res: Response) => {
+    const { bio_type, marital_status, zilla, limit = 10, page = 1 } = req.query;
+
+    // Parse limit and page to numbers
+    const limitNumber = Number(limit);
+    const pageNumber = Number(page);
+
+    // Construct aggregation pipeline
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users", // Collection name for User model
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails", // Unwind the joined user details
+      },
+      {
+        $match: {
+          $or: [{ "userDetails.user_status": "active" }],
+        },
+      },
+      // Optional match stage for additional filters
+      ...(bio_type || marital_status || zilla
+        ? [
+            {
+              $match: {
+                ...(bio_type && { bio_type }),
+                ...(marital_status && { marital_status }),
+                ...(zilla && { zilla }),
+              },
+            },
+          ]
+        : []),
+      // Pagination stages
+      { $skip: limitNumber * (pageNumber - 1) },
+      { $limit: limitNumber },
+      // Optionally project to remove user details from final output if not needed
+      {
+        $project: {
+          _id: 1, // Include _id of GeneralInfo
+          user_id: "$userDetails.user_id", // Include user_id from User schema
+          user: "$userDetails._id", // Include user_id from User schema
+          bio_type: 1,
+          date_of_birth: 1,
+          height: 1,
+          gender: 1,
+          weight: 1,
+          blood_group: 1,
+          screen_color: 1,
+          nationality: 1,
+          marital_status: 1,
+          views_count: 1,
+          purchases_count: 1,
+          isFbPosted: 1,
+          isFeatured: 1,
+          dislikes_count: 1,
+          likes_count: 1,
+          zilla: 1,
+        },
+      },
+    ];
+
+    // Execute the aggregation pipeline
+    const generalInfos = await GeneralInfo.aggregate(pipeline);
+
+    res.status(200).json({
+      success: true,
+      message: "All General info retrieved successfully",
+      data: generalInfos,
+      page: pageNumber,
+      limit: limitNumber,
+      size: generalInfos.length,
+    });
+  }
+);
 
 const getGeneralInfoByUserId = catchAsync(
   async (req: Request, res: Response) => {
