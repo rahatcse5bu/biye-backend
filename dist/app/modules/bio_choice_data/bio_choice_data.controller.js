@@ -31,7 +31,6 @@ const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const bio_choice_data_services_1 = require("./bio_choice_data.services");
 const bio_choice_data_model_1 = __importDefault(require("./bio_choice_data.model"));
-const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 exports.BioChoiceController = {
     getAllBioChoices: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const bioChoices = yield bio_choice_data_services_1.BioChoiceService.getAllBioChoices();
@@ -60,241 +59,160 @@ exports.BioChoiceController = {
     })),
     getBioChoiceDataOfFirstStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
-        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        if (!user) {
-            return res.status(http_status_1.default.UNAUTHORIZED).json({
-                success: false,
-                message: "You are not authorized",
-            });
-        }
-        const mongoUserId = new mongoose_1.default.Types.ObjectId(user);
-        const mongoBioUserId = new mongoose_1.default.Types.ObjectId(user);
-        // const data = await BioChoice.aggregate([
-        //   {
-        //     $match: {
-        //       user: mongoUserId,
-        //     },
-        //   },
-        //   {
-        //     $lookup: {
-        //       from: "addresses",
-        //       localField: "bio_user",
-        //       foreignField: "user",
-        //       as: "address",
-        //     },
-        //   },
-        //   { $unwind: "$address" },
-        //   {
-        //     $lookup: {
-        //       from: "biochoices",
-        //       localField: "bio_user",
-        //       foreignField: "user",
-        //       as: "main",
-        //     },
-        //   },
-        //   {
-        //     $unwind: { path: "$main", preserveNullAndEmptyArrays: true },
-        //   },
-        //   {
-        //     $match: {
-        //       bio_user: {
-        //         $nin: await ContactPurchase.find(
-        //           { user: mongoUserId },
-        //           "bio_user"
-        //         ).distinct("bio_user"),
-        //       },
-        //     },
-        //   },
-        //   {
-        //     $group: {
-        //       _id: "$bio_user",
-        //       bio_user: { $first: "$bio_user" },
-        //       permanent_area: { $first: "$address.permanent_area" },
-        //       present_area: { $first: "$address.present_area" },
-        //       zilla: { $first: "$address.zilla" },
-        //       upzilla: { $first: "$address.upzilla" },
-        //       division: { $first: "$address.division" },
-        //       city: { $first: "$address.city" },
-        //       status: { $first: "$status" },
-        //       feedback: { $first: "$feedback" },
-        //       bio_details: { $first: "$bio_details" },
-        //       total_count: { $sum: 1 },
-        //       approval_count: {
-        //         $sum: {
-        //           $cond: [{ $eq: ["$main.status", "approved"] }, 1, 0],
-        //         },
-        //       },
-        //       rejection_count: {
-        //         $sum: {
-        //           $cond: [{ $eq: ["$main.status", "rejected"] }, 1, 0],
-        //         },
-        //       },
-        //       pending_count: {
-        //         $sum: {
-        //           $cond: [{ $eq: ["$main.status", "pending"] }, 1, 0],
-        //         },
-        //       },
-        //     },
-        //   },
-        //   {
-        //     $project: {
-        //       bio_user: 1,
-        //       permanent_area: 1,
-        //       present_area: 1,
-        //       zilla: 1,
-        //       upzilla: 1,
-        //       division: 1,
-        //       city: 1,
-        //       status: 1,
-        //       feedback: 1,
-        //       bio_details: 1,
-        //       total_count: 1,
-        //       approval_count: 1,
-        //       rejection_count: 1,
-        //       pending_count: 1,
-        //       approval_rate: {
-        //         $cond: {
-        //           if: {
-        //             $eq: [{ $subtract: ["$total_count", "$pending_count"] }, 0],
-        //           },
-        //           then: 0.0,
-        //           else: {
-        //             $multiply: [
-        //               {
-        //                 $divide: [
-        //                   "$approval_count",
-        //                   { $subtract: ["$total_count", "$pending_count"] },
-        //                 ],
-        //               },
-        //               100.0,
-        //             ],
-        //           },
-        //         },
-        //       },
-        //       rejection_rate: {
-        //         $cond: {
-        //           if: {
-        //             $eq: [{ $subtract: ["$total_count", "$pending_count"] }, 0],
-        //           },
-        //           then: 0.0,
-        //           else: {
-        //             $multiply: [
-        //               {
-        //                 $divide: [
-        //                   "$rejection_count",
-        //                   { $subtract: ["$total_count", "$pending_count"] },
-        //                 ],
-        //               },
-        //               100.0,
-        //             ],
-        //           },
-        //         },
-        //       },
-        //     },
-        //   },
-        // ]);
-        const data = yield bio_choice_data_model_1.default.aggregate([
+        const user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const mongo_user_id = new mongoose_1.default.Types.ObjectId(String(user_id));
+        const results = yield bio_choice_data_model_1.default.aggregate([
             {
                 $match: {
-                    user: user,
-                },
-            },
-            {
-                $group: {
-                    _id: "$bio_user",
-                    status: { $first: "$status" },
-                    feedback: { $first: "$feedback" },
-                    bio_details: { $first: "$bio_details" },
-                    total_count: { $sum: 1 },
-                    approval_count: {
-                        $sum: { $cond: [{ $eq: ["$status", "Approved"] }, 1, 0] },
-                    },
-                    rejection_count: {
-                        $sum: { $cond: [{ $eq: ["$status", "Rejected"] }, 1, 0] },
-                    },
-                    pending_count: {
-                        $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] },
-                    },
+                    user: mongo_user_id,
+                    bio_user: { $ne: mongo_user_id },
                 },
             },
             {
                 $lookup: {
-                    from: "address",
-                    localField: "_id",
+                    from: "addresses",
+                    localField: "bio_user",
                     foreignField: "user",
                     as: "address",
                 },
             },
+            { $unwind: "$address" },
             {
-                $unwind: "$address",
+                $lookup: {
+                    from: "users",
+                    localField: "bio_user",
+                    foreignField: "_id",
+                    as: "user",
+                },
             },
+            { $unwind: "$user" },
             {
-                $match: {
-                    "address.user": {
-                        $nin: yield contact_purchase_data_model_1.default.distinct("bio_user", {
-                            user: user,
-                        }),
-                    },
+                $lookup: {
+                    from: "contactpurchases",
+                    let: { bio_id: "$bio_user" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$bio_user", "$$bio_id"] },
+                                user: mongo_user_id,
+                            },
+                        },
+                    ],
+                    as: "contact_purchase",
+                },
+            },
+            { $match: { contact_purchase: { $eq: [] } } },
+            {
+                $group: {
+                    _id: "$bio_user",
+                    permanent_area: { $first: "$address.permanent_area" },
+                    present_area: { $first: "$address.present_area" },
+                    zilla: { $first: "$address.zilla" },
+                    bio_id: { $first: "$user.user_id" },
+                    upzilla: { $first: "$address.upzilla" },
+                    division: { $first: "$address.division" },
+                    city: { $first: "$address.city" },
+                    status: { $first: "$status" },
+                    feedback: { $first: "$feedback" },
+                    bio_details: { $first: "$bio_details" },
                 },
             },
             {
                 $project: {
-                    bio_id: "$_id",
-                    permanent_area: "$address.permanent_area",
-                    present_area: "$address.present_area",
-                    zilla: "$address.zilla",
-                    upzilla: "$address.upzilla",
-                    division: "$address.division",
-                    city: "$address.city",
+                    _id: 0,
+                    bio_user: "$_id",
+                    bio_id: 1,
+                    permanent_area: 1,
+                    present_area: 1,
+                    zilla: 1,
+                    upzilla: 1,
+                    division: 1,
+                    city: 1,
                     status: 1,
                     feedback: 1,
                     bio_details: 1,
-                    total_count: 1,
-                    approval_count: 1,
-                    rejection_count: 1,
-                    pending_count: 1,
-                    approval_rate: {
-                        $cond: [
-                            { $eq: ["$total_count", "$pending_count"] },
-                            0,
-                            {
-                                $multiply: [
-                                    {
-                                        $divide: [
-                                            { $multiply: ["$approval_count", 100] },
-                                            { $subtract: ["$total_count", "$pending_count"] },
-                                        ],
-                                    },
-                                    1.0,
-                                ],
-                            },
-                        ],
-                    },
-                    rejection_rate: {
-                        $cond: [
-                            { $eq: ["$total_count", "$pending_count"] },
-                            0,
-                            {
-                                $multiply: [
-                                    {
-                                        $divide: [
-                                            { $multiply: ["$rejection_count", 100] },
-                                            { $subtract: ["$total_count", "$pending_count"] },
-                                        ],
-                                    },
-                                    1.0,
-                                ],
-                            },
-                        ],
-                    },
                 },
             },
         ]).exec();
-        res.json((0, SendSuccess_1.sendSuccess)("Retrieve first bio", data, 200));
+        res.status(201).json({
+            success: true,
+            message: "Bio Choice first step data retrieved successfully",
+            data: results,
+        });
+    })),
+    getBioChoiceStatisticsData: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const bio_user = (_b = req.params) === null || _b === void 0 ? void 0 : _b.bio_user;
+        const mongoBioId = new mongoose_1.default.Types.ObjectId(bio_user);
+        const results = yield bio_choice_data_model_1.default.aggregate([
+            { $match: { bio_user: mongoBioId } },
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalCount: { $sum: "$count" },
+                    counts: { $push: { status: "$_id", count: "$count" } },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalCount: 1,
+                    counts: {
+                        $arrayToObject: {
+                            $map: {
+                                input: "$counts",
+                                as: "item",
+                                in: {
+                                    k: "$$item.status",
+                                    v: "$$item.count",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        ]);
+        console.log("results~~", results);
+        const data = results[0] || { totalCount: 0, counts: {} };
+        const totalCount = data.totalCount;
+        const { rejected = 0, approved = 0, pending = 0 } = data.counts;
+        if (totalCount === 0) {
+            return res.status(200).json({
+                success: true,
+                results: {
+                    rejected: 0,
+                    approved: 0,
+                    pending: 0,
+                    rejectedPercentage: 0,
+                    approvedPercentage: 0,
+                    pendingPercentage: 0,
+                },
+                message: "No data found for the given bio_id",
+            });
+        }
+        const responseResults = {
+            rejected: rejected,
+            approved: approved,
+            pending: pending,
+            rejectedPercentage: ((rejected / totalCount) * 100).toFixed(2),
+            approvedPercentage: ((approved / totalCount) * 100).toFixed(2),
+            pendingPercentage: ((pending / totalCount) * 100).toFixed(2),
+        };
+        res.status(200).json({
+            success: true,
+            results: responseResults,
+            message: "All statistics retrieved successfully",
+        });
     })),
     getBioChoiceByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _c;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -318,9 +236,9 @@ exports.BioChoiceController = {
         }
     })),
     getBioChoiceDataOfShare: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const bio_user = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
-        console.log("bio_user~~", bio_user);
+        var _d;
+        const bio_user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        // console.log("bio_user~~", bio_user);
         if (!bio_user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -328,7 +246,7 @@ exports.BioChoiceController = {
                 success: false,
             });
         }
-        const mongoId = new mongoose_1.default.Types.ObjectId(bio_user);
+        const mongoId = new mongoose_1.default.Types.ObjectId(String(bio_user));
         const data = yield bio_choice_data_model_1.default.aggregate([
             { $match: { bio_user: mongoId } },
             {
@@ -414,9 +332,9 @@ exports.BioChoiceController = {
     //   });
     // }),
     createBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _e;
         const data = req.body;
-        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        const user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         // for unauthorized check
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -484,9 +402,9 @@ exports.BioChoiceController = {
         }
     })),
     updateBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const bio_user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
-        const _f = req.body, { user } = _f, others = __rest(_f, ["user"]);
+        var _f;
+        const bio_user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        const _g = req.body, { user } = _g, others = __rest(_g, ["user"]);
         if (!bio_user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

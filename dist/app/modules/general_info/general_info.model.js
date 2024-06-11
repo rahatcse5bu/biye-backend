@@ -41,8 +41,8 @@ const GeneralInfoSchema = new mongoose_1.Schema({
     likes_count: { type: Number, default: 0 },
     dislikes_count: { type: Number, default: 0 },
     purchases_count: { type: Number, default: 0 },
-    isFbPosted: { type: Boolean, required: true },
-    isFeatured: { type: Boolean, required: true },
+    isFbPosted: { type: Boolean, default: false, required: false },
+    isFeatured: { type: Boolean, required: false, default: false },
     zilla: { type: String, required: false },
 }, {
     timestamps: true,

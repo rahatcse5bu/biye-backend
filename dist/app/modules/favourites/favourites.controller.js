@@ -28,6 +28,126 @@ exports.FavoriteController = {
             data: favorites,
         });
     })),
+    getMyFavouritesList: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!user) {
+            return res.status(401).send({
+                statusCode: 401,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const user_mongo_id = new mongoose_1.default.Types.ObjectId(String(user));
+        // Perform aggregation to fetch the required data
+        const results = yield favourites_model_1.default.aggregate([
+            { $match: { user: user_mongo_id, bio_user: { $ne: user_mongo_id } } },
+            {
+                $lookup: {
+                    from: "addresses",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "address",
+                },
+            },
+            { $unwind: "$address" },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "bio_user",
+                    foreignField: "_id",
+                    as: "user",
+                },
+            },
+            { $unwind: "$user" },
+            {
+                $lookup: {
+                    from: "generalinfos",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "general_info",
+                },
+            },
+            { $unwind: "$general_info" },
+            {
+                $project: {
+                    bio_id: "$user.user_id",
+                    bio_user: "$address.user",
+                    permanent_address: "$address.permanent_address",
+                    date_of_birth: "$general_info.date_of_birth",
+                    screen_color: "$general_info.screen_color",
+                },
+            },
+        ]);
+        res.status(201).json({
+            success: true,
+            message: "Favourites retrieved successfully",
+            data: results,
+        });
+    })),
+    getFavouritesListByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const bio_user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        // console.log("bio_user~~", bio_user);
+        if (!bio_user) {
+            return res.status(401).send({
+                statusCode: 401,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const user_mongo_bio_id = new mongoose_1.default.Types.ObjectId(String(bio_user));
+        // Perform aggregation to fetch the required data
+        const results = yield favourites_model_1.default.aggregate([
+            {
+                $match: {
+                    bio_user: user_mongo_bio_id,
+                    user: { $ne: user_mongo_bio_id },
+                },
+            },
+            {
+                $lookup: {
+                    from: "addresses",
+                    localField: "user",
+                    foreignField: "user",
+                    as: "address",
+                },
+            },
+            { $unwind: "$address" },
+            {
+                $lookup: {
+                    from: "generalinfos",
+                    localField: "user",
+                    foreignField: "user",
+                    as: "general_info",
+                },
+            },
+            { $unwind: "$general_info" },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "user",
+                },
+            },
+            { $unwind: "$user" },
+            {
+                $project: {
+                    bio_id: "$user.user_id",
+                    bio_user: "$address.user",
+                    permanent_address: "$address.permanent_address",
+                    date_of_birth: "$general_info.date_of_birth",
+                    screen_color: "$general_info.screen_color",
+                },
+            },
+        ]);
+        res.status(201).json({
+            success: true,
+            message: "Favourites retrieved successfully",
+            data: results,
+        });
+    })),
     getFavoriteById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const id = req.params.id;
         const favorite = yield favourites_services_1.FavoriteService.getFavoriteById(id);
@@ -46,8 +166,8 @@ exports.FavoriteController = {
         }
     })),
     getFavoriteByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        var _c;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -71,10 +191,10 @@ exports.FavoriteController = {
         }
     })),
     createFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
+        var _d;
         const MAX_RETRIES = 3; // Maximum number of retries for transient errors
         const { bio_user } = req.body;
-        const user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -221,8 +341,8 @@ exports.FavoriteController = {
     //   }
     // }),
     updateFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _e;
+        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -247,9 +367,9 @@ exports.FavoriteController = {
         }
     })),
     checkLikes: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d, _e;
-        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
-        const bio_user = (_e = req.params) === null || _e === void 0 ? void 0 : _e.id;
+        var _f, _g;
+        const user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        const bio_user = (_g = req.params) === null || _g === void 0 ? void 0 : _g.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

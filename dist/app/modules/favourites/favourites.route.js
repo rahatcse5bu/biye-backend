@@ -7,12 +7,11 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../../middlewares/auth");
 const favourites_controller_1 = require("./favourites.controller");
 const FavouritesRouter = express_1.default.Router();
-FavouritesRouter.route("/").post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.createFavorite);
+FavouritesRouter.route("/")
+    .post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.createFavorite)
+    .get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.getMyFavouritesList);
 FavouritesRouter.route("/check/:id").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.checkLikes);
-// FavouritesRouter.route("/likes-who").get(
-// 	auth("user", "admin"),
-// 	FavoriteController.getFavouritesByWhoByUserId
-// );
+FavouritesRouter.route("/bio-user/:bio_user").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.getFavouritesListByUser);
 // FavouritesRouter.route("/user-data/:userId/:bioId").get(
 // 	FavoriteController.getFavouritesByUserId
 // );

@@ -3,19 +3,18 @@ import { auth } from "../../middlewares/auth";
 import { FavoriteController } from "./favourites.controller";
 const FavouritesRouter = express.Router();
 
-FavouritesRouter.route("/").post(
-  auth("user", "admin"),
-  FavoriteController.createFavorite
-);
+FavouritesRouter.route("/")
+  .post(auth("user", "admin"), FavoriteController.createFavorite)
+  .get(auth("user", "admin"), FavoriteController.getMyFavouritesList);
 FavouritesRouter.route("/check/:id").get(
   auth("user", "admin"),
   FavoriteController.checkLikes
 );
 
-// FavouritesRouter.route("/likes-who").get(
-// 	auth("user", "admin"),
-// 	FavoriteController.getFavouritesByWhoByUserId
-// );
+FavouritesRouter.route("/bio-user/:bio_user").get(
+  auth("user", "admin"),
+  FavoriteController.getFavouritesListByUser
+);
 
 // FavouritesRouter.route("/user-data/:userId/:bioId").get(
 // 	FavoriteController.getFavouritesByUserId

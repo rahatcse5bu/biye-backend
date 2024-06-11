@@ -17,6 +17,131 @@ export const FavoriteController = {
     });
   }),
 
+  getMyFavouritesList: catchAsync(async (req: Request, res: Response) => {
+    const user = req.user?._id;
+    if (!user) {
+      return res.status(401).send({
+        statusCode: 401,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+
+    const user_mongo_id = new mongoose.Types.ObjectId(String(user));
+
+    // Perform aggregation to fetch the required data
+    const results = await Favorite.aggregate([
+      { $match: { user: user_mongo_id, bio_user: { $ne: user_mongo_id } } },
+      {
+        $lookup: {
+          from: "addresses",
+          localField: "bio_user",
+          foreignField: "user",
+          as: "address",
+        },
+      },
+      { $unwind: "$address" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "bio_user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $lookup: {
+          from: "generalinfos",
+          localField: "bio_user",
+          foreignField: "user",
+          as: "general_info",
+        },
+      },
+      { $unwind: "$general_info" },
+      {
+        $project: {
+          bio_id: "$user.user_id",
+          bio_user: "$address.user",
+          permanent_address: "$address.permanent_address",
+          date_of_birth: "$general_info.date_of_birth",
+          screen_color: "$general_info.screen_color",
+        },
+      },
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "Favourites retrieved successfully",
+      data: results,
+    });
+  }),
+  getFavouritesListByUser: catchAsync(async (req: Request, res: Response) => {
+    const bio_user = req.user?._id;
+    // console.log("bio_user~~", bio_user);
+    if (!bio_user) {
+      return res.status(401).send({
+        statusCode: 401,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+
+    const user_mongo_bio_id = new mongoose.Types.ObjectId(String(bio_user));
+
+    // Perform aggregation to fetch the required data
+    const results = await Favorite.aggregate([
+      {
+        $match: {
+          bio_user: user_mongo_bio_id,
+          user: { $ne: user_mongo_bio_id },
+        },
+      },
+      {
+        $lookup: {
+          from: "addresses",
+          localField: "user",
+          foreignField: "user",
+          as: "address",
+        },
+      },
+      { $unwind: "$address" },
+
+      {
+        $lookup: {
+          from: "generalinfos",
+          localField: "user",
+          foreignField: "user",
+          as: "general_info",
+        },
+      },
+      { $unwind: "$general_info" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          bio_id: "$user.user_id",
+          bio_user: "$address.user",
+          permanent_address: "$address.permanent_address",
+          date_of_birth: "$general_info.date_of_birth",
+          screen_color: "$general_info.screen_color",
+        },
+      },
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "Favourites retrieved successfully",
+      data: results,
+    });
+  }),
   getFavoriteById: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;
     const favorite = await FavoriteService.getFavoriteById(id);
