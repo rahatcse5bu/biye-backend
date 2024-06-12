@@ -29,7 +29,7 @@ const personalInfoSchema: Schema<IPersonalInfoDocument> = new Schema(
     mazar: { type: String, required: false },
     islamic_books: { type: String, required: false },
     islamic_scholars: { type: String, required: false },
-    my_categories: { type: String, required: false },
+    my_categories: [],
     about_me: { type: String, required: false },
     my_phone: { type: String, required: false },
     isNeshaDrobbo: { type: String, required: false },

@@ -20,7 +20,7 @@ export interface IPersonalInfo {
   mazar: string;
   islamic_books: string;
   islamic_scholars: string;
-  my_categories: string;
+  my_categories: [];
   about_me: string;
   my_phone: string;
   isNeshaDrobbo: string;

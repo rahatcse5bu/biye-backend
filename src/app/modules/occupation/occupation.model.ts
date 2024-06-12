@@ -5,7 +5,7 @@ import { IOccupation } from "./occupation.interface";
 const OccupationSchema: Schema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    occupation: { type: String, required: true },
+    occupation: [],
     occupation_details: { type: String, required: true },
     monthly_income: { type: Number, required: true },
   },

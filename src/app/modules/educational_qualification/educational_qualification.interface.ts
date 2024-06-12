@@ -9,7 +9,7 @@ export interface IEducationalQualification extends Document {
 
   // Secondary School Certificate (SSC) Information
   before_ssc?: string; // Optional string for details before SSC
-  deeni_edu?: string; // Optional string for religious education details
+  deeni_edu?: []; // Optional string for religious education details
   ssc_year?: number; // Optional number for SSC year
   ssc_group?: string; // Optional string for SSC group
   ssc_result?: string; // Optional string for SSC result
