@@ -27,7 +27,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 // Mongoose schema for Occupation
 const OccupationSchema = new mongoose_1.Schema({
     user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    occupation: { type: String, required: true },
+    occupation: [],
     occupation_details: { type: String, required: true },
     monthly_income: { type: Number, required: true },
 }, {
