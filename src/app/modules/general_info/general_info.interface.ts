@@ -4,6 +4,7 @@ import { Schema } from "mongoose";
 // src/interfaces/GeneralInfo.ts
 export interface IGeneralInfo {
   user: Schema.Types.ObjectId | IUserInfo;
+  refer_user: Schema.Types.ObjectId | IUserInfo;
   bio_type: string;
   isMarriageDone: boolean;
   date_of_birth: Date;

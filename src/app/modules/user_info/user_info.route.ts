@@ -8,6 +8,12 @@ userRouter
   .route("/")
   .put(auth("user", "admin"), UserInfoController.updateUserInfo);
 
+userRouter
+  .route("/all-users-id")
+  .get(auth("admin", "user"), UserInfoController.getAllUsersInfoId);
+userRouter
+  .route("/verify-token")
+  .get(auth("admin", "user"), UserInfoController.verifyTokenByUser);
 userRouter.route("/status/:id").get(UserInfoController.getUserStatus);
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter

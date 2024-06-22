@@ -23,6 +23,13 @@ exports.UserInfoService = {
     getUserInfoById: (id) => __awaiter(void 0, void 0, void 0, function* () {
         return user_info_model_1.UserInfoModel.findById(id).exec();
     }),
+    getAllUsersInfoId: () => __awaiter(void 0, void 0, void 0, function* () {
+        return user_info_model_1.UserInfoModel.find({
+            user_status: "active",
+        })
+            .select("_id user_id")
+            .lean();
+    }),
     getUserInfoByIdWithSession: (id, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
         const { session } = options;
         return user_info_model_1.UserInfoModel.findById(id).session(session).exec();

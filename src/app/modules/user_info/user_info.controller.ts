@@ -111,6 +111,29 @@ export const UserInfoController = {
     }
   }),
 
+  verifyTokenByUser: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    if (!id) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: req.user,
+    });
+  }),
+  getAllUsersInfoId: catchAsync(async (req: Request, res: Response) => {
+    const userInfo = await UserInfoService.getAllUsersInfoId();
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "All user info retrieved successfully",
+      data: userInfo,
+    });
+  }),
   deleteUserInfo: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;
     await UserInfoService.deleteUserInfo(id);

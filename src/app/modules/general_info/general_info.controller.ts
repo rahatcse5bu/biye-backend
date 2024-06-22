@@ -213,7 +213,7 @@ const getGeneralInfoByUserId = catchAsync(
 );
 const getGeneralInfoByToken = catchAsync(
   async (req: Request, res: Response) => {
-    console.log(req.user);
+    // console.log(req.user);
     const generalInfo = await GeneralInfo.findOne({ user: req.user?._id });
 
     if (!generalInfo) {

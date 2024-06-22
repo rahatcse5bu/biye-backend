@@ -11,6 +11,12 @@ userRouter.route("/").post(user_info_controller_1.UserInfoController.createUserI
 userRouter
     .route("/")
     .put((0, auth_1.auth)("user", "admin"), user_info_controller_1.UserInfoController.updateUserInfo);
+userRouter
+    .route("/all-users-id")
+    .get((0, auth_1.auth)("admin", "user"), user_info_controller_1.UserInfoController.getAllUsersInfoId);
+userRouter
+    .route("/verify-token")
+    .get((0, auth_1.auth)("admin", "user"), user_info_controller_1.UserInfoController.verifyTokenByUser);
 userRouter.route("/status/:id").get(user_info_controller_1.UserInfoController.getUserStatus);
 userRouter.route("/email/:email").get(user_info_controller_1.UserInfoController.getUserInfoByEmail);
 userRouter

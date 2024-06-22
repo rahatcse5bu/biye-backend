@@ -120,6 +120,29 @@ exports.UserInfoController = {
             });
         }
     })),
+    verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        res.json({
+            success: true,
+            data: req.user,
+        });
+    })),
+    getAllUsersInfoId: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const userInfo = yield user_info_services_1.UserInfoService.getAllUsersInfoId();
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "All user info retrieved successfully",
+            data: userInfo,
+        });
+    })),
     deleteUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const id = req.params.id;
         yield user_info_services_1.UserInfoService.deleteUserInfo(id);

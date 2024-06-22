@@ -200,7 +200,7 @@ const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter
 }));
 const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    console.log(req.user);
+    // console.log(req.user);
     const generalInfo = yield general_info_model_1.default.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
     if (!generalInfo) {
         return res.status(404).json({

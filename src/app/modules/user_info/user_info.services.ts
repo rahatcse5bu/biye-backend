@@ -12,6 +12,13 @@ export const UserInfoService = {
   getUserInfoById: async (id: string): Promise<IUserInfo | null> => {
     return UserInfoModel.findById(id).exec();
   },
+  getAllUsersInfoId: async (): Promise<IUserInfo[]> => {
+    return UserInfoModel.find({
+      user_status: "active",
+    })
+      .select("_id user_id")
+      .lean();
+  },
   getUserInfoByIdWithSession: async (
     id: string,
     options: { session?: any } = {}
