@@ -19,6 +19,15 @@ exports.ContactPurchaseService = {
         const contactPurchases = yield contact_purchase_data_model_1.default.find();
         return contactPurchases.map((contactPurchase) => contactPurchase.toObject());
     }),
+    getContactPurchaseByUserAndBioUser: (user, bio_user, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+        const contactPurchase = yield contact_purchase_data_model_1.default.findOne({
+            user,
+            bio_user,
+        })
+            .session(options.session)
+            .lean();
+        return contactPurchase;
+    }),
     getContactPurchaseById: (id) => __awaiter(void 0, void 0, void 0, function* () {
         const contactPurchase = yield contact_purchase_data_model_1.default.findById(id);
         return contactPurchase ? contactPurchase.toObject() : null;
@@ -27,10 +36,18 @@ exports.ContactPurchaseService = {
         const contactPurchase = yield contact_purchase_data_model_1.default.findOne({ user }).lean();
         return contactPurchase;
     }),
-    createContactPurchase: (contactPurchaseData, options) => __awaiter(void 0, void 0, void 0, function* () {
-        const createdContactPurchase = yield contact_purchase_data_model_1.default.create([contactPurchaseData], options);
-        return createdContactPurchase[0].toObject();
+    createContactPurchase: (contactPurchaseData, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+        const createdContactPurchase = yield contact_purchase_data_model_1.default.create([contactPurchaseData], { session: options.session });
+        return createdContactPurchase[0];
     }),
+    // createContactPurchase: async (
+    //   contactPurchaseData: IContactPurchase
+    // ): Promise<IContactPurchase> => {
+    //   const createdContactPurchase = await ContactPurchase.create(
+    //     contactPurchaseData
+    //   );
+    //   return createdContactPurchase;
+    // },
     updateContactPurchase: (id, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedContactPurchase = yield contact_purchase_data_model_1.default.findOneAndUpdate({ user: id }, updatedFields, {
             new: true,

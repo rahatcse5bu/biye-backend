@@ -30,6 +30,12 @@ export const BioChoiceService = {
   //   const createdBioChoice = await BioChoice.create(bioChoiceData);
   //   return createdBioChoice.toObject();
   // },
+  checkBioChoiceDataOfFirstStep: async (
+    query: any
+  ): Promise<IBioChoice | null> => {
+    const bioChoice = await BioChoice.findOne(query).lean();
+    return bioChoice;
+  },
 
   updateBioChoice: async (
     query: any,

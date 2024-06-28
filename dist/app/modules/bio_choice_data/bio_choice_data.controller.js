@@ -31,6 +31,7 @@ const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const bio_choice_data_services_1 = require("./bio_choice_data.services");
 const bio_choice_data_model_1 = __importDefault(require("./bio_choice_data.model"));
+const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 exports.BioChoiceController = {
     getAllBioChoices: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const bioChoices = yield bio_choice_data_services_1.BioChoiceService.getAllBioChoices();
@@ -140,9 +141,104 @@ exports.BioChoiceController = {
             data: results,
         });
     })),
-    getBioChoiceStatisticsData: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    getBioChoiceDataOfSecondStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _b;
-        const bio_user = (_b = req.params) === null || _b === void 0 ? void 0 : _b.bio_user;
+        const user_id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        const mongo_user_id = new mongoose_1.default.Types.ObjectId(String(user_id));
+        const results = yield contact_purchase_data_model_1.default.aggregate([
+            {
+                $match: {
+                    user: mongo_user_id,
+                    bio_user: { $ne: mongo_user_id },
+                },
+            },
+            {
+                $lookup: {
+                    from: "addresses",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "address",
+                },
+            },
+            { $unwind: "$address" },
+            {
+                $lookup: {
+                    from: "generalinfos",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "generalinfo",
+                },
+            },
+            { $unwind: "$generalinfo" },
+            {
+                $lookup: {
+                    from: "contacts",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "contact",
+                },
+            },
+            { $unwind: "$contact" },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "bio_user",
+                    foreignField: "_id",
+                    as: "user",
+                },
+            },
+            { $unwind: "$user" },
+            {
+                $group: {
+                    _id: "$bio_user",
+                    permanent_area: { $first: "$address.permanent_area" },
+                    present_area: { $first: "$address.present_area" },
+                    zilla: { $first: "$address.zilla" },
+                    bio_id: { $first: "$user.user_id" },
+                    upzilla: { $first: "$address.upzilla" },
+                    division: { $first: "$address.division" },
+                    full_name: { $first: "$contact.full_name" },
+                    family_number: { $first: "$contact.family_number" },
+                    relation: { $first: "$contact.relation" },
+                    bio_receiving_email: { $first: "$contact.bio_receiving_email" },
+                    date_of_birth: { $first: "$generalinfo.date_of_birth" },
+                    city: { $first: "$address.city" },
+                    status: { $first: "$status" },
+                    feedback: { $first: "$feedback" },
+                    bio_details: { $first: "$bio_details" },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    bio_user: "$_id",
+                    bio_id: 1,
+                    permanent_area: 1,
+                    present_area: 1,
+                    zilla: 1,
+                    upzilla: 1,
+                    division: 1,
+                    city: 1,
+                    status: 1,
+                    feedback: 1,
+                    bio_details: 1,
+                    full_name: 1,
+                    family_number: 1,
+                    relation: 1,
+                    bio_receiving_email: 1,
+                    date_of_birth: 1,
+                },
+            },
+        ]).exec();
+        res.status(201).json({
+            success: true,
+            message: "Bio Choice first step data retrieved successfully",
+            data: results,
+        });
+    })),
+    getBioChoiceStatisticsData: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _c;
+        const bio_user = (_c = req.params) === null || _c === void 0 ? void 0 : _c.bio_user;
         const mongoBioId = new mongoose_1.default.Types.ObjectId(bio_user);
         const results = yield bio_choice_data_model_1.default.aggregate([
             { $match: { bio_user: mongoBioId } },
@@ -211,8 +307,8 @@ exports.BioChoiceController = {
         });
     })),
     getBioChoiceByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _d;
+        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -236,8 +332,8 @@ exports.BioChoiceController = {
         }
     })),
     getBioChoiceDataOfShare: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const bio_user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _e;
+        const bio_user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         // console.log("bio_user~~", bio_user);
         if (!bio_user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -332,9 +428,9 @@ exports.BioChoiceController = {
     //   });
     // }),
     createBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
+        var _f;
         const data = req.body;
-        const user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        const user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
         // for unauthorized check
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -401,10 +497,98 @@ exports.BioChoiceController = {
             session.endSession();
         }
     })),
+    checkBioChoiceDataOfFirstStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _g;
+        const user = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+        const bio_user = req.params.id;
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const checkBioChoice = yield bio_choice_data_services_1.BioChoiceService.checkBioChoiceDataOfFirstStep({
+            bio_user,
+            user,
+        });
+        if (!checkBioChoice) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "BioChoice not found",
+            });
+        }
+        else {
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Check BioChoice first step successfully",
+                data: {
+                    status: checkBioChoice === null || checkBioChoice === void 0 ? void 0 : checkBioChoice.status,
+                },
+            });
+        }
+    })),
+    checkBioChoiceDataOfSecondStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _h;
+        const user = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+        const bio_user = req.params.id;
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        // Use aggregation with lookup to get contact info
+        const checkBioChoice = yield contact_purchase_data_model_1.default.aggregate([
+            {
+                $match: {
+                    user: new mongoose_1.default.Types.ObjectId(String(user)),
+                    bio_user: new mongoose_1.default.Types.ObjectId(bio_user),
+                },
+            },
+            {
+                $lookup: {
+                    from: "contacts",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "contact_info",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$contact_info",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    user: 1,
+                    bio_user: 1,
+                    "contact_info.bio_receiving_email": 1,
+                    "contact_info.relation": 1,
+                    "contact_info.family_number": 1,
+                    "contact_info.full_name": 1,
+                },
+            },
+        ]);
+        if (!checkBioChoice.length) {
+            return res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "BioChoice contact info not found",
+            });
+        }
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Check BioChoice second step successfully",
+            data: checkBioChoice[0],
+        });
+    })),
     updateBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f;
-        const bio_user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
-        const _g = req.body, { user } = _g, others = __rest(_g, ["user"]);
+        var _j;
+        const bio_user = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+        const _k = req.body, { user } = _k, others = __rest(_k, ["user"]);
         if (!bio_user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

@@ -38,6 +38,10 @@ exports.BioChoiceService = {
     //   const createdBioChoice = await BioChoice.create(bioChoiceData);
     //   return createdBioChoice.toObject();
     // },
+    checkBioChoiceDataOfFirstStep: (query) => __awaiter(void 0, void 0, void 0, function* () {
+        const bioChoice = yield bio_choice_data_model_1.default.findOne(query).lean();
+        return bioChoice;
+    }),
     updateBioChoice: (query, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedBioChoice = yield bio_choice_data_model_1.default.findOneAndUpdate(query, updatedFields, {
             new: true,

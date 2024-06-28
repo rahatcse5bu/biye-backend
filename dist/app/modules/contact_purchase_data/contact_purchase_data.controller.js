@@ -8,17 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -29,6 +18,7 @@ const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const contact_purchase_data_services_1 = require("./contact_purchase_data.services");
+const bio_choice_data_model_1 = __importDefault(require("../bio_choice_data/bio_choice_data.model"));
 exports.ContactPurchaseController = {
     getAllContactPurchases: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const contactPurchases = yield contact_purchase_data_services_1.ContactPurchaseService.getAllContactPurchases();
@@ -81,21 +71,69 @@ exports.ContactPurchaseController = {
         }
     })),
     createContactPurchase: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c;
+        var _b;
+        const { bio_user } = req.body;
+        if (!((_b = req === null || req === void 0 ? void 0 : req.user) === null || _b === void 0 ? void 0 : _b._id)) {
+            throw new Error("You are not authorized");
+        }
+        const user = req.user._id;
+        // Start a session for the transaction
         const session = yield mongoose_1.default.startSession();
         session.startTransaction();
         try {
-            let _d = req.body, { user_form } = _d, contactPurchaseData = __rest(_d, ["user_form"]);
-            contactPurchaseData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+            // Check points of user info model
+            const userInfo = yield user_info_model_1.UserInfoModel.findById(user).session(session);
+            if (!userInfo) {
+                yield session.abortTransaction();
+                session.endSession();
+                return res.status(http_status_1.default.NOT_FOUND).json({
+                    statusCode: http_status_1.default.NOT_FOUND,
+                    message: "User info not found",
+                    success: false,
+                });
+            }
+            // Check existing contact purchase with same user_id and bio_id
+            const existingContactPurchase = yield contact_purchase_data_services_1.ContactPurchaseService.getContactPurchaseByUserAndBioUser(user, bio_user, { session });
+            if (existingContactPurchase) {
+                yield session.abortTransaction();
+                session.endSession();
+                return res.status(http_status_1.default.BAD_REQUEST).json({
+                    statusCode: http_status_1.default.BAD_REQUEST,
+                    message: "ContactPurchase already exists",
+                    success: false,
+                });
+            }
+            // Check bio choice data status
+            const bioChoice = yield bio_choice_data_model_1.default.findOne({ bio_user, user }).session(session);
+            if (!bioChoice || bioChoice.status !== "approved") {
+                yield session.abortTransaction();
+                session.endSession();
+                return res.status(http_status_1.default.BAD_REQUEST).json({
+                    statusCode: http_status_1.default.BAD_REQUEST,
+                    message: "Invalid action",
+                    success: false,
+                });
+            }
+            if (userInfo.points < 70) {
+                yield session.abortTransaction();
+                session.endSession();
+                return res.status(http_status_1.default.BAD_REQUEST).json({
+                    statusCode: http_status_1.default.BAD_REQUEST,
+                    message: "You do not have enough points to buy",
+                    success: false,
+                });
+            }
+            const contactPurchase = {
+                user,
+                bio_user,
+            };
             // Create contactPurchase
-            const createdContactPurchase = yield contact_purchase_data_services_1.ContactPurchaseService.createContactPurchase(contactPurchaseData, {
+            const createdContactPurchase = yield contact_purchase_data_services_1.ContactPurchaseService.createContactPurchase(contactPurchase, {
                 session,
             });
-            // Find user and update the fields
-            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
-            user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
-            user.last_edited_timeline_index = user_form;
-            yield user.save({ session });
+            // Update user's points
+            userInfo.points -= 70;
+            yield userInfo.save({ session });
             // Commit the transaction
             yield session.commitTransaction();
             session.endSession();
@@ -106,19 +144,20 @@ exports.ContactPurchaseController = {
             });
         }
         catch (error) {
-            // If any error occurs, abort the transaction
+            // Abort the transaction in case of an error
             yield session.abortTransaction();
             session.endSession();
+            console.error("Error creating ContactPurchase:", error);
             res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                message: "An error occurred while creating the contactPurchase",
+                message: "Internal Server Error",
                 error: error.message,
             });
         }
     })),
     updateContactPurchase: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

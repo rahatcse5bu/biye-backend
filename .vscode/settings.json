@@ -1,21 +1,23 @@
 {
-	"cSpell.words": [
-		"bkash",
-		"Favourites",
-		"lifepartner",
-		"pncmatrimony",
-		"subquery",
-		"unfavorites",
-		"upzilla",
-		"zilla"
-	],
-	"editor.formatOnSave": true,
-	"notebook.formatOnSave.enabled": true,
-	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	"[javascript]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
-	"[typescript]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	}
+  "cSpell.words": [
+    "bkash",
+    "Favourites",
+    "generalinfo",
+    "generalinfos",
+    "lifepartner",
+    "pncmatrimony",
+    "subquery",
+    "unfavorites",
+    "upzilla",
+    "zilla"
+  ],
+  "editor.formatOnSave": true,
+  "notebook.formatOnSave.enabled": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

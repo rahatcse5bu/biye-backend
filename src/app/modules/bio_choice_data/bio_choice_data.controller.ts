@@ -121,6 +121,103 @@ export const BioChoiceController = {
       data: results,
     });
   }),
+  getBioChoiceDataOfSecondStep: catchAsync(async (req, res) => {
+    const user_id = req.user?._id;
+
+    const mongo_user_id = new mongoose.Types.ObjectId(String(user_id));
+
+    const results = await ContactPurchase.aggregate([
+      {
+        $match: {
+          user: mongo_user_id,
+          bio_user: { $ne: mongo_user_id },
+        },
+      },
+      {
+        $lookup: {
+          from: "addresses",
+          localField: "bio_user",
+          foreignField: "user",
+          as: "address",
+        },
+      },
+      { $unwind: "$address" },
+      {
+        $lookup: {
+          from: "generalinfos",
+          localField: "bio_user",
+          foreignField: "user",
+          as: "generalinfo",
+        },
+      },
+      { $unwind: "$generalinfo" },
+      {
+        $lookup: {
+          from: "contacts",
+          localField: "bio_user",
+          foreignField: "user",
+          as: "contact",
+        },
+      },
+      { $unwind: "$contact" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "bio_user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $group: {
+          _id: "$bio_user",
+          permanent_area: { $first: "$address.permanent_area" },
+          present_area: { $first: "$address.present_area" },
+          zilla: { $first: "$address.zilla" },
+          bio_id: { $first: "$user.user_id" },
+          upzilla: { $first: "$address.upzilla" },
+          division: { $first: "$address.division" },
+          full_name: { $first: "$contact.full_name" },
+          family_number: { $first: "$contact.family_number" },
+          relation: { $first: "$contact.relation" },
+          bio_receiving_email: { $first: "$contact.bio_receiving_email" },
+          date_of_birth: { $first: "$generalinfo.date_of_birth" },
+          city: { $first: "$address.city" },
+          status: { $first: "$status" },
+          feedback: { $first: "$feedback" },
+          bio_details: { $first: "$bio_details" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          bio_user: "$_id",
+          bio_id: 1,
+          permanent_area: 1,
+          present_area: 1,
+          zilla: 1,
+          upzilla: 1,
+          division: 1,
+          city: 1,
+          status: 1,
+          feedback: 1,
+          bio_details: 1,
+          full_name: 1,
+          family_number: 1,
+          relation: 1,
+          bio_receiving_email: 1,
+          date_of_birth: 1,
+        },
+      },
+    ]).exec();
+
+    res.status(201).json({
+      success: true,
+      message: "Bio Choice first step data retrieved successfully",
+      data: results,
+    });
+  }),
 
   getBioChoiceStatisticsData: catchAsync(async (req, res) => {
     const bio_user = req.params?.bio_user;
@@ -400,6 +497,101 @@ export const BioChoiceController = {
     }
   }),
 
+  checkBioChoiceDataOfFirstStep: catchAsync(
+    async (req: Request, res: Response) => {
+      const user = req.user?._id;
+      const bio_user = req.params.id;
+      if (!user) {
+        return res.status(httpStatus.UNAUTHORIZED).json({
+          statusCode: httpStatus.UNAUTHORIZED,
+          message: "You are not authorized",
+          success: false,
+        });
+      }
+
+      const checkBioChoice =
+        await BioChoiceService.checkBioChoiceDataOfFirstStep({
+          bio_user,
+          user,
+        });
+      if (!checkBioChoice) {
+        res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: "BioChoice not found",
+        });
+      } else {
+        res.status(httpStatus.OK).json({
+          success: true,
+          message: "Check BioChoice first step successfully",
+          data: {
+            status: checkBioChoice?.status,
+          },
+        });
+      }
+    }
+  ),
+  checkBioChoiceDataOfSecondStep: catchAsync(
+    async (req: Request, res: Response) => {
+      const user = req.user?._id;
+      const bio_user = req.params.id;
+
+      if (!user) {
+        return res.status(httpStatus.UNAUTHORIZED).json({
+          statusCode: httpStatus.UNAUTHORIZED,
+          message: "You are not authorized",
+          success: false,
+        });
+      }
+
+      // Use aggregation with lookup to get contact info
+      const checkBioChoice = await ContactPurchase.aggregate([
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(String(user)),
+            bio_user: new mongoose.Types.ObjectId(bio_user),
+          },
+        },
+        {
+          $lookup: {
+            from: "contacts", // The name of the contacts collection
+            localField: "bio_user",
+            foreignField: "user",
+            as: "contact_info",
+          },
+        },
+        {
+          $unwind: {
+            path: "$contact_info",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            user: 1,
+            bio_user: 1,
+            "contact_info.bio_receiving_email": 1,
+            "contact_info.relation": 1,
+            "contact_info.family_number": 1,
+            "contact_info.full_name": 1,
+          },
+        },
+      ]);
+
+      if (!checkBioChoice.length) {
+        return res.status(httpStatus.NOT_FOUND).json({
+          success: false,
+          message: "BioChoice contact info not found",
+        });
+      }
+
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Check BioChoice second step successfully",
+        data: checkBioChoice[0],
+      });
+    }
+  ),
   updateBioChoice: catchAsync(async (req: Request, res: Response) => {
     const bio_user = req.user?._id;
     const { user, ...others } = req.body;

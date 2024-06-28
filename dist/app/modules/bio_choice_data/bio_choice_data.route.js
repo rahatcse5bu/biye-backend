@@ -18,19 +18,10 @@ BioChoiceDataRouter.route("/token").get((0, auth_1.auth)("user", "admin"), bio_c
 //   auth("user", "admin"),
 // );
 BioChoiceDataRouter.route("/first-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoiceDataOfFirstStep);
-// BioChoiceDataRouter.route("/second-step").get(
-//   auth("user", "admin"),
-//   BioChoiceDataController.getBioChoiceDataOfSecondStep
-// );
+BioChoiceDataRouter.route("/second-step").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoiceDataOfSecondStep);
 BioChoiceDataRouter.route("/bio-share").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoiceDataOfShare);
-// BioChoiceDataRouter.route("/check-second-step/:id").get(
-//   auth("user", "admin"),
-//   BioChoiceDataController.checkBioChoiceDataOfSecondStep
-// );
-// BioChoiceDataRouter.route("/check-first-step/:id").get(
-//   auth("user", "admin"),
-//   BioChoiceDataController.checkBioChoiceDataOfFirstStep
-// );
+BioChoiceDataRouter.route("/check-second-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.checkBioChoiceDataOfSecondStep);
+BioChoiceDataRouter.route("/check-first-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.checkBioChoiceDataOfFirstStep);
 BioChoiceDataRouter.route("/statistics/:bio_user").get(bio_choice_data_controller_1.BioChoiceController.getBioChoiceStatisticsData);
 // BioChoiceDataRouter.route("/:id")
 //   .get(BioChoiceDataController.getSingleBioChoiceData)
