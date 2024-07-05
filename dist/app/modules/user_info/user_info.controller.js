@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -104,7 +115,8 @@ exports.UserInfoController = {
                 success: false,
             });
         }
-        const userInfo = req.body;
+        const _b = req.body, { points, user_role } = _b, others = __rest(_b, ["points", "user_role"]);
+        const userInfo = others;
         const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, userInfo);
         if (!updatedUserInfo) {
             res.status(http_status_1.default.NOT_FOUND).json({
@@ -121,8 +133,8 @@ exports.UserInfoController = {
         }
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

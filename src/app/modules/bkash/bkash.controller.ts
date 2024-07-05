@@ -4,6 +4,35 @@ import queryPayment from "../../../helpers/queryPayment";
 import searchTransaction from "../../../helpers/searchTransaction";
 import refundTransaction from "../../../helpers/refundTransaction";
 import executePayment from "../../../helpers/executePayment";
+import axios from "axios";
+import { baseUrl } from "../../../shared/url";
+import { UserInfoModel } from "../user_info/user_info.model";
+import { late } from "zod";
+import Payment from "../payments/payment.model";
+
+// Function to call the bKash execute payment API
+async function BkashExecutePaymentAPICall(paymentID: string) {
+  try {
+    const response = await axios.post(`${baseUrl}/bkash/execute`, {
+      paymentID,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("An error occurred during payment execution:", error);
+    throw error;
+  }
+}
+
+// Function to call the bKash query payment API
+async function BkashQueryPaymentAPICall(paymentID: string) {
+  try {
+    const response = await axios.post(`${baseUrl}/bkash/query`, { paymentID });
+    return response.data;
+  } catch (error) {
+    console.error("An error occurred during payment querying:", error);
+    throw error;
+  }
+}
 
 const create = async (req: Request, res: Response) => {
   try {
@@ -40,6 +69,65 @@ const search = async (req: Request, res: Response) => {
     console.log(e);
   }
 };
+const afterPay = async (req: Request, res: Response) => {
+  const { paymentID, user } = req.body;
+
+  try {
+    // Execute payment
+    let response = await BkashExecutePaymentAPICall(paymentID);
+
+    // Query payment if there is a message in the response
+    if (response?.message) {
+      response = await BkashQueryPaymentAPICall(paymentID);
+    }
+
+    if (response?.statusCode && response.statusCode === "0000") {
+      const singleUser = await UserInfoModel.findById(user);
+      let saveInDb = false;
+      if (singleUser) {
+        // add payment to DB;
+        const points = response?.amount * 1.2;
+        await Payment.create({
+          user,
+          points,
+          amount: response?.amount,
+          transaction_id: response?.trxID,
+          payment_id: paymentID,
+          status: response?.transactionStatus,
+          trnx_time:
+            response?.paymentCreateTime || response?.paymentExecuteTime,
+        });
+
+        // updated points of the user
+        singleUser.points = singleUser.points + points;
+        await singleUser.save();
+        saveInDb = true;
+      }
+
+      res.json({
+        success: true,
+        statusMessage: response?.statusMessage,
+        trxID: response?.trxID,
+        saveInDb,
+        paymentId: paymentID,
+        amount: response?.amount,
+        status: response?.transactionStatus,
+        payment_create_time:
+          response?.paymentCreateTime || response?.paymentExecuteTime,
+      });
+    } else {
+      res.json({
+        success: false,
+        message: response?.statusMessage,
+      });
+    }
+  } catch (error) {
+    console.error("An error occurred:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "An error occurred", error });
+  }
+};
 
 const refund = async (req: Request, res: Response) => {
   try {
@@ -68,4 +156,5 @@ export const bkashControllers = {
   search,
   execute,
   query,
+  afterPay,
 };

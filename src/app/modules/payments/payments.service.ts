@@ -18,12 +18,9 @@ export const PaymentService = {
     return payment;
   },
 
-  createPayment: async (
-    paymentData: IPayment,
-    options?: { session?: ClientSession }
-  ): Promise<IPayment> => {
-    const createdPayment = await Payment.create([paymentData], options);
-    return createdPayment[0].toObject();
+  createPayment: async (paymentData: IPayment): Promise<IPayment> => {
+    const createdPayment = await Payment.create(paymentData);
+    return createdPayment;
   },
 
   updatePayment: async (

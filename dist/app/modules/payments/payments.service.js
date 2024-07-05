@@ -27,9 +27,9 @@ exports.PaymentService = {
         const payment = yield payment_model_1.default.findOne({ user }).lean();
         return payment;
     }),
-    createPayment: (paymentData, options) => __awaiter(void 0, void 0, void 0, function* () {
-        const createdPayment = yield payment_model_1.default.create([paymentData], options);
-        return createdPayment[0].toObject();
+    createPayment: (paymentData) => __awaiter(void 0, void 0, void 0, function* () {
+        const createdPayment = yield payment_model_1.default.create(paymentData);
+        return createdPayment;
     }),
     updatePayment: (id, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedPayment = yield payment_model_1.default.findOneAndUpdate({ user: id }, updatedFields, {

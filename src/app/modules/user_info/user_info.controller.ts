@@ -95,7 +95,8 @@ export const UserInfoController = {
         success: false,
       });
     }
-    const userInfo: IUserInfo = req.body;
+    const { points, user_role, ...others } = req.body;
+    const userInfo: IUserInfo = others;
     const updatedUserInfo = await UserInfoService.updateUserInfo(id, userInfo);
     if (!updatedUserInfo) {
       res.status(httpStatus.NOT_FOUND).json({

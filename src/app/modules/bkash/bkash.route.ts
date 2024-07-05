@@ -9,6 +9,7 @@ bkashRouter.use(authCheck);
 bkashRouter.post("/create", bkashControllers.create);
 bkashRouter.post("/execute", bkashControllers.execute);
 bkashRouter.post("/query", bkashControllers.query);
+bkashRouter.post("/after-pay", bkashControllers.afterPay);
 
 // Admin Part
 bkashRouter.post("/search", bkashControllers.search);

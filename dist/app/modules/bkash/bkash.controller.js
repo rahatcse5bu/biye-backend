@@ -18,6 +18,38 @@ const queryPayment_1 = __importDefault(require("../../../helpers/queryPayment"))
 const searchTransaction_1 = __importDefault(require("../../../helpers/searchTransaction"));
 const refundTransaction_1 = __importDefault(require("../../../helpers/refundTransaction"));
 const executePayment_1 = __importDefault(require("../../../helpers/executePayment"));
+const axios_1 = __importDefault(require("axios"));
+const url_1 = require("../../../shared/url");
+const user_info_model_1 = require("../user_info/user_info.model");
+const payment_model_1 = __importDefault(require("../payments/payment.model"));
+// Function to call the bKash execute payment API
+function BkashExecutePaymentAPICall(paymentID) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield axios_1.default.post(`${url_1.baseUrl}/bkash/execute`, {
+                paymentID,
+            });
+            return response.data;
+        }
+        catch (error) {
+            console.error("An error occurred during payment execution:", error);
+            throw error;
+        }
+    });
+}
+// Function to call the bKash query payment API
+function BkashQueryPaymentAPICall(paymentID) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield axios_1.default.post(`${url_1.baseUrl}/bkash/query`, { paymentID });
+            return response.data;
+        }
+        catch (error) {
+            console.error("An error occurred during payment querying:", error);
+            throw error;
+        }
+    });
+}
 const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const createResult = yield (0, createPayment_1.default)(req.body); // pass amount & callbackURL from frontend
@@ -54,6 +86,60 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         console.log(e);
     }
 });
+const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { paymentID, user } = req.body;
+    try {
+        // Execute payment
+        let response = yield BkashExecutePaymentAPICall(paymentID);
+        // Query payment if there is a message in the response
+        if (response === null || response === void 0 ? void 0 : response.message) {
+            response = yield BkashQueryPaymentAPICall(paymentID);
+        }
+        if ((response === null || response === void 0 ? void 0 : response.statusCode) && response.statusCode === "0000") {
+            const singleUser = yield user_info_model_1.UserInfoModel.findById(user);
+            let saveInDb = false;
+            if (singleUser) {
+                // add payment to DB;
+                const points = (response === null || response === void 0 ? void 0 : response.amount) * 1.2;
+                yield payment_model_1.default.create({
+                    user,
+                    points,
+                    amount: response === null || response === void 0 ? void 0 : response.amount,
+                    transaction_id: response === null || response === void 0 ? void 0 : response.trxID,
+                    payment_id: paymentID,
+                    status: response === null || response === void 0 ? void 0 : response.transactionStatus,
+                    trnx_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
+                });
+                // updated points of the user
+                singleUser.points = singleUser.points + points;
+                yield singleUser.save();
+                saveInDb = true;
+            }
+            res.json({
+                success: true,
+                statusMessage: response === null || response === void 0 ? void 0 : response.statusMessage,
+                trxID: response === null || response === void 0 ? void 0 : response.trxID,
+                saveInDb,
+                paymentId: paymentID,
+                amount: response === null || response === void 0 ? void 0 : response.amount,
+                status: response === null || response === void 0 ? void 0 : response.transactionStatus,
+                payment_create_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
+            });
+        }
+        else {
+            res.json({
+                success: false,
+                message: response === null || response === void 0 ? void 0 : response.statusMessage,
+            });
+        }
+    }
+    catch (error) {
+        console.error("An error occurred:", error);
+        res
+            .status(500)
+            .json({ success: false, message: "An error occurred", error });
+    }
+});
 const refund = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const refundStatusBody = {
@@ -80,4 +166,5 @@ exports.bkashControllers = {
     search,
     execute,
     query,
+    afterPay,
 };

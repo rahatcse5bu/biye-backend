@@ -56,38 +56,15 @@ export const PaymentController = {
   }),
 
   createPayment: catchAsync(async (req: Request, res: Response) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    let paymentData = req.body;
+    // Create payment
+    const createdPayment = await PaymentService.createPayment(paymentData);
 
-    try {
-      let { user_form, ...paymentData } = req.body;
-      paymentData.user = req.user?._id;
-
-      // Create payment
-      const createdPayment = await PaymentService.createPayment(paymentData, {
-        session,
-      });
-
-      // Commit the transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      res.status(httpStatus.CREATED).json({
-        success: true,
-        message: "Payment created successfully",
-        data: createdPayment,
-      });
-    } catch (error: any) {
-      // If any error occurs, abort the transaction
-      await session.abortTransaction();
-      session.endSession();
-
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: "An error occurred while creating the payment",
-        error: error.message,
-      });
-    }
+    res.status(httpStatus.CREATED).json({
+      success: true,
+      message: "Payment created successfully",
+      data: createdPayment,
+    });
   }),
 
   updatePayment: catchAsync(async (req: Request, res: Response) => {

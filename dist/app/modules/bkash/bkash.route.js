@@ -12,6 +12,7 @@ bkashRouter.use(authCheck_1.default);
 bkashRouter.post("/create", bkash_controller_1.bkashControllers.create);
 bkashRouter.post("/execute", bkash_controller_1.bkashControllers.execute);
 bkashRouter.post("/query", bkash_controller_1.bkashControllers.query);
+bkashRouter.post("/after-pay", bkash_controller_1.bkashControllers.afterPay);
 // Admin Part
 bkashRouter.post("/search", bkash_controller_1.bkashControllers.search);
 bkashRouter.post("/refund", bkash_controller_1.bkashControllers.refund);

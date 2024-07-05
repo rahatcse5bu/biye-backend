@@ -25,16 +25,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const paymentSchema = new mongoose_1.Schema({
-    transaction_id: { type: String, required: true },
-    method: { type: String, required: true },
+    payment_id: { type: String, required: false },
+    transaction_id: { type: String, required: false },
+    method: { type: String, required: false },
     user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    amount: { type: Number, required: true },
+    amount: { type: Number, required: false },
     status: {
         type: String,
         enum: ["Completed", "Pending", "Refunded"],
         default: "Pending",
     },
-    bio_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Bio", required: true },
+    points: {
+        type: Number,
+        default: 0,
+    },
+    // bio_id: { type: Schema.Types.ObjectId, ref: "Bio", required: true },
     trnx_time: { type: Date, required: true, default: Date.now },
 }, {
     timestamps: true,

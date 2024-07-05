@@ -8,17 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -27,7 +16,6 @@ exports.PaymentController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const payments_service_1 = require("./payments.service");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
-const mongoose_1 = __importDefault(require("mongoose"));
 exports.PaymentController = {
     getAllPayments: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const payments = yield payments_service_1.PaymentService.getAllPayments();
@@ -80,39 +68,18 @@ exports.PaymentController = {
         }
     })),
     createPayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const session = yield mongoose_1.default.startSession();
-        session.startTransaction();
-        try {
-            let _c = req.body, { user_form } = _c, paymentData = __rest(_c, ["user_form"]);
-            paymentData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-            // Create payment
-            const createdPayment = yield payments_service_1.PaymentService.createPayment(paymentData, {
-                session,
-            });
-            // Commit the transaction
-            yield session.commitTransaction();
-            session.endSession();
-            res.status(http_status_1.default.CREATED).json({
-                success: true,
-                message: "Payment created successfully",
-                data: createdPayment,
-            });
-        }
-        catch (error) {
-            // If any error occurs, abort the transaction
-            yield session.abortTransaction();
-            session.endSession();
-            res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
-                success: false,
-                message: "An error occurred while creating the payment",
-                error: error.message,
-            });
-        }
+        let paymentData = req.body;
+        // Create payment
+        const createdPayment = yield payments_service_1.PaymentService.createPayment(paymentData);
+        res.status(http_status_1.default.CREATED).json({
+            success: true,
+            message: "Payment created successfully",
+            data: createdPayment,
+        });
     })),
     updatePayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _b;
+        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
