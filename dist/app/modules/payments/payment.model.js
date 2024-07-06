@@ -39,8 +39,7 @@ const paymentSchema = new mongoose_1.Schema({
         type: Number,
         default: 0,
     },
-    // bio_id: { type: Schema.Types.ObjectId, ref: "Bio", required: true },
-    trnx_time: { type: Date, required: true, default: Date.now },
+    trnx_time: { type: String, required: false },
 }, {
     timestamps: true,
 });
