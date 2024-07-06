@@ -70,7 +70,7 @@ const search = async (req: Request, res: Response) => {
   }
 };
 const afterPay = async (req: Request, res: Response) => {
-  const { paymentID, user } = req.body;
+  const { paymentID, email } = req.body;
 
   try {
     // Execute payment
@@ -82,13 +82,13 @@ const afterPay = async (req: Request, res: Response) => {
     }
 
     if (response?.statusCode && response.statusCode === "0000") {
-      const singleUser = await UserInfoModel.findById(user);
+      const singleUser = await UserInfoModel.findOne({ email });
       let saveInDb = false;
       if (singleUser) {
         // add payment to DB;
         const points = response?.amount * 1.2;
         await Payment.create({
-          user,
+          email,
           points,
           amount: response?.amount,
           transaction_id: response?.trxID,

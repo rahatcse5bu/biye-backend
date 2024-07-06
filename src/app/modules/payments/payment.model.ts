@@ -6,7 +6,7 @@ const paymentSchema: Schema = new Schema(
     payment_id: { type: String, required: false },
     transaction_id: { type: String, required: false },
     method: { type: String, required: false },
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    email: { type: String, required: true },
     amount: { type: Number, required: false },
     status: {
       type: String,

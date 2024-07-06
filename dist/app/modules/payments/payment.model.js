@@ -28,7 +28,7 @@ const paymentSchema = new mongoose_1.Schema({
     payment_id: { type: String, required: false },
     transaction_id: { type: String, required: false },
     method: { type: String, required: false },
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    email: { type: String, required: true },
     amount: { type: Number, required: false },
     status: {
         type: String,

@@ -87,7 +87,7 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { paymentID, user } = req.body;
+    const { paymentID, email } = req.body;
     try {
         // Execute payment
         let response = yield BkashExecutePaymentAPICall(paymentID);
@@ -96,13 +96,13 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             response = yield BkashQueryPaymentAPICall(paymentID);
         }
         if ((response === null || response === void 0 ? void 0 : response.statusCode) && response.statusCode === "0000") {
-            const singleUser = yield user_info_model_1.UserInfoModel.findById(user);
+            const singleUser = yield user_info_model_1.UserInfoModel.findOne({ email });
             let saveInDb = false;
             if (singleUser) {
                 // add payment to DB;
                 const points = (response === null || response === void 0 ? void 0 : response.amount) * 1.2;
                 yield payment_model_1.default.create({
-                    user,
+                    email,
                     points,
                     amount: response === null || response === void 0 ? void 0 : response.amount,
                     transaction_id: response === null || response === void 0 ? void 0 : response.trxID,
