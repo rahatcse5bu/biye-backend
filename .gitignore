@@ -5,3 +5,5 @@ config/db.js
 config/db.ts
 
 text.ts
+
+config/serviceAccountKey.json

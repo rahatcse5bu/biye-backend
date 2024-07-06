@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoService } from "./user_info.services";
+import ApiError from "../../middlewares/ApiError";
 
 export const UserInfoController = {
   getAllUserInfo: catchAsync(async (req: Request, res: Response) => {
@@ -76,6 +77,10 @@ export const UserInfoController = {
   }),
   createUserForGoogleSignIn: catchAsync(async (req: Request, res: Response) => {
     const userInfo: IUserInfo = req.body;
+
+    if (req?.user && req?.user.email !== userInfo?.email) {
+      throw new ApiError(401, "You are not allowed to access this");
+    }
     const createdUserInfo = await UserInfoService.createUserForGoogleSignIn(
       userInfo
     );

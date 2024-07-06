@@ -27,6 +27,7 @@ exports.UserInfoController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_services_1 = require("./user_info.services");
+const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 exports.UserInfoController = {
     getAllUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const userInfo = yield user_info_services_1.UserInfoService.getAllUserInfo();
@@ -98,6 +99,9 @@ exports.UserInfoController = {
     })),
     createUserForGoogleSignIn: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const userInfo = req.body;
+        if ((req === null || req === void 0 ? void 0 : req.user) && (req === null || req === void 0 ? void 0 : req.user.email) !== (userInfo === null || userInfo === void 0 ? void 0 : userInfo.email)) {
+            throw new ApiError_1.default(401, "You are not allowed to access this");
+        }
         const createdUserInfo = yield user_info_services_1.UserInfoService.createUserForGoogleSignIn(userInfo);
         res.status(http_status_1.default.CREATED).json({
             success: true,
