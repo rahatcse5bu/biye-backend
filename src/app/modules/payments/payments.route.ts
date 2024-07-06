@@ -4,7 +4,7 @@ import { PaymentController } from "./payments.controller";
 const PaymentsRouter = express.Router();
 
 PaymentsRouter.route("/")
-  .get(auth("user", "admin"), PaymentController.getAllPayments)
+  .get(auth("admin"), PaymentController.getAllPayments)
   .post(auth("user", "admin"), PaymentController.createPayment);
 
 PaymentsRouter.route("/token").get(

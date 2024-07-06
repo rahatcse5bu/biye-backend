@@ -8,7 +8,7 @@ const auth_1 = require("../../middlewares/auth");
 const payments_controller_1 = require("./payments.controller");
 const PaymentsRouter = express_1.default.Router();
 PaymentsRouter.route("/")
-    .get((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.getAllPayments)
+    .get((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.getAllPayments)
     .post((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.createPayment);
 PaymentsRouter.route("/token").get((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.getPaymentByToken);
 PaymentsRouter.route("/:id")
