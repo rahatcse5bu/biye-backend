@@ -27,6 +27,10 @@ exports.PaymentService = {
         const payment = yield payment_model_1.default.findOne({ user }).lean();
         return payment;
     }),
+    getPaymentByEmail: (email) => __awaiter(void 0, void 0, void 0, function* () {
+        const payment = yield payment_model_1.default.find({ email }).lean();
+        return payment;
+    }),
     createPayment: (paymentData) => __awaiter(void 0, void 0, void 0, function* () {
         const createdPayment = yield payment_model_1.default.create(paymentData);
         return createdPayment;

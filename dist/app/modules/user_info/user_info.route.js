@@ -13,6 +13,9 @@ userRouter
     .route("/")
     .put((0, auth_1.auth)("user", "admin"), user_info_controller_1.UserInfoController.updateUserInfo);
 userRouter
+    .route("/admin/:bioId")
+    .put((0, auth_1.auth)("admin"), user_info_controller_1.UserInfoController.updateUserInfoByAdmin);
+userRouter
     .route("/all-users-id")
     .get((0, auth_1.auth)("admin", "user"), user_info_controller_1.UserInfoController.getAllUsersInfoId);
 userRouter

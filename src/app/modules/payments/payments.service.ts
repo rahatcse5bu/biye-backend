@@ -17,6 +17,10 @@ export const PaymentService = {
     const payment = await Payment.findOne({ user }).lean();
     return payment;
   },
+  getPaymentByEmail: async (email: string) => {
+    const payment = await Payment.find({ email }).lean();
+    return payment;
+  },
 
   createPayment: async (paymentData: IPayment): Promise<IPayment> => {
     const createdPayment = await Payment.create(paymentData);

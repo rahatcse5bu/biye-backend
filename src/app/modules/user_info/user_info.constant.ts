@@ -5,3 +5,12 @@ export const UserInfoFields: string[] = [
   "phone",
   "gender",
 ];
+
+export const userRoleChangeByUser = ["inactive", "in review", "pending"];
+export const userRoleChangeByAdmin = [
+  "inactive",
+  "in review",
+  "active",
+  "banned",
+  "pending",
+];

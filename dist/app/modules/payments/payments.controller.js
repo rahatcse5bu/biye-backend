@@ -16,6 +16,7 @@ exports.PaymentController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const payments_service_1 = require("./payments.service");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const user_info_model_1 = require("../user_info/user_info.model");
 exports.PaymentController = {
     getAllPayments: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const payments = yield payments_service_1.PaymentService.getAllPayments();
@@ -52,7 +53,16 @@ exports.PaymentController = {
                 success: false,
             });
         }
-        const payment = yield payments_service_1.PaymentService.getPaymentByToken(userId);
+        const user = yield user_info_model_1.UserInfoModel.findById(userId).lean();
+        if (!user) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.NOT_FOUND,
+                message: "User not found",
+                success: false,
+            });
+        }
+        const email = user.email;
+        const payment = yield payments_service_1.PaymentService.getPaymentByEmail(email);
         if (!payment) {
             res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,

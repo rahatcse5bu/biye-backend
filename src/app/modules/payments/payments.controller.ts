@@ -40,7 +40,17 @@ export const PaymentController = {
         success: false,
       });
     }
-    const payment = await PaymentService.getPaymentByToken(userId);
+
+    const user = await UserInfoModel.findById(userId).lean();
+    if (!user) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.NOT_FOUND,
+        message: "User not found",
+        success: false,
+      });
+    }
+    const email: string = user.email;
+    const payment = await PaymentService.getPaymentByEmail(email);
     if (!payment) {
       res.status(httpStatus.NOT_FOUND).json({
         success: false,

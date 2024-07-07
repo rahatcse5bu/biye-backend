@@ -5,6 +5,7 @@ import catchAsync from "../../../shared/catchAsync";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoService } from "./user_info.services";
 import ApiError from "../../middlewares/ApiError";
+import { userRoleChangeByUser } from "./user_info.constant";
 
 export const UserInfoController = {
   getAllUserInfo: catchAsync(async (req: Request, res: Response) => {
@@ -101,8 +102,41 @@ export const UserInfoController = {
       });
     }
     const { points, user_role, ...others } = req.body;
+
+    if (others?.userRole && !userRoleChangeByUser.includes(others)) {
+      throw new ApiError(403, "You are not allowed to change user role");
+    }
+
     const userInfo: IUserInfo = others;
     const updatedUserInfo = await UserInfoService.updateUserInfo(id, userInfo);
+    if (!updatedUserInfo) {
+      res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "User info not found",
+      });
+    } else {
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "User info updated successfully",
+        data: updatedUserInfo,
+      });
+    }
+  }),
+  updateUserInfoByAdmin: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    const bioId = req.params.bioId;
+    if (!id) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+    const userInfo: IUserInfo = req.body;
+    const updatedUserInfo = await UserInfoService.updateUserInfo(
+      bioId,
+      userInfo
+    );
     if (!updatedUserInfo) {
       res.status(httpStatus.NOT_FOUND).json({
         success: false,

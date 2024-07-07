@@ -8,7 +8,9 @@ userRouter.route("/").post(UserInfoController.createUserInfo);
 userRouter
   .route("/")
   .put(auth("user", "admin"), UserInfoController.updateUserInfo);
-
+userRouter
+  .route("/admin/:bioId")
+  .put(auth("admin"), UserInfoController.updateUserInfoByAdmin);
 userRouter
   .route("/all-users-id")
   .get(auth("admin", "user"), UserInfoController.getAllUsersInfoId);
