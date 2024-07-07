@@ -25,6 +25,7 @@ const occupation_model_1 = __importDefault(require("../occupation/occupation.mod
 const marital_info_model_1 = __importDefault(require("../marital_info/marital_info.model"));
 const expected_lifepartner_model_1 = __importDefault(require("../expected_lifepartner/expected_lifepartner.model"));
 const ongikar_nama_model_1 = __importDefault(require("../ongikar_nama/ongikar_nama.model"));
+const contact_model_1 = __importDefault(require("../contact/contact.model"));
 const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const bioId = req.params.id;
     const user = yield user_info_model_1.UserInfoModel.findOne({
@@ -74,6 +75,60 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
     };
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
+const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const bioId = req.params.id;
+    const user = yield user_info_model_1.UserInfoModel.findOne({
+        user_id: bioId,
+    }).lean();
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found",
+            success: false,
+        });
+    }
+    // console.log(user);
+    const userId = user._id;
+    const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    const address = yield address_model_1.default.findOne({ user: userId }).lean();
+    const educationQualification = yield educational_qualification_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const personalInfo = yield personal_info_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const familyStatus = yield family_status_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const occupation = yield occupation_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const maritalInfo = yield marital_info_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const expectedLifePartner = yield expected_lifepartner_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const ongikarNama = yield ongikar_nama_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    const contact = yield contact_model_1.default.findOne({
+        user: userId,
+    }).lean();
+    let data = {
+        generalInfo,
+        address,
+        educationQualification,
+        personalInfo,
+        familyStatus,
+        occupation,
+        maritalInfo,
+        expectedLifePartner,
+        ongikarNama,
+        contact,
+    };
+    res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
+}));
 exports.BioDataController = {
     getBioData,
+    getBioDataByAdmin,
 };

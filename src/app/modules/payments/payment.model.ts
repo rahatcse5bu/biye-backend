@@ -13,6 +13,10 @@ const paymentSchema: Schema = new Schema(
       enum: ["Completed", "Pending", "Refunded"],
       default: "Pending",
     },
+    purpose: {
+      type: String,
+      default: "package",
+    },
     points: {
       type: Number,
       default: 0,

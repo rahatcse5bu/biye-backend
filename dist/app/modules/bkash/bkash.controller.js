@@ -87,7 +87,7 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { paymentID, email } = req.body;
+    const { paymentID, email, purpose } = req.body;
     try {
         // Execute payment
         let response = yield BkashExecutePaymentAPICall(paymentID);

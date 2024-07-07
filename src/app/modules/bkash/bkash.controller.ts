@@ -70,7 +70,7 @@ const search = async (req: Request, res: Response) => {
   }
 };
 const afterPay = async (req: Request, res: Response) => {
-  const { paymentID, email } = req.body;
+  const { paymentID, email, purpose } = req.body;
 
   try {
     // Execute payment

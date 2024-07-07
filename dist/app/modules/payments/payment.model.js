@@ -35,6 +35,10 @@ const paymentSchema = new mongoose_1.Schema({
         enum: ["Completed", "Pending", "Refunded"],
         default: "Pending",
     },
+    purpose: {
+        type: String,
+        default: "package",
+    },
     points: {
         type: Number,
         default: 0,
