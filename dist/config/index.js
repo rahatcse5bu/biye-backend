@@ -18,6 +18,8 @@ exports.default = {
     bkash_app_key: process.env.BKASH_APP_KEY,
     bkash_username: process.env.BKASH_USER_NAME,
     bkash_password: process.env.BKASH_PASSWORD,
+    email_pass: process.env.EMAIL_PASS,
+    email_user: process.env.EMAIL_USER,
     mongo_url: process.env["NODE_ENV"] === "development"
         ? process.env["MONG_DEV_URL"]
         : process.env["MONG_PROD_URL"],

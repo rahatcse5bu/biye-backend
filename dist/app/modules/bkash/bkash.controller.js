@@ -22,6 +22,7 @@ const axios_1 = __importDefault(require("axios"));
 const url_1 = require("../../../shared/url");
 const user_info_model_1 = require("../user_info/user_info.model");
 const payment_model_1 = __importDefault(require("../payments/payment.model"));
+const SendEmail_1 = __importDefault(require("../../../shared/SendEmail"));
 // Function to call the bKash execute payment API
 function BkashExecutePaymentAPICall(paymentID) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -114,6 +115,70 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 singleUser.points = singleUser.points + points;
                 yield singleUser.save();
                 saveInDb = true;
+                const year = new Date().getFullYear();
+                const html = `<!DOCTYPE html>
+                        <html>
+                        <head>
+                          <style>
+                            .container {
+                              font-family: Arial, sans-serif;
+                              max-width: 600px;
+                              margin: 0 auto;
+                              padding: 20px;
+                              border: 1px solid #ddd;
+                              border-radius: 10px;
+                              background-color: #f9f9f9;
+                            }
+                            .header {
+                              text-align: center;
+                              padding-bottom: 20px;
+                            }
+                            .header h1 {
+                              margin: 0;
+                              color: #4CAF50;
+                            }
+                            .content {
+                              line-height: 1.6;
+                            }
+                            .footer {
+                              margin-top: 20px;
+                              text-align: center;
+                              font-size: 12px;
+                              color: #777;
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="container">
+                            <div class="header">
+                              <h1>Purchase Confirmation</h1>
+                            </div>
+                            <div class="content">
+                              <p>Dear [User's Name],</p>
+                              <p>Thank you for your purchase!</p>
+                              <p>We are pleased to inform you that your purchase of [Number of Points] points was successful. The points have been added to your account and are now available for use.</p>
+                              <p>Here are the details of your transaction:</p>
+                              <ul>
+                                <li><strong>Transaction ID:</strong> ${response === null || response === void 0 ? void 0 : response.trxID}</li>
+                                <li><strong>Points Purchased:</strong>${points}</li>
+                                <li><strong>Amount Paid:</strong> ${response === null || response === void 0 ? void 0 : response.amount}</li>
+                                <li><strong>Date of Purchase:</strong> ${(response === null || response === void 0 ? void 0 : response.paymentCreateTime) ||
+                    (response === null || response === void 0 ? void 0 : response.paymentExecuteTime)}</li>
+                              </ul>
+                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at [Support Email Address] or [Support Phone Number].</p>
+                              <p>Thank you for choosing our service!</p>
+                              <p>Best regards,</p>
+                              <p>PNC-Nikah</p>
+                            </div>
+                            <div class="footer">
+                              <p>&copy;${year}PNC-Nikah.com. All rights reserved.</p>
+                              <p>Barishal, Bangladesh</p>
+                            </div>
+                          </div>
+                        </body>
+                        </html>
+                        `;
+                (0, SendEmail_1.default)(email, "Your Purchase of Points was Successful!", html);
             }
             res.json({
                 success: true,

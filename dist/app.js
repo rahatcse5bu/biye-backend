@@ -37,6 +37,7 @@ const config_1 = __importDefault(require("./config"));
 const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route"));
 const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
 const contact_purchase_data_route_1 = __importDefault(require("./app/modules/contact_purchase_data/contact_purchase_data.route"));
+const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
@@ -63,6 +64,15 @@ app.use((0, cors_1.default)({
 }));
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("server is running!");
+}));
+app.get("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        (0, SendEmail_1.default)("anis.cse5.bu@gmail.com", "Test Eamil", "<strong>Hello, this is a test email!</strong>");
+        res.json("send");
+    }
+    catch (error) {
+        res.send(error);
+    }
 }));
 app.use("/api/v1/user-info", user_info_route_1.default);
 app.use("/api/v1/personal-info", personal_info_route_1.default);

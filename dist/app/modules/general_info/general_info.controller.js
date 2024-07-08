@@ -113,6 +113,89 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         size: generalInfos.length,
     });
 }));
+const getGeneralInfoByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", } = req.query;
+    const andConditions = [
+        {
+            "userDetails.user_status": user_status,
+        },
+    ];
+    // Parse limit and page to numbers
+    const limitNumber = Number(limit);
+    const pageNumber = Number(page);
+    // Parse isFeatured to boolean
+    if (isFeatured) {
+        // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
+        const isFeaturedBool = isFeatured === "true";
+        andConditions.push({
+            isFeatured: isFeaturedBool,
+        });
+    }
+    // Construct aggregation pipeline
+    const pipeline = [
+        {
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails",
+            },
+        },
+        {
+            $unwind: "$userDetails", // Unwind the joined user details
+        },
+        {
+            $match: {
+                $and: andConditions,
+            },
+        },
+        // Optional match stage for additional filters
+        ...(bio_type || marital_status || zilla
+            ? [
+                {
+                    $match: Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), (zilla && { zilla })),
+                },
+            ]
+            : []),
+        // Pagination stages
+        { $skip: limitNumber * (pageNumber - 1) },
+        { $limit: limitNumber },
+        // Optionally project to remove user details from final output if not needed
+        {
+            $project: {
+                _id: 1,
+                user_id: "$userDetails.user_id",
+                user: "$userDetails._id",
+                bio_type: 1,
+                date_of_birth: 1,
+                height: 1,
+                gender: 1,
+                weight: 1,
+                blood_group: 1,
+                screen_color: 1,
+                nationality: 1,
+                marital_status: 1,
+                views_count: 1,
+                purchases_count: 1,
+                isFbPosted: 1,
+                isFeatured: 1,
+                dislikes_count: 1,
+                likes_count: 1,
+                zilla: 1,
+            },
+        },
+    ];
+    // Execute the aggregation pipeline
+    const generalInfos = yield general_info_model_1.default.aggregate(pipeline);
+    res.status(200).json({
+        success: true,
+        message: "All General info retrieved successfully",
+        data: generalInfos,
+        page: pageNumber,
+        limit: limitNumber,
+        size: generalInfos.length,
+    });
+}));
 const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { bio_type, marital_status, zilla, limit = 10, page = 1 } = req.query;
     // Parse limit and page to numbers
@@ -339,4 +422,5 @@ exports.GeneralInfoController = {
     getGeneralInfoByUserId,
     getGeneralInfoByToken,
     updateWatchOfBioData,
+    getGeneralInfoByAdmin,
 };

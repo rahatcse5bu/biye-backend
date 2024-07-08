@@ -23,6 +23,7 @@ import config from "./config";
 import bkashRouter from "./app/modules/bkash/bkash.route";
 import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
+import sendEmail from "./shared/SendEmail";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
@@ -57,6 +58,19 @@ app.use(
 
 app.get("/", async (req: Request, res: Response) => {
   res.send("server is running!");
+});
+
+app.get("/send-email", async (req: Request, res: Response) => {
+  try {
+    sendEmail(
+      "anis.cse5.bu@gmail.com",
+      "Test Eamil",
+      "<strong>Hello, this is a test email!</strong>"
+    );
+    res.json("send");
+  } catch (error) {
+    res.send(error);
+  }
 });
 
 app.use("/api/v1/user-info", userRouter);
