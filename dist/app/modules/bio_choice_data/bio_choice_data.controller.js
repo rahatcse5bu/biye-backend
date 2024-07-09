@@ -276,7 +276,7 @@ exports.BioChoiceController = {
                 },
             },
         ]);
-        console.log("results~~", results);
+        // console.log("results~~", results);
         const data = results[0] || { totalCount: 0, counts: {} };
         const totalCount = data.totalCount;
         const { rejected = 0, approved = 0, pending = 0 } = data.counts;
@@ -506,7 +506,7 @@ exports.BioChoiceController = {
                     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                 }
                 .header {
-                    background-color: #2196F3;
+                    background-color: #071952;
                     color: white;
                     padding: 10px 0;
                     text-align: center;
@@ -535,7 +535,7 @@ exports.BioChoiceController = {
                 .footer {
                     text-align: center;
                     padding: 10px;
-                    background-color: #2196F3;
+                    background-color: #071952;
                     color: white;
                 }
             </style>
@@ -547,11 +547,12 @@ exports.BioChoiceController = {
                 </div>
                 <div class="content">
                     <h2>Dear Sir/Mam,</h2>
-                    <p>We are pleased to inform you that the first step of your bio has been purchased . Below are the details</p>
+                    <p>We are pleased to inform you that the first step of your bio has been purchased.p . Below are the details</p>
                     <div class="details">
-                        <p>Purchased By: ${userInfo.user_id}</p>
+                        <p>Purchased By[Bio Id]: ${userInfo.user_id}</p>
                         <p>Purchase Date: ${date}</p>
                     </div>
+                    <p>Please,Give the feedback so that he/she can proceed for the next step</p>
                     <p>If you have any questions or need further assistance, please do not hesitate to contact our support team.</p>
                 </div>
                 <div class="footer">
@@ -585,7 +586,7 @@ exports.BioChoiceController = {
                     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                 }
                 .header {
-                    background-color: #4CAF50;
+                    background-color: #071952;
                     color: white;
                     padding: 10px 0;
                     text-align: center;
@@ -614,7 +615,7 @@ exports.BioChoiceController = {
                 .footer {
                     text-align: center;
                     padding: 10px;
-                    background-color: #4CAF50;
+                    background-color: #071952;
                     color: white;
                 }
             </style>
