@@ -6,6 +6,10 @@ import GeneralInfo from "./general_info.model";
 import catchAsync from "../../../shared/catchAsync";
 import { UserInfoService } from "../user_info/user_info.services";
 import mongoose from "mongoose";
+import Favorite from "../favourites/favourites.model";
+import UnFavorite from "../unfavorites/unfavorites.model";
+import ApiError from "../../middlewares/ApiError";
+import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const {
@@ -315,6 +319,47 @@ const getGeneralInfoByUserId = catchAsync(
     });
   }
 );
+const getGeneralInfoDashboardByUser = catchAsync(
+  async (req: Request, res: Response) => {
+    if (!req?.user) {
+      throw new ApiError(400, "You are not authorized");
+    }
+    const user = req.user._id;
+
+    const generalInfo = await GeneralInfo.findOne({ user: user })
+      .select("likes_count views_count")
+      .lean();
+    const favorite = await Favorite.countDocuments({
+      user,
+    }).lean();
+    const unFavorite = await UnFavorite.countDocuments({
+      user,
+    }).lean();
+    const contactPurchase = await ContactPurchase.countDocuments({
+      user,
+    }).lean();
+
+    if (!generalInfo) {
+      return res.status(404).json({
+        message: "General info not found",
+        success: false,
+      });
+    }
+    const responseData = {
+      likes_count: generalInfo.likes_count,
+      views_count: generalInfo.views_count,
+      favorite_count: favorite,
+      unFavorite_count: unFavorite,
+      contact_purchase_count: contactPurchase,
+    };
+
+    res.status(200).json({
+      message: "General info retrieved successfully",
+      success: true,
+      data: responseData,
+    });
+  }
+);
 const getGeneralInfoByToken = catchAsync(
   async (req: Request, res: Response) => {
     // console.log(req.user);
@@ -491,4 +536,5 @@ export const GeneralInfoController = {
   getGeneralInfoByToken,
   updateWatchOfBioData,
   getGeneralInfoByAdmin,
+  getGeneralInfoDashboardByUser,
 };

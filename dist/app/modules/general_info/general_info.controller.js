@@ -30,6 +30,10 @@ const general_info_model_1 = __importDefault(require("./general_info.model"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_services_1 = require("../user_info/user_info.services");
 const mongoose_1 = __importDefault(require("mongoose"));
+const favourites_model_1 = __importDefault(require("../favourites/favourites.model"));
+const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.model"));
+const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
+const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", } = req.query;
     const andConditions = [
@@ -281,6 +285,42 @@ const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter
         data: generalInfo,
     });
 }));
+const getGeneralInfoDashboardByUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!(req === null || req === void 0 ? void 0 : req.user)) {
+        throw new ApiError_1.default(400, "You are not authorized");
+    }
+    const user = req.user._id;
+    const generalInfo = yield general_info_model_1.default.findOne({ user: user })
+        .select("likes_count views_count")
+        .lean();
+    const favorite = yield favourites_model_1.default.countDocuments({
+        user,
+    }).lean();
+    const unFavorite = yield unfavorites_model_1.default.countDocuments({
+        user,
+    }).lean();
+    const contactPurchase = yield contact_purchase_data_model_1.default.countDocuments({
+        user,
+    }).lean();
+    if (!generalInfo) {
+        return res.status(404).json({
+            message: "General info not found",
+            success: false,
+        });
+    }
+    const responseData = {
+        likes_count: generalInfo.likes_count,
+        views_count: generalInfo.views_count,
+        favorite_count: favorite,
+        unFavorite_count: unFavorite,
+        contact_purchase_count: contactPurchase,
+    };
+    res.status(200).json({
+        message: "General info retrieved successfully",
+        success: true,
+        data: responseData,
+    });
+}));
 const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     // console.log(req.user);
@@ -423,4 +463,5 @@ exports.GeneralInfoController = {
     getGeneralInfoByToken,
     updateWatchOfBioData,
     getGeneralInfoByAdmin,
+    getGeneralInfoDashboardByUser,
 };

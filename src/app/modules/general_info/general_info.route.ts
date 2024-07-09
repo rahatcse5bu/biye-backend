@@ -14,6 +14,10 @@ GeneralInfoRouter.route("/token").get(
   auth("user", "admin"),
   GeneralInfoController.getGeneralInfoByToken
 );
+GeneralInfoRouter.route("/dash-board").get(
+  auth("user", "admin"),
+  GeneralInfoController.getGeneralInfoDashboardByUser
+);
 GeneralInfoRouter.route("/:id/user-id").get(
   GeneralInfoController.getGeneralInfoByUserId
 );

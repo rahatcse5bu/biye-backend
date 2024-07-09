@@ -88,7 +88,7 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { paymentID, email, purpose } = req.body;
+    let { paymentID, email, purpose } = req.body;
     try {
         // Execute payment
         let response = yield BkashExecutePaymentAPICall(paymentID);
@@ -110,6 +110,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     payment_id: paymentID,
                     status: response === null || response === void 0 ? void 0 : response.transactionStatus,
                     trnx_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
+                    purpose,
                 });
                 // updated points of the user
                 singleUser.points = singleUser.points + points;

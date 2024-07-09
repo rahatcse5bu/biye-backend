@@ -71,7 +71,7 @@ const search = async (req: Request, res: Response) => {
   }
 };
 const afterPay = async (req: Request, res: Response) => {
-  const { paymentID, email, purpose } = req.body;
+  let { paymentID, email, purpose } = req.body;
 
   try {
     // Execute payment
@@ -97,8 +97,8 @@ const afterPay = async (req: Request, res: Response) => {
           status: response?.transactionStatus,
           trnx_time:
             response?.paymentCreateTime || response?.paymentExecuteTime,
+          purpose,
         });
-
         // updated points of the user
         singleUser.points = singleUser.points + points;
         await singleUser.save();
