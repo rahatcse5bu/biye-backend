@@ -32,6 +32,8 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const bio_choice_data_services_1 = require("./bio_choice_data.services");
 const bio_choice_data_model_1 = __importDefault(require("./bio_choice_data.model"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
+const SendEmail_1 = __importDefault(require("../../../shared/SendEmail"));
+const time_1 = require("../../../shared/time");
 exports.BioChoiceController = {
     getAllBioChoices: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const bioChoices = yield bio_choice_data_services_1.BioChoiceService.getAllBioChoices();
@@ -458,6 +460,7 @@ exports.BioChoiceController = {
             data.user = user;
             // Fetch user info and check points
             const userInfo = yield user_info_model_1.UserInfoModel.findById(user).session(session);
+            const bioUserInfo = yield user_info_model_1.UserInfoModel.findById(data.bio_user).session(session);
             if (!userInfo || userInfo.points < 30) {
                 yield session.abortTransaction();
                 return res.status(http_status_1.default.FORBIDDEN).json({
@@ -465,13 +468,187 @@ exports.BioChoiceController = {
                     message: "You have less than 30 points",
                 });
             }
+            if (!bioUserInfo) {
+                yield session.abortTransaction();
+                return res.status(http_status_1.default.FORBIDDEN).json({
+                    success: false,
+                    message: "Bio user not found",
+                });
+            }
             // Deduct points and save user info
-            userInfo.points -= 30;
+            const points = userInfo.points - 30;
+            userInfo.points = points;
             yield userInfo.save({ session });
             // Create the BioChoice
             const response = yield bio_choice_data_services_1.BioChoiceService.createBioChoice(data, {
                 session,
             });
+            const date = (0, time_1.getCurrentTime)();
+            const bioHtml = `
+      <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Notification of Bio 1st Step Purchase</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    margin: 0;
+                    padding: 0;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    padding: 20px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    background-color: #2196F3;
+                    color: white;
+                    padding: 10px 0;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                }
+                .content {
+                    padding: 20px;
+                }
+                .content h2 {
+                    color: #333;
+                }
+                .content p {
+                    color: #666;
+                }
+                .details {
+                    background-color: #f9f9f9;
+                    padding: 10px;
+                    margin: 20px 0;
+                    border: 1px solid #ddd;
+                }
+                .details p {
+                    margin: 5px 0;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 10px;
+                    background-color: #2196F3;
+                    color: white;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Bio 1st Step Purchase Notification</h1>
+                </div>
+                <div class="content">
+                    <h2>Dear Sir/Mam,</h2>
+                    <p>We are pleased to inform you that the first step of your bio has been purchased . Below are the details</p>
+                    <div class="details">
+                        <p>Purchased By: ${userInfo.user_id}</p>
+                        <p>Purchase Date: ${date}</p>
+                    </div>
+                    <p>If you have any questions or need further assistance, please do not hesitate to contact our support team.</p>
+                </div>
+                <div class="footer">
+                    <p>Best regards,<br>
+                    PNC-Nikah<br>
+                    pnc.nikah@gmail.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+      `;
+            const userHtml = `
+      <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Confirmation Email</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    margin: 0;
+                    padding: 0;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    padding: 20px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 10px 0;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                }
+                .content {
+                    padding: 20px;
+                }
+                .content h2 {
+                    color: #333;
+                }
+                .content p {
+                    color: #666;
+                }
+                .details {
+                    background-color: #f9f9f9;
+                    padding: 10px;
+                    margin: 20px 0;
+                    border: 1px solid #ddd;
+                }
+                .details p {
+                    margin: 5px 0;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 10px;
+                    background-color: #4CAF50;
+                    color: white;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Confirmation of Your Purchase</h1>
+                </div>
+                <div class="content">
+                    <h2>Dear Sir/Mam,</h2>
+                    <p>We are pleased to inform you that your purchase of the <strong>"Bio 1st Step"</strong> has been successfully completed. A total of 30 points have been deducted from your account for this transaction.</p>
+                    <div class="details">
+                        <p><strong>ChoiceId: ${response._id}</strong></p>
+                        <p>Item Purchased: Bio 1st Step</p>
+                        <p>Bio ID: ${bioUserInfo.user_id}</p>
+                        <p>Points Deducted: 30 points</p>
+                        <p>Remaining Points: ${points}</p>
+                        <p>Purchase Date: ${date}</p>
+                    </div>
+                    <p>Thank you for your purchase! If you have any questions or need further assistance, please do not hesitate to contact our support team.</p>
+                </div>
+                <div class="footer">
+                    <p>Best regards,<br>
+                    PNC-Nikah<br>
+                    pnc.nikah@gmail.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+
+      `;
+            yield (0, SendEmail_1.default)(userInfo.email, "Confirmation of Your `Bio 1st Step` Purchase", userHtml);
+            yield (0, SendEmail_1.default)(bioUserInfo.email, "Notification of Bio 1st Step Purchase", bioHtml);
             // Commit the transaction
             yield session.commitTransaction();
             return res.json({

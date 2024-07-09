@@ -155,9 +155,9 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                               <h1>Purchase Confirmation</h1>
                             </div>
                             <div class="content">
-                              <p>Dear [User's Name],</p>
+                              <p>Dear Sir/Mam,</p>
                               <p>Thank you for your purchase!</p>
-                              <p>We are pleased to inform you that your purchase of [Number of Points] points was successful. The points have been added to your account and are now available for use.</p>
+                              <p>We are pleased to inform you that your purchase of ${points}  points was successful. The points have been added to your account and are now available for use.</p>
                               <p>Here are the details of your transaction:</p>
                               <ul>
                                 <li><strong>Transaction ID:</strong> ${response === null || response === void 0 ? void 0 : response.trxID}</li>
@@ -166,7 +166,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                                 <li><strong>Date of Purchase:</strong> ${(response === null || response === void 0 ? void 0 : response.paymentCreateTime) ||
                     (response === null || response === void 0 ? void 0 : response.paymentExecuteTime)}</li>
                               </ul>
-                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at [Support Email Address] or [Support Phone Number].</p>
+                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at pnc.nikah@gmail.com or 01714802800.</p>
                               <p>Thank you for choosing our service!</p>
                               <p>Best regards,</p>
                               <p>PNC-Nikah</p>
