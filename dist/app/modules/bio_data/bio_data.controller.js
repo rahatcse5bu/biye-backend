@@ -128,7 +128,41 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     };
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
+const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("response data");
+    const genderCounts = yield user_info_model_1.UserInfoModel.aggregate([
+        {
+            $match: { user_status: "active" },
+        },
+        {
+            $lookup: {
+                from: "generalinfos",
+                localField: "_id",
+                foreignField: "user",
+                as: "generalInfo",
+            },
+        },
+        {
+            $unwind: "$generalInfo",
+        },
+        {
+            $group: {
+                _id: "$generalInfo.gender",
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+    const result = genderCounts.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+    }, {});
+    const total = result["পুরুষ"] + result["মহিলা"];
+    res
+        .status(200)
+        .json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", Object.assign(Object.assign({}, result), { total }), 200));
+}));
 exports.BioDataController = {
     getBioData,
     getBioDataByAdmin,
+    getBioDataStat,
 };

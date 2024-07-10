@@ -124,8 +124,45 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
 
   res.status(200).json(sendSuccess("Retrieve bio data", data, 200));
 });
+const getBioDataStat = catchAsync(async (req: Request, res: Response) => {
+  console.log("response data");
+  const genderCounts = await UserInfoModel.aggregate([
+    {
+      $match: { user_status: "active" },
+    },
+    {
+      $lookup: {
+        from: "generalinfos", // MongoDB will pluralize the model name unless specified
+        localField: "_id",
+        foreignField: "user",
+        as: "generalInfo",
+      },
+    },
+    {
+      $unwind: "$generalInfo",
+    },
+    {
+      $group: {
+        _id: "$generalInfo.gender",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const result = genderCounts.reduce((acc, item) => {
+    acc[item._id] = item.count;
+    return acc;
+  }, {});
+
+  const total = result["পুরুষ"] + result["মহিলা"];
+
+  res
+    .status(200)
+    .json(sendSuccess("Retrieve bio data", { ...result, total }, 200));
+});
 
 export const BioDataController = {
   getBioData,
   getBioDataByAdmin,
+  getBioDataStat,
 };
