@@ -24,6 +24,7 @@ import bkashRouter from "./app/modules/bkash/bkash.route";
 import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 import sendEmail from "./shared/SendEmail";
+import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
@@ -70,6 +71,24 @@ app.get("/send-email", async (req: Request, res: Response) => {
     res.json("send");
   } catch (error) {
     res.send(error);
+  }
+});
+
+app.put("/update-addresses", async (req, res) => {
+  try {
+    const addresses = await Address.find({});
+    for (let address of addresses) {
+      const present_address = address.present_address.split(",");
+
+      address.present_zilla = present_address[1];
+      address.present_upzilla = present_address[2];
+      address.present_division = present_address[0]; // Copy division to present_division
+
+      await address.save();
+    }
+    res.status(200).send("Addresses updated successfully");
+  } catch (err: any) {
+    res.status(500).send("Error updating addresses: " + err.message);
   }
 });
 

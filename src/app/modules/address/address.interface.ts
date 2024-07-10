@@ -13,6 +13,9 @@ export type IAddress = Document & {
   zilla: string;
   upzilla: string;
   division: string;
+  present_zilla: string;
+  present_upzilla: string;
+  present_division: string;
   city: string;
   zip: number;
   user_form?: string;
