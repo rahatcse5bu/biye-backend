@@ -194,8 +194,8 @@ exports.ContactPurchaseController = {
                     <p>We wanted to inform you that your contact information has been purchased using points on our platform.</p>
                     <p>Here are the details:</p>
                     <ul>
-                        <li><strong>Buyer's BioId:</strong> ${bioUser.user_id}</li>
-                        <li><strong>Email:</strong>${bioUser.email}</li>
+                        <li><strong>Buyer's BioId:</strong> ${userInfo.user_id}</li>
+                        <li><strong>Email:</strong>${userInfo.email}</li>
                     </ul>
                     <p>If you have any questions or concerns, please reach out to our support team.</p>
                     <p>Thank you for being a part of our community!</p>
