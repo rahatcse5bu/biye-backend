@@ -35,12 +35,41 @@ const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", } = req.query;
+    const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, } = req.query;
     const andConditions = [
         {
             "userDetails.user_status": user_status,
         },
     ];
+    if (division !== "all") {
+        if (zilla) {
+            if (typeof zilla === "string") {
+                andConditions.push({
+                    "address.zilla": { $in: zilla.split(",") },
+                });
+            }
+            else if (Array.isArray(zilla)) {
+                andConditions.push({
+                    "address.zilla": { $in: zilla },
+                });
+            }
+        }
+        if (division) {
+            if (typeof division === "string") {
+                andConditions.push({
+                    "address.division": { $in: division.split(",") },
+                });
+            }
+            else if (Array.isArray(division)) {
+                andConditions.push({
+                    "address.division": { $in: division },
+                });
+            }
+        }
+    }
+    // console.log("division", division);
+    // console.log("zilla", zilla);
+    // console.log("andConditions", andConditions);
     // Parse limit and page to numbers
     const limitNumber = Number(limit);
     const pageNumber = Number(page);
@@ -66,15 +95,26 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $unwind: "$userDetails", // Unwind the joined user details
         },
         {
+            $lookup: {
+                from: "addresses",
+                localField: "user",
+                foreignField: "user",
+                as: "address",
+            },
+        },
+        {
+            $unwind: "$address", // Unwind the joined user details
+        },
+        {
             $match: {
                 $and: andConditions,
             },
         },
         // Optional match stage for additional filters
-        ...(bio_type || marital_status || zilla
+        ...(bio_type || marital_status
             ? [
                 {
-                    $match: Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), (zilla && { zilla })),
+                    $match: Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })),
                 },
             ]
             : []),
