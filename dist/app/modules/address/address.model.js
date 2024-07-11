@@ -35,6 +35,9 @@ const addressSchema = new mongoose_1.Schema({
     zilla: { type: String, required: true },
     upzilla: { type: String, required: true },
     division: { type: String, required: true },
+    present_zilla: { type: String, required: true },
+    present_upzilla: { type: String, required: true },
+    present_division: { type: String, required: true },
     city: { type: String, required: true },
     zip: { type: Number, required: true },
 }, {

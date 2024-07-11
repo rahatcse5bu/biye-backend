@@ -38,6 +38,7 @@ const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route")
 const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
 const contact_purchase_data_route_1 = __importDefault(require("./app/modules/contact_purchase_data/contact_purchase_data.route"));
 const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
+const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
@@ -72,6 +73,22 @@ app.get("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
     catch (error) {
         res.send(error);
+    }
+}));
+app.put("/update-addresses", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const addresses = yield address_model_1.default.find({});
+        for (let address of addresses) {
+            const present_address = address.present_address.split(",");
+            address.present_zilla = present_address[1];
+            address.present_upzilla = present_address[2];
+            address.present_division = present_address[0]; // Copy division to present_division
+            yield address.save();
+        }
+        res.status(200).send("Addresses updated successfully");
+    }
+    catch (err) {
+        res.status(500).send("Error updating addresses: " + err.message);
     }
 }));
 app.use("/api/v1/user-info", user_info_route_1.default);
