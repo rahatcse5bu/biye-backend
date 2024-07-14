@@ -120,6 +120,71 @@ export const UserInfoController = {
     if (others?.user_status === "in review") {
       // notify to admin
       const adminHtml = `
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Data Inactivation Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background-color: #ff4500;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    .content strong {
+      color: #333333;
+    }
+    .footer {
+      padding: 10px 20px;
+      background-color: #f4f4f4;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+    .button {
+      display: block;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #ff4500;
+      color: #ffffff;
+      text-align: center;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
       <table class="main-table">
         <tr>
           <td class="header">
@@ -135,9 +200,13 @@ export const UserInfoController = {
             <p><strong>Current Status:</strong> ${req.user?.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
-              ${req.body
-                .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
-                .join("")}
+              ${
+                req.body &&
+                Object.keys(req.body).length &&
+                Object.keys(req.body)
+                  .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
+                  .join("")
+              }
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
             <a href="https://admin.pnc-nikah.com/details/${
@@ -151,9 +220,77 @@ export const UserInfoController = {
           </td>
         </tr>
       </table>
+      </body>
+      </html>
     `;
 
-      const userHtml = `<table class="main-table">
+      const userHtml = `
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Data Inactivation Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background-color: #ff4500;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    .content strong {
+      color: #333333;
+    }
+    .footer {
+      padding: 10px 20px;
+      background-color: #f4f4f4;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+    .button {
+      display: block;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #ff4500;
+      color: #ffffff;
+      text-align: center;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+      <table class="main-table">
         <tr>
           <td class="header">
             
@@ -166,9 +303,13 @@ export const UserInfoController = {
             <p><strong>Current Status:</strong> ${req.user?.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
-              ${req.body
-                .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
-                .join("")}
+              ${
+                req.body &&
+                Object.keys(req.body).length &&
+                Object.keys(req.body)
+                  .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
+                  .join("")
+              }
             </ul>
             <p>Thank you for your patience.</p>
           </td>
@@ -178,7 +319,9 @@ export const UserInfoController = {
             &copy; 2024 PNC Nikah. All rights reserved.
           </td>
         </tr>
-      </table>`;
+      </table> </body></html>
+      
+      `;
       await sendEmails(adminEmails, " Admin Notification", adminHtml);
       await sendEmail(req.user?.email, "Status Change Notification", userHtml);
     } else if (others?.user_status === "inactive") {
@@ -394,6 +537,71 @@ export const UserInfoController = {
     }
     // admin
     const adminHtml = `
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Data Inactivation Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background-color: #ff4500;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    .content strong {
+      color: #333333;
+    }
+    .footer {
+      padding: 10px 20px;
+      background-color: #f4f4f4;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+    .button {
+      display: block;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #ff4500;
+      color: #ffffff;
+      text-align: center;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
     <table>
     <tr>
       <td class="header">
@@ -422,9 +630,77 @@ export const UserInfoController = {
       </td>
     </tr>
   </table>
+  </body>
+  </html>
   `;
     // user
-    const userHtml = `<table>
+    const userHtml = `
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Data Inactivation Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background-color: #ff4500;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    .content strong {
+      color: #333333;
+    }
+    .footer {
+      padding: 10px 20px;
+      background-color: #f4f4f4;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+    .button {
+      display: block;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #ff4500;
+      color: #ffffff;
+      text-align: center;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+    <table>
     <tr>
       <td class="header">
         Status Change Notification
@@ -450,7 +726,9 @@ export const UserInfoController = {
         &copy; 2024 PNC Nikah. All rights reserved.
       </td>
     </tr>
-  </table>`;
+  </table> </body> </html>
+  `;
+
     await sendEmails(adminEmails, " Admin Notification", adminHtml);
     await sendEmail(
       updatedUserInfo?.email!,
