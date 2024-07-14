@@ -10,6 +10,9 @@ ContactRouter.route("/")
 //   auth("user", "admin"),
 //   ContactController.getContactForBuyer
 // );
+ContactRouter.route("/send-email").post(
+  ContactController.createContactUsByEmail
+);
 
 ContactRouter.route("/token").get(
   auth("user", "admin"),
