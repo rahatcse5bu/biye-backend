@@ -11,7 +11,6 @@ exports.UserInfoFields = [
 exports.adminEmails = [
     "anis.cse5.bu@gmail.com",
     "rahat.cse5.bu@gmail.com",
-    "pnc.nikah@gmail.com",
 ];
 exports.userRoleChangeByUser = ["inactive", "in review", "pending"];
 exports.userRoleChangeByAdmin = [

@@ -207,7 +207,7 @@ export const UserInfoController = {
                 req.body &&
                 Object.keys(req.body).length &&
                 Object.keys(req.body)
-                  .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
+                  .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
                   .join("")
               }
             </ul>
@@ -310,7 +310,7 @@ export const UserInfoController = {
                 req.body &&
                 Object.keys(req.body).length &&
                 Object.keys(req.body)
-                  .map((field: any) => `<li>${field.name}: ${field.value}</li>`)
+                  .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
                   .join("")
               }
             </ul>

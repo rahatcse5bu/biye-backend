@@ -240,7 +240,7 @@ exports.UserInfoController = {
               ${req.body &&
                 Object.keys(req.body).length &&
                 Object.keys(req.body)
-                    .map((field) => `<li>${field.name}: ${field.value}</li>`)
+                    .map((field) => `<li>${field}: ${req.body[field]}</li>`)
                     .join("")}
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
@@ -338,7 +338,7 @@ exports.UserInfoController = {
               ${req.body &&
                 Object.keys(req.body).length &&
                 Object.keys(req.body)
-                    .map((field) => `<li>${field.name}: ${field.value}</li>`)
+                    .map((field) => `<li>${field}: ${req.body[field]}</li>`)
                     .join("")}
             </ul>
             <p>Thank you for your patience.</p>
