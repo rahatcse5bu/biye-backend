@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendEmails = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const config_1 = __importDefault(require("../config"));
@@ -40,4 +41,27 @@ const sendEmail = (to, subject, html) => __awaiter(void 0, void 0, void 0, funct
         console.error("Error sending email:", error);
     }
 });
+const sendEmails = (recipients, subject, html) => __awaiter(void 0, void 0, void 0, function* () {
+    const mailOptions = {
+        from: config_1.default.email_user,
+        subject,
+        html,
+    };
+    for (const recipient of recipients) {
+        try {
+            yield transporter.sendMail(Object.assign(Object.assign({}, mailOptions), { to: recipient }));
+            // console.log(`Email sent to ${recipient}`);
+        }
+        catch (error) {
+            console.error(`Failed to send email to ${recipient}:`, error);
+        }
+    }
+    // try {
+    //   await transporter.sendMail(mailOptions);
+    //   console.log("Email sent");
+    // } catch (error) {
+    //   console.error("Error sending email:", error);
+    // }
+});
+exports.sendEmails = sendEmails;
 exports.default = sendEmail;

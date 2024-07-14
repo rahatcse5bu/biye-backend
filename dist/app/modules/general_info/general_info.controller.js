@@ -35,7 +35,8 @@ const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, } = req.query;
+    const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", // default sorting field
+    sortOrder = "desc", } = req.query;
     const andConditions = [
         {
             "userDetails.user_status": user_status,
@@ -73,6 +74,9 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // Parse limit and page to numbers
     const limitNumber = Number(limit);
     const pageNumber = Number(page);
+    // Parse sort parameters
+    const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
     // Parse isFeatured to boolean
     if (isFeatured) {
         // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
@@ -118,6 +122,8 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 },
             ]
             : []),
+        // Sort stage
+        { $sort: { [sortField]: sortDirection } },
         // Pagination stages
         { $skip: limitNumber * (pageNumber - 1) },
         { $limit: limitNumber },

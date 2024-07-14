@@ -21,6 +21,8 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     page = 1,
     user_status = "active",
     division,
+    sortBy = "createdAt", // default sorting field
+    sortOrder = "desc",
   } = req.query;
 
   const andConditions: any = [
@@ -63,6 +65,10 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const limitNumber = Number(limit);
   const pageNumber = Number(page);
 
+  // Parse sort parameters
+  const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
+  const sortDirection = sortOrder === "asc" ? 1 : -1;
+
   // Parse isFeatured to boolean
 
   if (isFeatured) {
@@ -74,7 +80,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Construct aggregation pipeline
-  const pipeline = [
+  const pipeline: any = [
     {
       $lookup: {
         from: "users", // Collection name for User model
@@ -113,6 +119,10 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
           },
         ]
       : []),
+
+    // Sort stage
+    { $sort: { [sortField]: sortDirection } },
+
     // Pagination stages
     { $skip: limitNumber * (pageNumber - 1) },
     { $limit: limitNumber },
