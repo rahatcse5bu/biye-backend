@@ -26,14 +26,14 @@ const EducationalQualificationSchema: Schema = new Schema(
     after_ssc_year: { type: Number, required: false },
 
     // Diploma Information
-    diploma_running_year: { type: Number, required: false },
+    diploma_running_year: { type: String, required: false },
     diploma_sub: { type: String, required: false },
     diploma_inst: { type: String, required: false },
     diploma_pass_year: { type: Number, required: false },
 
     // Honors Information
     hons_inst: { type: String, required: false },
-    hons_year: { type: Number, required: false },
+    hons_year: { type: String, required: false },
     hons_sub: { type: String, required: false },
     after_ssc_medium: { type: String, required: false },
     hons_pass_year: { type: Number, required: false },

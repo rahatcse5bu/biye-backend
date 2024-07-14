@@ -29,6 +29,8 @@ const contact_services_1 = require("./contact.services");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+const SendEmail_1 = require("../../../shared/SendEmail");
+const user_info_constant_1 = require("../user_info/user_info.constant");
 exports.ContactController = {
     getAllContacts: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const contacts = yield contact_services_1.ContactService.getAllContacts();
@@ -115,6 +117,80 @@ exports.ContactController = {
                 error: error.message,
             });
         }
+    })),
+    createContactUsByEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { name, email, phone, bio, message } = req.body;
+        const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                color: #333;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                width: 100%;
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: #ffffff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                padding: 10px 0;
+                background: linear-gradient(to right, #4CAF50, #1E90FF);
+                color: white;
+                border-radius: 8px 8px 0 0;
+            }
+            .content {
+                padding: 20px;
+            }
+            .content p {
+                line-height: 1.6;
+                margin: 10px 0;
+            }
+            .content .highlight {
+                font-weight: bold;
+                color: #333;
+            }
+            .footer {
+                text-align: center;
+                padding: 10px 0;
+                font-size: 12px;
+                color: #888;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>New Contact Form Submission</h2>
+            </div>
+            <div class="content">
+                <p>Hello Admin,</p>
+                <p>You have received a new message from the contact form on your website. Here are the details:</p>
+                <p><span class="highlight">Name:</span> ${name}</p>
+                <p><span class="highlight">Email:</span> ${email}</p>
+                <p><span class="highlight">Phone:</span> ${phone}</p>
+                <p><span class="highlight">Bio:</span> ${bio}</p>
+                <p><span class="highlight">Message:</span> ${message}</p>
+                <p>Please respond to this message as soon as possible.</p>
+            </div>
+           
+        </div>
+    </body>
+    </html>
+  `;
+        yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, "New Contact Form Submission", htmlContent);
+        res.json({ success: true, message: "Email sent successfully" });
     })),
     updateContact: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _e;

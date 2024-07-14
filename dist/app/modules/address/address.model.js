@@ -39,7 +39,7 @@ const addressSchema = new mongoose_1.Schema({
     present_upzilla: { type: String, required: true },
     present_division: { type: String, required: true },
     city: { type: String, required: true },
-    zip: { type: Number, required: true },
+    zip: { type: Number, required: false, default: 0 },
 }, {
     timestamps: true,
 });
