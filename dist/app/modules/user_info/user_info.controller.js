@@ -135,7 +135,7 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a;
         const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -144,7 +144,7 @@ exports.UserInfoController = {
                 success: false,
             });
         }
-        const _j = req.body, { points, user_role } = _j, others = __rest(_j, ["points", "user_role"]);
+        const _b = req.body, { points, user_role } = _b, others = __rest(_b, ["points", "user_role"]);
         if ((others === null || others === void 0 ? void 0 : others.userRole) && !user_info_constant_1.userRoleChangeByUser.includes(others)) {
             throw new ApiError_1.default(403, "You are not allowed to change user role");
         }
@@ -233,8 +233,8 @@ exports.UserInfoController = {
         <tr>
           <td class="content">
             <p>Dear Admin,</p>
-            <p>The user <strong>${(_b = req.user) === null || _b === void 0 ? void 0 : _b.email}</strong> has submitted their bio data for review.</p>
-            <p><strong>Current Status:</strong> ${(_c = req.user) === null || _c === void 0 ? void 0 : _c.user_status}</p>
+            <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has submitted their bio data for review.</p>
+            <p><strong>Current Status:</strong> ${others === null || others === void 0 ? void 0 : others.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
               ${req.body &&
@@ -244,7 +244,7 @@ exports.UserInfoController = {
                     .join("")}
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
-            <a href="https://admin.pnc-nikah.com/details/${(_d = req.user) === null || _d === void 0 ? void 0 : _d.user_id}" class="button">Review Now</a>
+            <a href="https://admin.pnc-nikah.com/details/${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_id}" class="button">Review Now</a>
           </td>
         </tr>
         <tr>
@@ -332,7 +332,7 @@ exports.UserInfoController = {
           <td class="content">
             <p>Dear <strong>Sir/Mam</strong>,</p>
             <p>Your bio data has been submitted for review. You will be notified when your status changes.</p>
-            <p><strong>Current Status:</strong> ${(_e = req.user) === null || _e === void 0 ? void 0 : _e.user_status}</p>
+            <p><strong>Current Status:</strong> ${others === null || others === void 0 ? void 0 : others.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
               ${req.body &&
@@ -353,7 +353,7 @@ exports.UserInfoController = {
       
       `;
             yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-            yield (0, SendEmail_1.default)((_f = req.user) === null || _f === void 0 ? void 0 : _f.email, "Status Change Notification", userHtml);
+            yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
         }
         else if ((others === null || others === void 0 ? void 0 : others.user_status) === "inactive") {
             const adminHtml = `
@@ -521,7 +521,7 @@ exports.UserInfoController = {
     <tr>
       <td class="content">
         <p>Dear Admin,</p>
-        <p>The user <strong>${(_g = req.user) === null || _g === void 0 ? void 0 : _g.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
+        <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
         <p>Please take any necessary actions to update their status in the system.</p>
       </td>
     </tr>
@@ -535,7 +535,7 @@ exports.UserInfoController = {
 </html>
       `;
             yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-            yield (0, SendEmail_1.default)((_h = req.user) === null || _h === void 0 ? void 0 : _h.email, "Status Change Notification", userHtml);
+            yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
         }
         res.status(http_status_1.default.OK).json({
             success: true,
@@ -544,8 +544,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _k;
-        const id = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -758,8 +758,8 @@ exports.UserInfoController = {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _l;
-        const id = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+        var _d;
+        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

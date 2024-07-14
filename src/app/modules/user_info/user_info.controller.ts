@@ -109,7 +109,10 @@ export const UserInfoController = {
     }
 
     const userInfo: IUserInfo = others;
-    const updatedUserInfo = await UserInfoService.updateUserInfo(id, userInfo);
+    const updatedUserInfo: any = await UserInfoService.updateUserInfo(
+      id,
+      userInfo
+    );
     if (!updatedUserInfo) {
       res.status(httpStatus.NOT_FOUND).json({
         success: false,
@@ -195,9 +198,9 @@ export const UserInfoController = {
           <td class="content">
             <p>Dear Admin,</p>
             <p>The user <strong>${
-              req.user?.email
+              updatedUserInfo?.email
             }</strong> has submitted their bio data for review.</p>
-            <p><strong>Current Status:</strong> ${req.user?.user_status}</p>
+            <p><strong>Current Status:</strong> ${others?.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
               ${
@@ -210,7 +213,7 @@ export const UserInfoController = {
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
             <a href="https://admin.pnc-nikah.com/details/${
-              req.user?.user_id
+              updatedUserInfo?.user_id
             }" class="button">Review Now</a>
           </td>
         </tr>
@@ -300,7 +303,7 @@ export const UserInfoController = {
           <td class="content">
             <p>Dear <strong>Sir/Mam</strong>,</p>
             <p>Your bio data has been submitted for review. You will be notified when your status changes.</p>
-            <p><strong>Current Status:</strong> ${req.user?.user_status}</p>
+            <p><strong>Current Status:</strong> ${others?.user_status}</p>
             <p><strong>Submitted Data:</strong></p>
             <ul>
               ${
@@ -323,7 +326,11 @@ export const UserInfoController = {
       
       `;
       await sendEmails(adminEmails, " Admin Notification", adminHtml);
-      await sendEmail(req.user?.email, "Status Change Notification", userHtml);
+      await sendEmail(
+        updatedUserInfo?.email,
+        "Status Change Notification",
+        userHtml
+      );
     } else if (others?.user_status === "inactive") {
       const adminHtml = `
       <!DOCTYPE html>
@@ -490,7 +497,7 @@ export const UserInfoController = {
     <tr>
       <td class="content">
         <p>Dear Admin,</p>
-        <p>The user <strong>${req.user?.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
+        <p>The user <strong>${updatedUserInfo?.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
         <p>Please take any necessary actions to update their status in the system.</p>
       </td>
     </tr>
@@ -504,7 +511,11 @@ export const UserInfoController = {
 </html>
       `;
       await sendEmails(adminEmails, " Admin Notification", adminHtml);
-      await sendEmail(req.user?.email, "Status Change Notification", userHtml);
+      await sendEmail(
+        updatedUserInfo?.email,
+        "Status Change Notification",
+        userHtml
+      );
     }
 
     res.status(httpStatus.OK).json({
@@ -728,7 +739,6 @@ export const UserInfoController = {
     </tr>
   </table> </body> </html>
   `;
-
     await sendEmails(adminEmails, " Admin Notification", adminHtml);
     await sendEmail(
       updatedUserInfo?.email!,
