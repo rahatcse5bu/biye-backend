@@ -5,6 +5,7 @@ export interface IBioChoice {
   bio_user: Types.ObjectId; // Reference to a Bio User document
   bio_details: string; // Assuming bio_details is a string (e.g., biography details)
   feedback: string; // Assuming feedback is a string
+  bio_input: string; // Assuming feedback is a string
   status: string; // Assuming status is a string (e.g., 'active', 'inactive')
 }
 

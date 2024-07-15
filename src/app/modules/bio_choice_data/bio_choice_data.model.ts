@@ -7,6 +7,7 @@ const BioChoiceSchema: Schema<IBioChoiceDocument> = new Schema(
     bio_user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     bio_details: { type: String, required: true },
     feedback: { type: String, required: false },
+    bio_input: { type: String, required: false },
     status: {
       type: String,
       required: false,
