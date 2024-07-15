@@ -7,7 +7,7 @@ interface GeneralInfoDocument extends IGeneralInfo, Document {}
 const GeneralInfoSchema: Schema<GeneralInfoDocument> = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    refer_user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    refer_user: { type: Schema.Types.ObjectId, ref: "User", required: false },
     bio_type: { type: String, required: true },
     isMarriageDone: { type: Boolean, default: false },
     date_of_birth: { type: Date, required: true },
