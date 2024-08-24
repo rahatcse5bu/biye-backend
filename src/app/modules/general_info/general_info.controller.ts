@@ -131,7 +131,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $project: {
         _id: 1, // Include _id of GeneralInfo
         user_id: "$userDetails.user_id", // Include user_id from User schema
-        user: "$userDetails._id", // Include user_id from User schema
+        user: "$userDetails._id",
+        upzilla: "$address.upzilla", // Include user_id from User schema
+
         bio_type: 1,
         date_of_birth: 1,
         height: 1,
@@ -235,6 +237,7 @@ const getGeneralInfoByAdmin = catchAsync(
           _id: 1, // Include _id of GeneralInfo
           user_id: "$userDetails.user_id", // Include user_id from User schema
           user: "$userDetails._id", // Include user_id from User schema
+          upzilla: "$address.upzilla", // Include user_id from User schema
           bio_type: 1,
           date_of_birth: 1,
           height: 1,
