@@ -17,6 +17,13 @@ export const UserInfoController = {
       data: userInfo,
     });
   }),
+  sendUserEmail: catchAsync(async (req: Request, res: Response) => {
+    const userEmail = await sendEmail("", "", "");
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "email sent",
+    });
+  }),
 
   getUserInfoById: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;

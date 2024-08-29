@@ -7,5 +7,9 @@ ContactPurchaseDataRouter.route("/").post(
   auth("user", "admin"),
   ContactPurchaseController.createContactPurchase
 );
+ContactPurchaseDataRouter.route("/admin/all").get(
+  auth("admin"),
+  ContactPurchaseController.getAllContactPurchasesByAdmin
+);
 
 export default ContactPurchaseDataRouter;

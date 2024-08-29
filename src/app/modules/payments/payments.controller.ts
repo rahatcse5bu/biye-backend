@@ -3,7 +3,6 @@ import httpStatus from "http-status";
 import { PaymentService } from "./payments.service";
 import catchAsync from "../../../shared/catchAsync";
 import { UserInfoModel } from "../user_info/user_info.model";
-import mongoose from "mongoose";
 
 export const PaymentController = {
   getAllPayments: catchAsync(async (req: Request, res: Response) => {

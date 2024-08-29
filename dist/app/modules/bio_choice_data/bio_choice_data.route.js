@@ -14,6 +14,7 @@ BioChoiceDataRouter.route("/")
     .post((0, validateRequest_1.default)(bio_choice_data_validation_1.BioChoiceValidation.createBioChoice), (0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.createBioChoice)
     .put((0, validateRequest_1.default)(bio_choice_data_validation_1.BioChoiceValidation.updateBioChoice), (0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.updateBioChoice);
 BioChoiceDataRouter.route("/token").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoiceByToken);
+BioChoiceDataRouter.route("/admin/all").get((0, auth_1.auth)("admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoicesByAdmin);
 // BioChoiceDataRouter.route("/bio-data").put(
 //   auth("user", "admin"),
 // );

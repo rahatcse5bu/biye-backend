@@ -21,6 +21,10 @@ BioChoiceDataRouter.route("/token").get(
   auth("user", "admin"),
   BioChoiceController.getBioChoiceByToken
 );
+BioChoiceDataRouter.route("/admin/all").get(
+  auth("admin"),
+  BioChoiceController.getBioChoicesByAdmin
+);
 
 // BioChoiceDataRouter.route("/bio-data").put(
 //   auth("user", "admin"),

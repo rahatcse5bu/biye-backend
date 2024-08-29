@@ -19,6 +19,6 @@ ContactRouter.route("/token").get(
   ContactController.getContactByToken
 );
 
-ContactRouter.route("/:id").delete(ContactController.deleteContact);
+// ContactRouter.route("/:id").delete(ContactController.deleteContact);
 
 export default ContactRouter;

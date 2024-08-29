@@ -8,4 +8,5 @@ const auth_1 = require("../../middlewares/auth");
 const contact_purchase_data_controller_1 = require("./contact_purchase_data.controller");
 const ContactPurchaseDataRouter = express_1.default.Router();
 ContactPurchaseDataRouter.route("/").post((0, auth_1.auth)("user", "admin"), contact_purchase_data_controller_1.ContactPurchaseController.createContactPurchase);
+ContactPurchaseDataRouter.route("/admin/all").get((0, auth_1.auth)("admin"), contact_purchase_data_controller_1.ContactPurchaseController.getAllContactPurchasesByAdmin);
 exports.default = ContactPurchaseDataRouter;

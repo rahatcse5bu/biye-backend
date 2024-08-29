@@ -16,5 +16,5 @@ ContactRouter.route("/")
 // );
 ContactRouter.route("/send-email").post(contact_controller_1.ContactController.createContactUsByEmail);
 ContactRouter.route("/token").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactByToken);
-ContactRouter.route("/:id").delete(contact_controller_1.ContactController.deleteContact);
+// ContactRouter.route("/:id").delete(ContactController.deleteContact);
 exports.default = ContactRouter;

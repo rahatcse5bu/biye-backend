@@ -21,6 +21,124 @@ export const BioChoiceController = {
     });
   }),
 
+  getBioChoicesByAdmin: catchAsync(async (req: Request, res: Response) => {
+    const { status = "pending", page = 1, limit = 10 } = req.query;
+
+    const matchStage = status ? { status } : {};
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const limitNum = Number(limit);
+
+    const bioChoices = await BioChoice.aggregate([
+      {
+        $lookup: {
+          from: "contacts", // The collection name for Contact model
+          localField: "user",
+          foreignField: "user",
+          as: "userContact",
+        },
+      },
+      {
+        $lookup: {
+          from: "contacts", // The collection name for Contact model
+          localField: "bio_user",
+          foreignField: "user",
+          as: "bioUserContact",
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // The collection name for User model
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // The collection name for User model
+          localField: "bio_user",
+          foreignField: "_id",
+          as: "bioUserDetails",
+        },
+      },
+      {
+        $unwind: "$userContact",
+      },
+      {
+        $unwind: "$bioUserContact",
+      },
+      {
+        $unwind: "$bioUserDetails",
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $match: matchStage,
+      },
+      {
+        $project: {
+          _id: 1,
+          user: 1,
+          bio_user: 1,
+          bio_details: 1,
+          feedback: 1,
+          bio_input: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          userContact: {
+            _id: 1,
+            full_name: 1,
+            family_number: 1,
+            relation: 1,
+            bio_receiving_email: 1,
+          },
+          bioUserContact: {
+            _id: 1,
+            full_name: 1,
+            family_number: 1,
+            relation: 1,
+            bio_receiving_email: 1,
+          },
+          userDetails: {
+            user_id: 1,
+            user_status: 1,
+            email: 1,
+            points: 1,
+          },
+          bioUserDetails: {
+            user_id: 1,
+            user_status: 1,
+            email: 1,
+            points: 1,
+          },
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1, // Sort by `createdAt` in descending order
+        },
+      },
+      {
+        $skip: skip, // Skip the number of documents for pagination
+      },
+      {
+        $limit: limitNum, // Limit the number of documents returned
+      },
+    ]);
+
+    const totalCount = await BioChoice.countDocuments(matchStage); // Count total documents after filtering
+
+    res.status(200).json({
+      totalPages: Math.ceil(totalCount / limitNum),
+      currentPage: Number(page),
+      size: totalCount,
+      data: bioChoices,
+    });
+  }),
+
   getBioChoiceById: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;
     const bioChoice = await BioChoiceService.getBioChoiceById(id);

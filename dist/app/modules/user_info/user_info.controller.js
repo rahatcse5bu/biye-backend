@@ -62,6 +62,13 @@ exports.UserInfoController = {
             data: userInfo,
         });
     })),
+    sendUserEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const userEmail = yield (0, SendEmail_1.default)("", "", "");
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "email sent",
+        });
+    })),
     getUserInfoById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const id = req.params.id;
         const userInfo = yield user_info_services_1.UserInfoService.getUserInfoById(id);
