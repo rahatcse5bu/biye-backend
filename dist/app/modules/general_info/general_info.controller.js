@@ -155,13 +155,14 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     ];
     // Execute the aggregation pipeline
     const generalInfos = yield general_info_model_1.default.aggregate(pipeline);
+    const totalCount = yield general_info_model_1.default.countDocuments({ $and: andConditions });
     res.status(200).json({
         success: true,
         message: "All General info retrieved successfully",
         data: generalInfos,
         page: pageNumber,
         limit: limitNumber,
-        size: generalInfos.length,
+        size: totalCount,
     });
 }));
 const getGeneralInfoByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

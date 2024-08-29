@@ -156,6 +156,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 
   // Execute the aggregation pipeline
   const generalInfos = await GeneralInfo.aggregate(pipeline);
+  const totalCount = await GeneralInfo.countDocuments({ $and: andConditions });
 
   res.status(200).json({
     success: true,
@@ -163,7 +164,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     data: generalInfos,
     page: pageNumber,
     limit: limitNumber,
-    size: generalInfos.length,
+    size: totalCount,
   });
 });
 const getGeneralInfoByAdmin = catchAsync(
