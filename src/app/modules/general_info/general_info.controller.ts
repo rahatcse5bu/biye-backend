@@ -11,6 +11,161 @@ import UnFavorite from "../unfavorites/unfavorites.model";
 import ApiError from "../../middlewares/ApiError";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 
+// const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
+//   const {
+//     bio_type,
+//     marital_status,
+//     isFeatured,
+//     zilla,
+//     limit = 10,
+//     page = 1,
+//     user_status = "active",
+//     division,
+//     sortBy = "createdAt", // default sorting field
+//     sortOrder = "desc",
+//   } = req.query;
+
+//   const andConditions: any = [
+//     {
+//       "userDetails.user_status": user_status,
+//     },
+//   ];
+
+//   if (division !== "all") {
+//     if (zilla) {
+//       if (typeof zilla === "string") {
+//         andConditions.push({
+//           "address.zilla": { $in: zilla.split(",") },
+//         });
+//       } else if (Array.isArray(zilla)) {
+//         andConditions.push({
+//           "address.zilla": { $in: zilla },
+//         });
+//       }
+//     }
+
+//     if (division) {
+//       if (typeof division === "string") {
+//         andConditions.push({
+//           "address.division": { $in: division.split(",") },
+//         });
+//       } else if (Array.isArray(division)) {
+//         andConditions.push({
+//           "address.division": { $in: division },
+//         });
+//       }
+//     }
+//   }
+
+//   // console.log("division", division);
+//   // console.log("zilla", zilla);
+//   // console.log("andConditions", andConditions);
+
+//   // Parse limit and page to numbers
+//   const limitNumber = Number(limit);
+//   const pageNumber = Number(page);
+
+//   // Parse sort parameters
+//   const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
+//   const sortDirection = sortOrder === "asc" ? 1 : -1;
+
+//   // Parse isFeatured to boolean
+
+//   if (isFeatured) {
+//     // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
+//     const isFeaturedBool = isFeatured === "true";
+//     andConditions.push({
+//       isFeatured: isFeaturedBool,
+//     });
+//   }
+
+//   // Construct aggregation pipeline
+//   const pipeline: any = [
+//     {
+//       $lookup: {
+//         from: "users", // Collection name for User model
+//         localField: "user",
+//         foreignField: "_id",
+//         as: "userDetails",
+//       },
+//     },
+//     {
+//       $unwind: "$userDetails", // Unwind the joined user details
+//     },
+//     {
+//       $lookup: {
+//         from: "addresses", // Collection name for User model
+//         localField: "user",
+//         foreignField: "user",
+//         as: "address",
+//       },
+//     },
+//     {
+//       $unwind: "$address", // Unwind the joined user details
+//     },
+//     {
+//       $match: {
+//         $and: andConditions,
+//       },
+//     },
+//     // Optional match stage for additional filters
+//     ...(bio_type || marital_status
+//       ? [
+//           {
+//             $match: {
+//               ...(bio_type && { bio_type }),
+//               ...(marital_status && { marital_status }),
+//             },
+//           },
+//         ]
+//       : []),
+
+//     // Sort stage
+//     { $sort: { [sortField]: sortDirection } },
+
+//     // Pagination stages
+//     { $skip: limitNumber * (pageNumber - 1) },
+//     { $limit: limitNumber },
+//     // Optionally project to remove user details from final output if not needed
+//     {
+//       $project: {
+//         _id: 1, // Include _id of GeneralInfo
+//         user_id: "$userDetails.user_id", // Include user_id from User schema
+//         user: "$userDetails._id",
+//         upzilla: "$address.upzilla", // Include user_id from User schema
+
+//         bio_type: 1,
+//         date_of_birth: 1,
+//         height: 1,
+//         gender: 1,
+//         weight: 1,
+//         blood_group: 1,
+//         screen_color: 1,
+//         nationality: 1,
+//         marital_status: 1,
+//         views_count: 1,
+//         purchases_count: 1,
+//         isFbPosted: 1,
+//         isFeatured: 1,
+//         dislikes_count: 1,
+//         likes_count: 1,
+//         zilla: 1,
+//       },
+//     },
+//   ];
+
+//   // Execute the aggregation pipeline
+//   const generalInfos = await GeneralInfo.aggregate(pipeline);
+
+//   res.status(200).json({
+//     success: true,
+//     message: "All General info retrieved successfully",
+//     data: generalInfos,
+//     page: pageNumber,
+//     limit: limitNumber,
+//   });
+// });
+
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const {
     bio_type,
@@ -57,10 +212,6 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  // console.log("division", division);
-  // console.log("zilla", zilla);
-  // console.log("andConditions", andConditions);
-
   // Parse limit and page to numbers
   const limitNumber = Number(limit);
   const pageNumber = Number(page);
@@ -70,45 +221,42 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const sortDirection = sortOrder === "asc" ? 1 : -1;
 
   // Parse isFeatured to boolean
-
   if (isFeatured) {
-    // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
     const isFeaturedBool = isFeatured === "true";
     andConditions.push({
       isFeatured: isFeaturedBool,
     });
   }
 
-  // Construct aggregation pipeline
-  const pipeline: any = [
+  // Construct aggregation pipeline for counting total size
+  const countPipeline: any = [
     {
       $lookup: {
-        from: "users", // Collection name for User model
+        from: "users",
         localField: "user",
         foreignField: "_id",
         as: "userDetails",
       },
     },
     {
-      $unwind: "$userDetails", // Unwind the joined user details
+      $unwind: "$userDetails",
     },
     {
       $lookup: {
-        from: "addresses", // Collection name for User model
+        from: "addresses",
         localField: "user",
         foreignField: "user",
         as: "address",
       },
     },
     {
-      $unwind: "$address", // Unwind the joined user details
+      $unwind: "$address",
     },
     {
       $match: {
         $and: andConditions,
       },
     },
-    // Optional match stage for additional filters
     ...(bio_type || marital_status
       ? [
           {
@@ -119,21 +267,63 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
           },
         ]
       : []),
+    {
+      $count: "totalCount",
+    },
+  ];
 
-    // Sort stage
+  // Get the total count
+  const totalResult = await GeneralInfo.aggregate(countPipeline);
+  const totalCount = totalResult.length > 0 ? totalResult[0].totalCount : 0;
+
+  // Construct aggregation pipeline for actual data retrieval
+  const dataPipeline: any = [
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: "$userDetails",
+    },
+    {
+      $lookup: {
+        from: "addresses",
+        localField: "user",
+        foreignField: "user",
+        as: "address",
+      },
+    },
+    {
+      $unwind: "$address",
+    },
+    {
+      $match: {
+        $and: andConditions,
+      },
+    },
+    ...(bio_type || marital_status
+      ? [
+          {
+            $match: {
+              ...(bio_type && { bio_type }),
+              ...(marital_status && { marital_status }),
+            },
+          },
+        ]
+      : []),
     { $sort: { [sortField]: sortDirection } },
-
-    // Pagination stages
     { $skip: limitNumber * (pageNumber - 1) },
     { $limit: limitNumber },
-    // Optionally project to remove user details from final output if not needed
     {
       $project: {
-        _id: 1, // Include _id of GeneralInfo
-        user_id: "$userDetails.user_id", // Include user_id from User schema
+        _id: 1,
+        user_id: "$userDetails.user_id",
         user: "$userDetails._id",
-        upzilla: "$address.upzilla", // Include user_id from User schema
-
+        upzilla: "$address.upzilla",
         bio_type: 1,
         date_of_birth: 1,
         height: 1,
@@ -154,9 +344,8 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     },
   ];
 
-  // Execute the aggregation pipeline
-  const generalInfos = await GeneralInfo.aggregate(pipeline);
-  const totalCount = await GeneralInfo.countDocuments({ $and: andConditions });
+  // Execute the aggregation pipeline for data retrieval
+  const generalInfos = await GeneralInfo.aggregate(dataPipeline);
 
   res.status(200).json({
     success: true,
@@ -164,9 +353,10 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     data: generalInfos,
     page: pageNumber,
     limit: limitNumber,
-    size: totalCount,
+    size: totalCount, // Include the total count in the response
   });
 });
+
 const getGeneralInfoByAdmin = catchAsync(
   async (req: Request, res: Response) => {
     const {
