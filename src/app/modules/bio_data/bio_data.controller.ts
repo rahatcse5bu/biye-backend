@@ -27,6 +27,13 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
+  if (user && ["banned", "inactive"].includes(user.user_status)) {
+    return res.status(404).json({
+      message: "User not found",
+      success: false,
+    });
+  }
+
   // console.log(user);
 
   const userId = user._id;

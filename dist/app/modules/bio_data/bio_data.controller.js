@@ -37,6 +37,12 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
             success: false,
         });
     }
+    if (user && ["banned", "inactive"].includes(user.user_status)) {
+        return res.status(404).json({
+            message: "User not found",
+            success: false,
+        });
+    }
     // console.log(user);
     const userId = user._id;
     const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
