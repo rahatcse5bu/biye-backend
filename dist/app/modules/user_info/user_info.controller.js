@@ -53,6 +53,7 @@ const user_info_services_1 = require("./user_info.services");
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const user_info_constant_1 = require("./user_info.constant");
 const SendEmail_1 = __importStar(require("../../../shared/SendEmail"));
+const generateEmailTemplate_1 = __importDefault(require("../../../utils/generateEmailTemplate"));
 exports.UserInfoController = {
     getAllUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const userInfo = yield user_info_services_1.UserInfoService.getAllUserInfo();
@@ -63,10 +64,12 @@ exports.UserInfoController = {
         });
     })),
     sendUserEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const userEmail = yield (0, SendEmail_1.default)("", "", "");
+        const email = req.params.email;
+        const { subject, body } = req.body;
+        yield (0, SendEmail_1.default)(email, subject, (0, generateEmailTemplate_1.default)(subject, body));
         res.status(http_status_1.default.OK).json({
             success: true,
-            message: "email sent",
+            message: "email is sent",
         });
     })),
     getUserInfoById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

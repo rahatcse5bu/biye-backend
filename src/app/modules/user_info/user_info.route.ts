@@ -18,6 +18,9 @@ userRouter
   .route("/verify-token")
   .get(auth("admin", "user"), UserInfoController.verifyTokenByUser);
 userRouter.route("/status/:id").get(UserInfoController.getUserStatus);
+userRouter
+  .route("/user-email/:email")
+  .post(auth("admin"), UserInfoController.sendUserEmail);
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter
   .route("/create-login-user")

@@ -7,6 +7,7 @@ import { UserInfoService } from "./user_info.services";
 import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
 import sendEmail, { sendEmails } from "../../../shared/SendEmail";
+import generateEmailTemplate from "../../../utils/generateEmailTemplate";
 
 export const UserInfoController = {
   getAllUserInfo: catchAsync(async (req: Request, res: Response) => {
@@ -17,11 +18,14 @@ export const UserInfoController = {
       data: userInfo,
     });
   }),
+
   sendUserEmail: catchAsync(async (req: Request, res: Response) => {
-    const userEmail = await sendEmail("", "", "");
+    const email = req.params.email;
+    const { subject, body } = req.body;
+    await sendEmail(email, subject, generateEmailTemplate(subject, body));
     res.status(httpStatus.OK).json({
       success: true,
-      message: "email sent",
+      message: "email is sent",
     });
   }),
 
