@@ -34,8 +34,6 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  // console.log(user);
-
   const userId = user._id;
   const generalInfo = await GeneralInfo.findOne({ user: userId }).lean();
   const address = await Address.findOne({ user: userId }).lean();

@@ -9,6 +9,9 @@ userRouter
   .route("/")
   .put(auth("user", "admin"), UserInfoController.updateUserInfo);
 userRouter
+  .route("/update-status")
+  .put(auth("user", "admin"), UserInfoController.updateUserStatusByUser);
+userRouter
   .route("/admin/:bioId")
   .put(auth("admin"), UserInfoController.updateUserInfoByAdmin);
 userRouter

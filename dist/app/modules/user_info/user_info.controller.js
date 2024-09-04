@@ -553,9 +553,230 @@ exports.UserInfoController = {
             data: updatedUserInfo,
         });
     })),
-    updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _c;
         const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const { user_status } = req.body;
+        const userInfo = { user_status };
+        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, userInfo);
+        if (!updatedUserInfo) {
+            res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "User info not found",
+            });
+        }
+        const adminHtml = `
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bio Data Inactivation Notification</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+  }
+  .header {
+    background-color: #ff4500;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    text-align: center;
+    font-size: 24px;
+  }
+  .content {
+    padding: 20px;
+    color: #555555;
+    line-height: 1.6;
+  }
+  .content strong {
+    color: #333333;
+  }
+  .footer {
+    padding: 10px 20px;
+    background-color: #f4f4f4;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    text-align: center;
+    font-size: 12px;
+    color: #aaaaaa;
+  }
+  .button {
+    display: block;
+    width: 200px;
+    margin: 20px auto;
+    padding: 10px;
+    background-color: #ff4500;
+    color: #ffffff;
+    text-align: center;
+    border-radius: 5px;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+    <table class="main-table">
+      <tr>
+        <td class="header">
+          Admin Notification
+        </td>
+      </tr>
+      <tr>
+        <td class="content">
+          <p>Dear Admin,</p>
+          <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has changed his/her bio-data status.</p>
+          <p><strong>Now, Current Status:</strong> ${user_status}</p>
+          <p><strong>Submitted Data:</strong></p>
+          <ul>
+            ${req.body &&
+            Object.keys(req.body).length &&
+            Object.keys(req.body)
+                .map((field) => `<li>${field}: ${req.body[field]}</li>`)
+                .join("")}
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td class="footer">
+          &copy; 2024 PNC Nikah. All rights reserved.
+        </td>
+      </tr>
+    </table>
+    </body>
+    </html>
+  `;
+        const userHtml = `
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bio Data Inactivation Notification</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 5px;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+}
+.header {
+  background-color: #ff4500;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  text-align: center;
+  font-size: 24px;
+}
+.content {
+  padding: 20px;
+  color: #555555;
+  line-height: 1.6;
+}
+.content strong {
+  color: #333333;
+}
+.footer {
+  padding: 10px 20px;
+  background-color: #f4f4f4;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  text-align: center;
+  font-size: 12px;
+  color: #aaaaaa;
+}
+.button {
+  display: block;
+  width: 200px;
+  margin: 20px auto;
+  padding: 10px;
+  background-color: #ff4500;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 5px;
+  text-decoration: none;
+}
+</style>
+</head>
+<body>
+  <table class="main-table">
+    <tr>
+      <td class="header">
+        
+      </td>
+    </tr>
+    <tr>
+      <td class="content">
+        <p>Dear <strong>Sir/Mam</strong>,</p>
+        <p>Your bio-data status has been changed to ${user_status}</p>
+        <p><strong>Now Current Status:</strong> ${user_status}</p>
+        <p><strong>Submitted Data:</strong></p>
+        <ul>
+          ${req.body &&
+            Object.keys(req.body).length &&
+            Object.keys(req.body)
+                .map((field) => `<li>${field}: ${req.body[field]}</li>`)
+                .join("")}
+        </ul>
+        <p>Thank you for your patience.</p>
+      </td>
+    </tr>
+    <tr>
+     check your bio-data status <a href="https://admin.pnc-nikah.com/user/account/dashboard">https://admin.pnc-nikah.com/user/account/dashboard</a>
+    </tr>
+    <tr>
+      <td class="footer">
+        &copy; 2024 PNC Nikah. All rights reserved.
+      </td>
+    </tr>
+  </table> </body></html>
+  
+  `;
+        yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
+        yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "User status updated successfully",
+        });
+    })),
+    updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _d;
+        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -768,8 +989,8 @@ exports.UserInfoController = {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _e;
+        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

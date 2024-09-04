@@ -43,7 +43,6 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
             success: false,
         });
     }
-    // console.log(user);
     const userId = user._id;
     const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
     const address = yield address_model_1.default.findOne({ user: userId }).lean();
