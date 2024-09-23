@@ -2,29 +2,34 @@
 import { model, Schema } from "mongoose";
 import { IUserInfo } from "./user_info.interface";
 
-const userInfoSchema = new Schema<IUserInfo>({
-  user_id: {
-    type: Number,
-    required: true,
-    unique: true,
+const userInfoSchema = new Schema<IUserInfo>(
+  {
+    user_id: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
+    user_status: {
+      type: String,
+      required: false,
+      enum: ["pending", "active", "in review", "inactive", "banned"],
+      default: "pending",
+    },
+    email: { type: String, required: true, unique: true },
+    user_role: {
+      type: String,
+      required: false,
+      enum: ["admin", "user"],
+      default: "user",
+    },
+    edited_timeline_index: { type: Number, required: false, default: 1 },
+    points: { type: Number, required: false, default: 0 },
+    last_edited_timeline_index: { type: Number, default: 0 },
   },
-  user_status: {
-    type: String,
-    required: false,
-    enum: ["pending", "active", "in review", "inactive", "banned"],
-    default: "pending",
-  },
-  email: { type: String, required: true, unique: true },
-  user_role: {
-    type: String,
-    required: false,
-    enum: ["admin", "user"],
-    default: "user",
-  },
-  edited_timeline_index: { type: Number, required: false, default: 1 },
-  points: { type: Number, required: false, default: 0 },
-  last_edited_timeline_index: { type: Number, default: 0 },
-});
+  {
+    timestamps: true,
+  }
+);
 
 // userInfoSchema.pre("save", async function (next) {
 //   if (!this.isNew) {

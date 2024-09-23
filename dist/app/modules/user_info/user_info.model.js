@@ -25,6 +25,8 @@ const userInfoSchema = new mongoose_1.Schema({
     edited_timeline_index: { type: Number, required: false, default: 1 },
     points: { type: Number, required: false, default: 0 },
     last_edited_timeline_index: { type: Number, default: 0 },
+}, {
+    timestamps: true,
 });
 // userInfoSchema.pre("save", async function (next) {
 //   if (!this.isNew) {

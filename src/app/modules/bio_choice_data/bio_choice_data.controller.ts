@@ -10,6 +10,8 @@ import BioChoice from "./bio_choice_data.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 import sendEmail from "../../../shared/SendEmail";
 import { getCurrentTime } from "../../../shared/time";
+import { UserInfoService } from "../user_info/user_info.services";
+import { getFooter } from "../../../shared/getFooter";
 
 export const BioChoiceController = {
   getAllBioChoices: catchAsync(async (req: Request, res: Response) => {
@@ -439,7 +441,7 @@ export const BioChoiceController = {
 
   getBioChoiceDataOfShare: catchAsync(async (req: Request, res: Response) => {
     const bio_user = req.user?._id;
-    // console.log("bio_user~~", bio_user);
+
     if (!bio_user) {
       return res.status(httpStatus.UNAUTHORIZED).json({
         statusCode: httpStatus.UNAUTHORIZED,
@@ -447,53 +449,110 @@ export const BioChoiceController = {
         success: false,
       });
     }
+
     const mongoId = new mongoose.Types.ObjectId(String(bio_user));
+
+    // const bioChoices = await BioChoice.find({
+    //   bio_user: mongoId,
+    // });
+    // console.log("bioChoices", bioChoices);
+    // const data: any = await BioChoice.aggregate([
+    //   { $match: { bio_user: mongoId } },
+    //   {
+    //     $lookup: {
+    //       from: "generalinfos",
+    //       localField: "user",
+    //       foreignField: "user",
+    //       as: "general_info",
+    //     },
+    //   },
+    //   { $unwind: "$general_info" },
+    //   {
+    //     $lookup: {
+    //       from: "addresses",
+    //       localField: "user",
+    //       foreignField: "user",
+    //       as: "address",
+    //     },
+    //   },
+    //   {
+    //     $unwind: {
+    //       path: "$address",
+    //       preserveNullAndEmptyArrays: true, // Allows address to be null
+    //     },
+    //   },
+    //   {
+    //     $lookup: {
+    //       from: "users",
+    //       localField: "user",
+    //       foreignField: "_id",
+    //       as: "users",
+    //     },
+    //   },
+    //   {
+    //     $unwind: {
+    //       path: "$users",
+    //       preserveNullAndEmptyArrays: true, // Also allow users to be null
+    //     },
+    //   },
+    //   {
+    //     $project: {
+    //       user_id: "$users.user_id",
+    //       user: "$users._id",
+    //       date_of_birth: "$general_info.date_of_birth",
+    //       status: 1,
+    //       feedback: 1,
+    //       bio_details: 1,
+    //       present_address: { $ifNull: ["$address.present_address", null] },
+    //       city: { $ifNull: ["$address.city", null] },
+    //       present_area: { $ifNull: ["$address.present_area", null] },
+    //     },
+    //   },
+    // ]);
+
+    // res.json(sendSuccess("Retrieve bio share successfully", data, 200));
+
     const data: any = await BioChoice.aggregate([
       { $match: { bio_user: mongoId } },
       {
         $lookup: {
-          from: "generalinfos", // Name of the GeneralInfo collection
+          from: "generalinfos",
           localField: "user",
           foreignField: "user",
           as: "general_info",
         },
       },
-      { $unwind: "$general_info" },
       {
         $lookup: {
-          from: "addresses", // Name of the Address collection
+          from: "addresses",
           localField: "user",
           foreignField: "user",
           as: "address",
         },
       },
-      { $unwind: "$address" },
       {
         $lookup: {
-          from: "users", // Name of the Address collection
+          from: "users",
           localField: "user",
           foreignField: "_id",
           as: "users",
         },
       },
-      { $unwind: "$users" },
       {
         $project: {
-          user_id: "$users.user_id",
-          user: "$users._id",
-          date_of_birth: "$general_info.date_of_birth",
+          user_id: { $arrayElemAt: ["$users.user_id", 0] },
+          user: { $arrayElemAt: ["$users._id", 0] },
+          date_of_birth: { $arrayElemAt: ["$general_info.date_of_birth", 0] },
           status: 1,
           feedback: 1,
           bio_details: 1,
-          present_address: "$address.present_address",
-          city: "$address.city",
-          present_area: "$address.present_area",
+          present_address: { $arrayElemAt: ["$address.present_address", 0] },
+          city: { $arrayElemAt: ["$address.city", 0] },
+          present_area: { $arrayElemAt: ["$address.present_area", 0] },
         },
       },
     ]);
-    // const data = await BioChoice.findOne({
-    //   bio_user,
-    // });
+
     res.json(sendSuccess("Retrieve bio share successfully", data, 200));
   }),
 
@@ -754,7 +813,6 @@ export const BioChoiceController = {
                     <h2>Dear Sir/Mam,</h2>
                     <p>We are pleased to inform you that your purchase of the <strong>"Bio 1st Step"</strong> has been successfully completed. A total of 30 points have been deducted from your account for this transaction.</p>
                     <div class="details">
-                        <p><strong>ChoiceId: ${response._id}</strong></p>
                         <p>Item Purchased: Bio 1st Step</p>
                         <p>Bio ID: ${bioUserInfo.user_id}</p>
                         <p>Points Deducted: 30 points</p>
@@ -904,6 +962,8 @@ export const BioChoiceController = {
   ),
   updateBioChoice: catchAsync(async (req: Request, res: Response) => {
     const bio_user = req.user?._id;
+    const { type } = req.query;
+
     const { user, ...others } = req.body;
     if (!bio_user) {
       return res.status(httpStatus.UNAUTHORIZED).json({
@@ -917,18 +977,273 @@ export const BioChoiceController = {
       { bio_user, user },
       others
     );
+
     if (!updatedBioChoice) {
       res.status(httpStatus.NOT_FOUND).json({
         success: false,
         message: "BioChoice not found",
       });
-    } else {
-      res.status(httpStatus.OK).json({
-        success: true,
-        message: "BioChoice updated successfully",
-        data: updatedBioChoice,
-      });
     }
+    let html = "";
+    let subject = "";
+
+    const bioUser = await UserInfoService.getUserInfoById(bio_user);
+    const userData = await UserInfoService.getUserInfoById(user);
+    let status = others?.status;
+    if (type === "feedback" && bio_user) {
+      html = `
+        <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #4f46e5;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        color:white;
+      }
+      .header {
+        text-align: center;
+        padding-bottom: 20px;
+      }
+      .header h1 {
+        color: #fff;
+        font-size: 24px;
+      }
+      .content {
+        line-height: 1.6;
+        color: #fff;
+      }
+      .content p {
+        margin-bottom: 15px;
+      }
+      .content a {
+        display: inline-block;
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 12px;
+        color: #ffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>You've Received Feedback from Bio-data NO: ${bioUser?.user_id}</h1>
+      </div>
+      <div class="content">
+        <p>Dear Sir/Mam,</p>
+        <p>I wanted to let you know that you’ve received feedback from <strong>Bio-data NO: ${
+          bioUser?.user_id
+        }</strong>.</p>
+        <div style="background-color: #3730a3;padding:10px;border-radius:10px;">
+          <strong>Feedback:</strong>
+          <p >
+          ${others?.feedback}            
+          </p>
+        </div>
+        <p>If you have any questions or need further clarification, don’t hesitate to reach out.</p>
+        <a href="https://pnc-nikah.com/user/account/purchases">View Feedback of Bio-data NO: ${
+          bioUser?.user_id
+        }</a>
+      </div>
+     ${getFooter()}
+    </div>
+  </body>
+  </html>      
+        `;
+      subject = `You've Received Feedback from Bio-data NO: ${bioUser?.user_id} `;
+    } else if (type === "status" && status) {
+      if (status === "accepted" || status === "approved") {
+        html = `
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>>Bio Choice 1st steps Status - Accepted from Bio-data NO: ${
+    bioUser?.user_id
+  }</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #3730a3;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      color:#fff;
+    }
+    .header h1 {
+      color: #28a745;
+      font-size: 24px;
+    }
+    .content {
+      line-height: 1.6;
+      color: #fff !important;
+    }
+    .content a {
+        display: inline-block;
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    .content p {
+      margin-bottom: 15px;
+      color:#fff;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color:#fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Congratulations, You're Accepted!</h1>
+    </div>
+    <div class="content">
+      <p>Dear Sir/Mam,</p>
+      <p>We are pleased to inform you that your Bio-data has been <strong>accepted</strong> by Bio-data NO: ${
+        bioUser?.user_id
+      }.</p>
+      <p>Feel free to proceed with the next 2nd steps. If you have any questions, please do not hesitate to reach out to us.</p>
+       <a href="https://pnc-nikah.com/biodata/${
+         bioUser?.user_id
+       }">View Bio-data NO: ${bioUser?.user_id}</a>
+    </div>
+    {${getFooter()}}
+  </div>
+</body>
+</html>
+
+        `;
+        subject = `Bio Choice 1st steps Status - Accepted from Bio-data NO: ${bioUser?.user_id}`;
+      } else if (status === "rejected") {
+        html = `
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Choice 1st steps Status - Rejected from Bio-data NO: ${
+    bioUser?.user_id
+  }</title>
+  <style>
+     body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #3730a3;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #e74c3c;
+      font-size: 24px;
+    }
+    .content {
+      line-height: 1.6;
+      color: #ffff;
+    }
+    .content p {
+      margin-bottom: 15px;
+    }
+    .content a {
+        display: inline-block;
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 14px;
+      color: #ffff;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Application Status: Rejected</h1>
+    </div>
+    <div class="content">
+      <p>Dear Sir/mam,</p>
+      <p>We regret to inform you that your Bio data has been <strong>rejected</strong> by Bio-data NO : ${
+        bioUser?.user_id
+      } .</p>
+
+      <a href="https://pnc-nikah.com/biodata/${
+        bioUser?.user_id
+      }">View Bio-data NO: ${bioUser?.user_id}</a>
+    </div>
+    ${getFooter()}
+  </div>
+</body>
+</html> 
+        `;
+        subject = `Bio Choice 1st steps Status - Rejected from Bio-data NO: ${bioUser?.user_id}`;
+      }
+    }
+    // console.log("userData", userData);
+    // console.log("bioUser", bioUser);
+
+    if (userData && html && subject) {
+      await sendEmail(userData.email, subject, html);
+    }
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "BioChoice updated successfully",
+      data: updatedBioChoice,
+    });
   }),
 
   deleteBioChoice: catchAsync(async (req: Request, res: Response) => {
