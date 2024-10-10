@@ -14,12 +14,12 @@ jobs:
       - name: Use Node.js 16
         uses: actions/setup-node@v2
         with:
-          node-version: "16"
+          node-version: "18"
 
       - name: 📂 Sync files
         uses: SamKirkland/FTP-Deploy-Action@4.3.3
         with:
-          username: "server-pnc-nikah@server.pnc-nikah.com"
+          username: "pncserver@server.pncnikah.com"
           server: "ftp.pncsoft.tech"
-          password: "ipv5J5PpHnl3"
+          password: "Jyl$BCZ;mI7c"
           port: 21

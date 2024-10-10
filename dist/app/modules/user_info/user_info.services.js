@@ -60,11 +60,6 @@ exports.UserInfoService = {
     createUserForGoogleSignIn: (userInfo) => __awaiter(void 0, void 0, void 0, function* () {
         const { email } = userInfo;
         // Upsert user document based on email
-        // const updatedUser: any = await UserInfoModel.findOneAndUpdate(
-        //   { email },
-        //   userInfo,
-        //   { new: true, upsert: true, setDefaultsOnInsert: true }
-        // ).lean();
         let user = yield user_info_model_1.UserInfoModel.findOne({ email }).lean();
         if (!user) {
             user = yield exports.UserInfoService.createUserInfo(userInfo);
@@ -75,6 +70,9 @@ exports.UserInfoService = {
             }, config_1.default.jwt_secret, "30d") });
     }),
     updateUserInfo: (id, userInfo) => __awaiter(void 0, void 0, void 0, function* () {
+        return user_info_model_1.UserInfoModel.findByIdAndUpdate(id, userInfo, { new: true }).exec();
+    }),
+    updateUserInfoForFCM: (id, userInfo) => __awaiter(void 0, void 0, void 0, function* () {
         return user_info_model_1.UserInfoModel.findByIdAndUpdate(id, userInfo, { new: true }).exec();
     }),
     deleteUserInfo: (id) => __awaiter(void 0, void 0, void 0, function* () {

@@ -4,7 +4,7 @@ exports.getFooter = void 0;
 const getFooter = () => {
     return `
    <footer style="background-color: #3730a3; padding: 20px; text-align: center; font-family: Arial, sans-serif; margin-top:20px; border-radius:10px">
-   <a href="https://pnc-nikah.com/biodatas?page=1&limit=12&user_status=active"><img src="https://i.ibb.co.com/hMG0bbn/download.png" style="border-radius:5px"/></a>
+   <a href="https://pnc-nikah.com/biodatas?page=1&limit=12&user_status=active"><img src="https://i.ibb.co.com/hMG0bbn/download.png" style="border-radius:5px;width:100px;height:50px;"/></a>
       <p style="color: #fff;font-weight:bold">&copy; ${new Date().getFullYear()} PNC-Nikah. All rights reserved.</p>
       <p style="color: #fff; font-size: 12px;">
    <address style="margin-bottom:5px;color:#fff">PNC-Nikah, Barishal,Bangladesh</address>

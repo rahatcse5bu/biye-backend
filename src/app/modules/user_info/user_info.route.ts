@@ -9,6 +9,9 @@ userRouter
   .route("/")
   .put(auth("user", "admin"), UserInfoController.updateUserInfo);
 userRouter
+  .route("/fcm")
+  .put(auth("user", "admin"), UserInfoController.updateUserInfoForFCM);
+userRouter
   .route("/update-status")
   .put(auth("user", "admin"), UserInfoController.updateUserStatusByUser);
 userRouter

@@ -10,4 +10,6 @@ export interface IUserInfo extends Document {
   edited_timeline_index: number;
   points: number;
   last_edited_timeline_index: number;
+  gender?: string;
+  fcmToken?: string;
 }

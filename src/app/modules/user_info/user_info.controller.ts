@@ -535,6 +535,38 @@ export const UserInfoController = {
       data: updatedUserInfo,
     });
   }),
+  updateUserInfoForFCM: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    if (!id) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: "You are not authorized",
+        success: false,
+      });
+    }
+    const { gender, fcmToken } = req.body;
+    const updateData: Partial<IUserInfo> = {
+      gender,
+      fcmToken,
+    };
+
+    const updatedUserInfo: any = await UserInfoService.updateUserInfoForFCM(
+      id,
+      updateData
+    );
+    if (!updatedUserInfo) {
+      res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "User info not found",
+      });
+    }
+
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "User info updated successfully",
+      data: updatedUserInfo,
+    });
+  }),
   updateUserStatusByUser: catchAsync(async (req: Request, res: Response) => {
     const id = req.user?._id;
     if (!id) {

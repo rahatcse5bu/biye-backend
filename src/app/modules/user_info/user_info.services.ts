@@ -61,11 +61,7 @@ export const UserInfoService = {
   ): Promise<IUserInfo> => {
     const { email } = userInfo;
     // Upsert user document based on email
-    // const updatedUser: any = await UserInfoModel.findOneAndUpdate(
-    //   { email },
-    //   userInfo,
-    //   { new: true, upsert: true, setDefaultsOnInsert: true }
-    // ).lean();
+
     let user: any = await UserInfoModel.findOne({ email }).lean();
 
     if (!user) {
@@ -88,6 +84,12 @@ export const UserInfoService = {
   updateUserInfo: async (
     id: string,
     userInfo: IUserInfo
+  ): Promise<IUserInfo | null> => {
+    return UserInfoModel.findByIdAndUpdate(id, userInfo, { new: true }).exec();
+  },
+  updateUserInfoForFCM: async (
+    id: string,
+    userInfo: Partial<IUserInfo>
   ): Promise<IUserInfo | null> => {
     return UserInfoModel.findByIdAndUpdate(id, userInfo, { new: true }).exec();
   },

@@ -13,6 +13,9 @@ userRouter
     .route("/")
     .put((0, auth_1.auth)("user", "admin"), user_info_controller_1.UserInfoController.updateUserInfo);
 userRouter
+    .route("/fcm")
+    .put((0, auth_1.auth)("user", "admin"), user_info_controller_1.UserInfoController.updateUserInfoForFCM);
+userRouter
     .route("/update-status")
     .put((0, auth_1.auth)("user", "admin"), user_info_controller_1.UserInfoController.updateUserStatusByUser);
 userRouter

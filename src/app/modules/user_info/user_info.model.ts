@@ -25,6 +25,13 @@ const userInfoSchema = new Schema<IUserInfo>(
     edited_timeline_index: { type: Number, required: false, default: 1 },
     points: { type: Number, required: false, default: 0 },
     last_edited_timeline_index: { type: Number, default: 0 },
+    gender: {
+      type: String,
+    },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
