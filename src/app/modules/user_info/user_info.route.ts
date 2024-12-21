@@ -31,6 +31,11 @@ userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
 userRouter
   .route("/create-login-user")
   .post(verifyIdToken, UserInfoController.createUserForGoogleSignIn);
+
+// app
+userRouter
+  .route("/create-login-user/app")
+  .post(UserInfoController.createUserForGoogleSignIn);
 // userRouter.route("/:id").get(UserInfoController.getSingleUserInfo);
 
 export default userRouter;

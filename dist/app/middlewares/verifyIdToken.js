@@ -29,6 +29,7 @@ const verifyIdToken = (req, res, next) => __awaiter(void 0, void 0, void 0, func
         });
     }
     const token = authorizationHeader.split(" ")[1];
+    console.log("token~~", token);
     try {
         const decodedToken = yield firebase_admin_1.default.auth().verifyIdToken(token);
         req.user = decodedToken;
