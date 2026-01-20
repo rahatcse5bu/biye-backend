@@ -25,6 +25,7 @@ const family_status_route_1 = __importDefault(require("./app/modules/family_stat
 const expected_lifepartner_route_1 = __importDefault(require("./app/modules/expected_lifepartner/expected_lifepartner.route"));
 const educational_qualification_route_1 = __importDefault(require("./app/modules/educational_qualification/educational_qualification.route"));
 const bio_choice_data_route_1 = __importDefault(require("./app/modules/bio_choice_data/bio_choice_data.route"));
+const bio_questions_route_1 = __importDefault(require("./app/modules/bio_questions/bio_questions.route"));
 const address_route_1 = __importDefault(require("./app/modules/address/address.route"));
 const contact_route_1 = __importDefault(require("./app/modules/contact/contact.route"));
 const payments_route_1 = __importDefault(require("./app/modules/payments/payments.route"));
@@ -101,6 +102,7 @@ app.use("/api/v1/family-status", family_status_route_1.default);
 app.use("/api/v1/expected-life-partner", expected_lifepartner_route_1.default);
 app.use("/api/v1/educational-qualification", educational_qualification_route_1.default);
 app.use("/api/v1/bio-choice-data", bio_choice_data_route_1.default);
+app.use("/api/v1/bio-questions", bio_questions_route_1.default);
 app.use("/api/v1/address", address_route_1.default);
 app.use("/api/v1/contact", contact_route_1.default);
 app.use("/api/v1/favorites", favourites_route_1.default);
