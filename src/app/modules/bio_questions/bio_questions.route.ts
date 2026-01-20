@@ -19,8 +19,8 @@ BioQuestionRouter.route("/my-questions").get(
 
 // Create or update questions
 BioQuestionRouter.route("/").post(
-  validateRequest(BioQuestionValidation.upsertQuestions),
   auth("user", "admin"),
+  validateRequest(BioQuestionValidation.upsertQuestions),
   BioQuestionController.upsertQuestions
 );
 
