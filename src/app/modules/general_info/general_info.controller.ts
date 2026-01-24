@@ -21,8 +21,23 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     page = 1,
     user_status = "active",
     division,
-    sortBy = "createdAt", // default sorting field
+    sortBy = "createdAt",
     sortOrder = "desc",
+    // New filter parameters
+    gender,
+    minAge,
+    maxAge,
+    minHeight,
+    maxHeight,
+    complexion, // screen_color
+    education_medium,
+    deeni_edu,
+    occupation,
+    fiqh,
+    economic_status,
+    categories,
+    permanent_address,
+    current_upzilla,
   } = req.query;
 
   const andConditions: any = [
@@ -31,6 +46,53 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     },
   ];
 
+  // Gender filter
+  if (gender) {
+    andConditions.push({ gender });
+  }
+
+  // Age filter (calculated from date_of_birth)
+  if (minAge || maxAge) {
+    const ageConditions: any = {};
+    if (maxAge) {
+      const minDate = new Date();
+      minDate.setFullYear(minDate.getFullYear() - Number(maxAge));
+      ageConditions.$gte = minDate;
+    }
+    if (minAge) {
+      const maxDate = new Date();
+      maxDate.setFullYear(maxDate.getFullYear() - Number(minAge));
+      ageConditions.$lte = maxDate;
+    }
+    if (Object.keys(ageConditions).length > 0) {
+      andConditions.push({ date_of_birth: ageConditions });
+    }
+  }
+
+  // Height filter
+  if (minHeight || maxHeight) {
+    const heightConditions: any = {};
+    if (minHeight) heightConditions.$gte = Number(minHeight);
+    if (maxHeight) heightConditions.$lte = Number(maxHeight);
+    if (Object.keys(heightConditions).length > 0) {
+      andConditions.push({ height: heightConditions });
+    }
+  }
+
+  // Complexion filter (screen_color)
+  if (complexion) {
+    if (typeof complexion === "string") {
+      andConditions.push({
+        screen_color: { $in: complexion.split(",") },
+      });
+    } else if (Array.isArray(complexion)) {
+      andConditions.push({
+        screen_color: { $in: complexion },
+      });
+    }
+  }
+
+  // Division and Zilla filter
   if (division !== "all") {
     if (zilla) {
       if (typeof zilla === "string") {
@@ -57,6 +119,24 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
+  // Current upzilla filter
+  if (current_upzilla) {
+    andConditions.push({
+      "address.upzilla": current_upzilla,
+    });
+  }
+
+  // Permanent address filter (searching in address fields)
+  if (permanent_address) {
+    andConditions.push({
+      $or: [
+        { "address.zilla": { $regex: permanent_address, $options: "i" } },
+        { "address.upzilla": { $regex: permanent_address, $options: "i" } },
+        { "address.post_office": { $regex: permanent_address, $options: "i" } },
+      ],
+    });
+  }
+
   // Parse limit and page to numbers
   const limitNumber = Number(limit);
   const pageNumber = Number(page);
@@ -71,6 +151,54 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     andConditions.push({
       isFeatured: isFeaturedBool,
     });
+  }
+
+  // Additional filter conditions for joined collections
+  const additionalMatches: any = {};
+
+  // Education medium filter
+  if (education_medium) {
+    if (typeof education_medium === "string") {
+      additionalMatches["education.education_medium"] = { $in: education_medium.split(",") };
+    } else if (Array.isArray(education_medium)) {
+      additionalMatches["education.education_medium"] = { $in: education_medium };
+    }
+  }
+
+  // Deeni education filter
+  if (deeni_edu) {
+    const deeniEduArray = typeof deeni_edu === "string" ? deeni_edu.split(",") : deeni_edu;
+    additionalMatches["education.deeni_edu"] = { $in: deeniEduArray };
+  }
+
+  // Occupation filter
+  if (occupation) {
+    const occupationArray = typeof occupation === "string" ? occupation.split(",") : occupation;
+    additionalMatches["occupation.occupation"] = { $in: occupationArray };
+  }
+
+  // Fiqh filter
+  if (fiqh) {
+    if (typeof fiqh === "string") {
+      additionalMatches["personalInfo.fiqh"] = { $in: fiqh.split(",") };
+    } else if (Array.isArray(fiqh)) {
+      additionalMatches["personalInfo.fiqh"] = { $in: fiqh };
+    }
+  }
+
+  // Economic status filter
+  if (economic_status) {
+    if (typeof economic_status === "string") {
+      additionalMatches["familyStatus.financial_situation"] = { $in: economic_status.split(",") };
+    } else if (Array.isArray(economic_status)) {
+      additionalMatches["familyStatus.financial_situation"] = { $in: economic_status };
+    }
+  }
+
+  // Categories filter
+  if (categories) {
+    const categoriesArray = typeof categories === "string" ? categories.split(",") : categories;
+    additionalMatches["personalInfo.my_categories"] = { $in: categoriesArray };
   }
 
   // Construct aggregation pipeline for counting total size
@@ -98,16 +226,61 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $unwind: "$address",
     },
     {
+      $lookup: {
+        from: "educationalqualifications",
+        localField: "user",
+        foreignField: "user",
+        as: "education",
+      },
+    },
+    {
+      $unwind: { path: "$education", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "occupations",
+        localField: "user",
+        foreignField: "user",
+        as: "occupation",
+      },
+    },
+    {
+      $unwind: { path: "$occupation", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "personalinfos",
+        localField: "user",
+        foreignField: "user",
+        as: "personalInfo",
+      },
+    },
+    {
+      $unwind: { path: "$personalInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "familystatuses",
+        localField: "user",
+        foreignField: "user",
+        as: "familyStatus",
+      },
+    },
+    {
+      $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
+    },
+    {
       $match: {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status
+    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
       ? [
           {
             $match: {
               ...(bio_type && { bio_type }),
               ...(marital_status && { marital_status }),
+              ...additionalMatches,
             },
           },
         ]
@@ -146,16 +319,61 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $unwind: "$address",
     },
     {
+      $lookup: {
+        from: "educationalqualifications",
+        localField: "user",
+        foreignField: "user",
+        as: "education",
+      },
+    },
+    {
+      $unwind: { path: "$education", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "occupations",
+        localField: "user",
+        foreignField: "user",
+        as: "occupation",
+      },
+    },
+    {
+      $unwind: { path: "$occupation", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "personalinfos",
+        localField: "user",
+        foreignField: "user",
+        as: "personalInfo",
+      },
+    },
+    {
+      $unwind: { path: "$personalInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "familystatuses",
+        localField: "user",
+        foreignField: "user",
+        as: "familyStatus",
+      },
+    },
+    {
+      $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
+    },
+    {
       $match: {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status
+    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
       ? [
           {
             $match: {
               ...(bio_type && { bio_type }),
               ...(marital_status && { marital_status }),
+              ...additionalMatches,
             },
           },
         ]
