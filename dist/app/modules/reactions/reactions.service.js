@@ -99,7 +99,7 @@ exports.ReactionService = {
                 {
                     $project: {
                         bio_id: "$user.user_id",
-                        bio_user: "$address.user",
+                        bio_user: "$general_info._id",
                         permanent_address: "$address.permanent_address",
                         date_of_birth: "$general_info.date_of_birth",
                         screen_color: "$general_info.screen_color",
@@ -153,7 +153,7 @@ exports.ReactionService = {
                 {
                     $project: {
                         bio_id: "$user.user_id",
-                        bio_user: "$address.user",
+                        bio_user: "$general_info._id",
                         permanent_address: "$address.permanent_address",
                         date_of_birth: "$general_info.date_of_birth",
                         screen_color: "$general_info.screen_color",
