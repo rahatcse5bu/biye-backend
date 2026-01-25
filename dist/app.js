@@ -31,6 +31,7 @@ const contact_route_1 = __importDefault(require("./app/modules/contact/contact.r
 const payments_route_1 = __importDefault(require("./app/modules/payments/payments.route"));
 const favourites_route_1 = __importDefault(require("./app/modules/favourites/favourites.route"));
 const bio_data_route_1 = __importDefault(require("./app/modules/bio_data/bio_data.route"));
+const reactions_route_1 = require("./app/modules/reactions/reactions.route");
 // import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 const cors_1 = __importDefault(require("cors"));
@@ -107,6 +108,7 @@ app.use("/api/v1/address", address_route_1.default);
 app.use("/api/v1/contact", contact_route_1.default);
 app.use("/api/v1/favorites", favourites_route_1.default);
 app.use("/api/v1/un-favorites", unfavorites_route_1.default);
+app.use("/api/v1/reactions", reactions_route_1.ReactionRoutes);
 app.use("/api/v1/payments", payments_route_1.default);
 app.use("/api/v1/bio-data", bio_data_route_1.default);
 app.use("/api/v1/bkash", bkash_route_1.default);
