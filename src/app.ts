@@ -17,6 +17,7 @@ import ContactRouter from "./app/modules/contact/contact.route";
 import PaymentsRouter from "./app/modules/payments/payments.route";
 import FavouritesRouter from "./app/modules/favourites/favourites.route";
 import BioDataRouter from "./app/modules/bio_data/bio_data.route";
+import { ReactionRoutes } from "./app/modules/reactions/reactions.route";
 // import RefundsRouter from "./app/modules/refunds/refunds.route";
 // @ts-ignore
 import cors from "cors";
@@ -108,6 +109,7 @@ app.use("/api/v1/address", AddressRouter);
 app.use("/api/v1/contact", ContactRouter);
 app.use("/api/v1/favorites", FavouritesRouter);
 app.use("/api/v1/un-favorites", UnFavouritesRouter);
+app.use("/api/v1/reactions", ReactionRoutes);
 app.use("/api/v1/payments", PaymentsRouter);
 app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/bkash", bkashRouter);
