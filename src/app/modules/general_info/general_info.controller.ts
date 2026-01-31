@@ -38,6 +38,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     categories,
     permanent_address,
     current_upzilla,
+    upazila,
+    current_division,
+    current_zilla,
   } = req.query;
 
   const andConditions: any = [
@@ -92,41 +95,87 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  // Division and Zilla filter
-  if (division !== "all") {
-    if (zilla) {
-      if (typeof zilla === "string") {
-        andConditions.push({
-          "address.zilla": { $in: zilla.split(",") },
-        });
-      } else if (Array.isArray(zilla)) {
-        andConditions.push({
-          "address.zilla": { $in: zilla },
-        });
-      }
-    }
-
-    if (division) {
-      if (typeof division === "string") {
-        andConditions.push({
-          "address.division": { $in: division.split(",") },
-        });
-      } else if (Array.isArray(division)) {
-        andConditions.push({
-          "address.division": { $in: division },
-        });
-      }
+  // Permanent Address Filters: Division, Zilla, Upazila
+  // Handle division filter (skip if "all")
+  if (division && division !== "all") {
+    if (typeof division === "string") {
+      andConditions.push({
+        "address.division": { $in: division.split(",") },
+      });
+    } else if (Array.isArray(division)) {
+      andConditions.push({
+        "address.division": { $in: division },
+      });
     }
   }
 
-  // Current upzilla filter
+  // Handle zilla (district) filter - independent of division
+  if (zilla) {
+    if (typeof zilla === "string") {
+      andConditions.push({
+        "address.zilla": { $in: zilla.split(",") },
+      });
+    } else if (Array.isArray(zilla)) {
+      andConditions.push({
+        "address.zilla": { $in: zilla },
+      });
+    }
+  }
+
+  // Handle upazila filter
+  if (upazila) {
+    if (typeof upazila === "string") {
+      andConditions.push({
+        "address.upzilla": { $in: upazila.split(",") },
+      });
+    } else if (Array.isArray(upazila)) {
+      andConditions.push({
+        "address.upzilla": { $in: upazila },
+      });
+    }
+  }
+
+  // Current/Present Address Filters
+  // Handle current division filter
+  if (current_division && current_division !== "all") {
+    if (typeof current_division === "string") {
+      andConditions.push({
+        "present_address.division": { $in: current_division.split(",") },
+      });
+    } else if (Array.isArray(current_division)) {
+      andConditions.push({
+        "present_address.division": { $in: current_division },
+      });
+    }
+  }
+
+  // Handle current zilla filter
+  if (current_zilla) {
+    if (typeof current_zilla === "string") {
+      andConditions.push({
+        "present_address.zilla": { $in: current_zilla.split(",") },
+      });
+    } else if (Array.isArray(current_zilla)) {
+      andConditions.push({
+        "present_address.zilla": { $in: current_zilla },
+      });
+    }
+  }
+
+  // Handle current upzilla filter
   if (current_upzilla) {
-    andConditions.push({
-      "address.upzilla": current_upzilla,
-    });
+    if (typeof current_upzilla === "string") {
+      andConditions.push({
+        "present_address.upzilla": { $in: current_upzilla.split(",") },
+      });
+    } else if (Array.isArray(current_upzilla)) {
+      andConditions.push({
+        "present_address.upzilla": { $in: current_upzilla },
+      });
+    }
   }
 
-  // Permanent address filter (searching in address fields)
+  // Permanent address filter (searching in address fields) - for text search
   if (permanent_address) {
     andConditions.push({
       $or: [
