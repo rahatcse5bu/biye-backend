@@ -41,6 +41,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     upazila,
     current_division,
     current_zilla,
+    // Religion filters
+    religion,
+    religious_type,
   } = req.query;
 
   const andConditions: any = [
@@ -52,6 +55,16 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   // Gender filter
   if (gender) {
     andConditions.push({ gender });
+  }
+
+  // Religion filter
+  if (religion) {
+    andConditions.push({ religion });
+  }
+
+  // Religious type filter
+  if (religious_type) {
+    andConditions.push({ religious_type });
   }
 
   // Age filter (calculated from date_of_birth)
