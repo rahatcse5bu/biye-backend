@@ -25,6 +25,7 @@ import config from "./config";
 import bkashRouter from "./app/modules/bkash/bkash.route";
 import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
+import AdminRouter from "./app/modules/admin/admin.route";
 import sendEmail from "./shared/SendEmail";
 import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -115,6 +116,7 @@ app.use("/api/v1/bio-data", BioDataRouter);
 app.use("/api/v1/bkash", bkashRouter);
 // app.use("/api/v1/refund", RefundsRouter);
 app.use("/api/v1/contact-purchase-data", ContactPurchaseDataRouter);
+app.use("/api/admin", AdminRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
