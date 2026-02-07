@@ -2,12 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const admin_controller_1 = require("./admin.controller");
-const admin_middleware_1 = require("./admin.middleware");
+const auth_1 = require("../../middlewares/auth");
 const router = (0, express_1.Router)();
-// Auth
-router.post('/login', admin_middleware_1.adminLogin);
 // Apply admin auth middleware to all routes below
-router.use(admin_middleware_1.adminAuth);
+router.use((0, auth_1.auth)("admin"));
 // Dashboard
 router.get('/dashboard/stats', admin_controller_1.AdminController.getDashboardStats);
 // User Management

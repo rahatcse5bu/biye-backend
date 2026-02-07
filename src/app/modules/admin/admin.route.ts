@@ -1,14 +1,11 @@
 import { Router } from "express";
 import { AdminController } from "./admin.controller";
-import { adminAuth, adminLogin } from "./admin.middleware";
+import { auth } from "../../middlewares/auth";
 
 const router = Router();
 
-// Auth
-router.post('/login', adminLogin);
-
 // Apply admin auth middleware to all routes below
-router.use(adminAuth);
+router.use(auth("admin"));
 
 // Dashboard
 router.get('/dashboard/stats', AdminController.getDashboardStats);
