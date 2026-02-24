@@ -21,6 +21,7 @@ const GeneralInfoSchema: Schema<GeneralInfoDocument> = new Schema(
     religion: { type: String, required: false, default: "islam", enum: ["islam", "hinduism", "christianity"] },
     religious_type: { type: String, required: false, enum: ["practicing_muslim", "general_muslim", "practicing_hindu", "general_hindu", "practicing_christian", "general_christian"] },
     request_practicing_status: { type: Boolean, required: false, default: false },
+    photos: { type: [String], required: false, default: [], validate: [(v: string[]) => v.length <= 5, 'Maximum 5 photos allowed'] },
     views_count: { type: Number, default: 0 },
     likes_count: { type: Number, default: 0 },
     dislikes_count: { type: Number, default: 0 },
