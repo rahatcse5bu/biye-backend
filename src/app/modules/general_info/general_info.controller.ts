@@ -449,18 +449,18 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         user_id: "$userDetails.user_id",
         user: "$userDetails._id",
         upzilla: "$address.upzilla",
-        bio_type: 1,
-        date_of_birth: 1,
-        height: 1,
-        gender: 1,
-        weight: 1,
-        blood_group: 1,
-        screen_color: 1,
-        nationality: 1,
-        marital_status: 1,
-        religion: 1,
-        religious_type: 1,
-        photos: 1,
+        bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
+        date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
+        height: { $ifNull: ["$approved_data.height", "$height"] },
+        gender: { $ifNull: ["$approved_data.gender", "$gender"] },
+        weight: { $ifNull: ["$approved_data.weight", "$weight"] },
+        blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
+        screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
+        nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
+        marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+        religion: { $ifNull: ["$approved_data.religion", "$religion"] },
+        religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+        photos: { $ifNull: ["$approved_data.photos", "$photos"] },
         views_count: 1,
         purchases_count: 1,
         isFbPosted: 1,
@@ -550,13 +550,13 @@ const getGeneralInfoByAdmin = catchAsync(
       // Pagination stages
       { $skip: limitNumber * (pageNumber - 1) },
       { $limit: limitNumber },
-      // Optionally project to remove user details from final output if not needed
+      // Admin view: show all data + versioning fields for review
       {
         $project: {
-          _id: 1, // Include _id of GeneralInfo
-          user_id: "$userDetails.user_id", // Include user_id from User schema
-          user: "$userDetails._id", // Include user_id from User schema
-          upzilla: "$address.upzilla", // Include user_id from User schema
+          _id: 1,
+          user_id: "$userDetails.user_id",
+          user: "$userDetails._id",
+          upzilla: "$address.upzilla",
           bio_type: 1,
           date_of_birth: 1,
           height: 1,
@@ -576,6 +576,13 @@ const getGeneralInfoByAdmin = catchAsync(
           dislikes_count: 1,
           likes_count: 1,
           zilla: 1,
+          biodata_status: 1,
+          version: 1,
+          approved_data: 1,
+          pending_changes: 1,
+          admin_note: 1,
+          last_approved_at: 1,
+          last_approved_by: 1,
         },
       },
     ];
@@ -635,24 +642,24 @@ const getFeaturedGeneralInfo = catchAsync(
       // Pagination stages
       { $skip: limitNumber * (pageNumber - 1) },
       { $limit: limitNumber },
-      // Optionally project to remove user details from final output if not needed
+      // Featured view: serve approved_data if available
       {
         $project: {
-          _id: 1, // Include _id of GeneralInfo
-          user_id: "$userDetails.user_id", // Include user_id from User schema
-          user: "$userDetails._id", // Include user_id from User schema
-          bio_type: 1,
-          date_of_birth: 1,
-          height: 1,
-          gender: 1,
-          weight: 1,
-          blood_group: 1,
-          screen_color: 1,
-          nationality: 1,
-          marital_status: 1,
-          religion: 1,
-          religious_type: 1,
-          photos: 1,
+          _id: 1,
+          user_id: "$userDetails.user_id",
+          user: "$userDetails._id",
+          bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
+          date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
+          height: { $ifNull: ["$approved_data.height", "$height"] },
+          gender: { $ifNull: ["$approved_data.gender", "$gender"] },
+          weight: { $ifNull: ["$approved_data.weight", "$weight"] },
+          blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
+          screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
+          nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
+          marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+          religion: { $ifNull: ["$approved_data.religion", "$religion"] },
+          religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+          photos: { $ifNull: ["$approved_data.photos", "$photos"] },
           views_count: 1,
           purchases_count: 1,
           isFbPosted: 1,
@@ -691,10 +698,17 @@ const getGeneralInfoByUserId = catchAsync(
       });
     }
 
+    // Public view: serve approved_data snapshot if available
+    let publicData = generalInfo.toObject();
+    if (publicData.approved_data) {
+      const { approved_data, pending_changes, admin_note, ...meta } = publicData;
+      publicData = { ...meta, ...approved_data };
+    }
+
     res.status(200).json({
       message: "General info retrieved successfully",
       success: true,
-      data: generalInfo,
+      data: publicData,
     });
   }
 );
@@ -751,10 +765,16 @@ const getGeneralInfoByToken = catchAsync(
       });
     }
 
+    // Merge pending_changes over top-level fields so the user sees their own latest edits
+    let responseData: any = generalInfo.toObject();
+    if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+      responseData = { ...responseData, ...responseData.pending_changes };
+    }
+
     res.status(200).json({
       message: "General info retrieved successfully",
       success: true,
-      data: generalInfo,
+      data: responseData,
     });
   }
 );
@@ -771,7 +791,13 @@ const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  res.status(200).json(sendSuccess("General info retrieved", generalInfo, 200));
+  // Admin view: merge pending_changes so admin sees the latest user edits
+  let responseData: any = generalInfo.toObject();
+  if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+    responseData = { ...responseData, ...responseData.pending_changes };
+  }
+
+  res.status(200).json(sendSuccess("General info retrieved", responseData, 200));
 });
 
 const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
@@ -844,7 +870,7 @@ const updateGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Check if General info for the user with the given ID exists
-  const generalInfo = await GeneralInfo.findOne({ user: userId });
+  let generalInfo = await GeneralInfo.findOne({ user: userId });
   if (!generalInfo) {
     return res.status(404).json({
       success: false,
@@ -852,12 +878,36 @@ const updateGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  // Update the general info with the new data
-  Object.assign(generalInfo, data);
+  // Versioning logic:
+  // If this is the first edit (approved_data is null), initialize approved_data from current generalInfo
+  if (!generalInfo.approved_data) {
+    const currentData = generalInfo.toObject();
+    delete currentData._id;
+    delete currentData.__v;
+    delete currentData.biodata_status;
+    delete currentData.pending_changes;
+    delete currentData.admin_note;
+    delete currentData.version;
+    delete currentData.last_approved_at;
+    delete currentData.last_approved_by;
+    generalInfo.approved_data = currentData;
+  }
+
+  // Update top-level document fields directly so data always persists (photos, etc.)
+  const metaFields = ['_id', '__v', 'user', 'approved_data', 'pending_changes', 'biodata_status', 'version', 'admin_note', 'last_approved_at', 'last_approved_by'];
+  Object.keys(data).forEach((key: string) => {
+    if (!metaFields.includes(key)) {
+      (generalInfo as any)[key] = data[key];
+    }
+  });
+
+  // Also save to pending_changes for admin review, set status to pending
+  generalInfo.pending_changes = data;
+  generalInfo.biodata_status = 'pending';
   await generalInfo.save();
 
   res.status(200).json({
-    message: "Update successfully completed",
+    message: "Changes saved. Awaiting admin approval.",
     success: true,
     data: generalInfo,
   });
@@ -905,6 +955,100 @@ const deleteGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Admin approves pending biodata changes
+const approveBiodataChanges = catchAsync(async (req: Request, res: Response) => {
+  const biodataId = req.params.id;
+  const adminId = req.user?._id;
+
+  if (!adminId) {
+    return res.status(401).json({
+      success: false,
+      message: "You are not authorized",
+    });
+  }
+
+  const generalInfo = await GeneralInfo.findById(biodataId);
+  if (!generalInfo) {
+    return res.status(404).json({
+      success: false,
+      message: "Biodata not found",
+    });
+  }
+
+  if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
+    return res.status(400).json({
+      success: false,
+      message: "No pending changes to approve",
+    });
+  }
+
+  // Merge pending_changes into approved_data
+  generalInfo.approved_data = {
+    ...generalInfo.approved_data,
+    ...generalInfo.pending_changes,
+  };
+
+  // Increment version and update approval metadata
+  generalInfo.version = (generalInfo.version || 1) + 1;
+  generalInfo.biodata_status = 'approved';
+  generalInfo.pending_changes = null;
+  generalInfo.admin_note = '';
+  generalInfo.last_approved_at = new Date();
+  generalInfo.last_approved_by = adminId;
+
+  await generalInfo.save();
+
+  res.status(200).json({
+    success: true,
+    message: `Biodata version ${generalInfo.version} approved and published`,
+    data: generalInfo,
+  });
+});
+
+// Admin rejects pending biodata changes
+const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
+  const biodataId = req.params.id;
+  const adminId = req.user?._id;
+  const { reason = '' } = req.body;
+
+  if (!adminId) {
+    return res.status(401).json({
+      success: false,
+      message: "You are not authorized",
+    });
+  }
+
+  const generalInfo = await GeneralInfo.findById(biodataId);
+  if (!generalInfo) {
+    return res.status(404).json({
+      success: false,
+      message: "Biodata not found",
+    });
+  }
+
+  if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
+    return res.status(400).json({
+      success: false,
+      message: "No pending changes to reject",
+    });
+  }
+
+  // Discard pending changes and revert to approved version
+  generalInfo.pending_changes = null;
+  generalInfo.biodata_status = 'rejected';
+  generalInfo.admin_note = reason;
+  generalInfo.last_approved_at = new Date();
+  generalInfo.last_approved_by = adminId;
+
+  await generalInfo.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Biodata changes rejected. Previous approved version remains live.",
+    data: generalInfo,
+  });
+});
+
 export const GeneralInfoController = {
   getGeneralInfo,
   getSingleGeneralInfo,
@@ -916,4 +1060,6 @@ export const GeneralInfoController = {
   updateWatchOfBioData,
   getGeneralInfoByAdmin,
   getGeneralInfoDashboardByUser,
+  approveBiodataChanges,
+  rejectBiodataChanges,
 };

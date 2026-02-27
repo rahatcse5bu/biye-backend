@@ -29,4 +29,14 @@ GeneralInfoRouter.route("/:id")
   .get(auth("admin"), GeneralInfoController.getSingleGeneralInfo)
   .delete(auth("admin"), GeneralInfoController.deleteGeneralInfo);
 
+// Admin approval routes
+GeneralInfoRouter.route("/:id/admin/approve").post(
+  auth("admin"),
+  GeneralInfoController.approveBiodataChanges
+);
+GeneralInfoRouter.route("/:id/admin/reject").post(
+  auth("admin"),
+  GeneralInfoController.rejectBiodataChanges
+);
+
 export default GeneralInfoRouter;

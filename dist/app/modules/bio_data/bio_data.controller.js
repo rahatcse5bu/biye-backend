@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -44,7 +55,19 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
         });
     }
     const userId = user._id;
-    const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    const generalInfoRaw = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    // Merge versioning data: prefer approved_data for public, then pending_changes for latest edits
+    let generalInfo = generalInfoRaw;
+    if (generalInfoRaw) {
+        const _a = generalInfoRaw, { approved_data, pending_changes, admin_note } = _a, rest = __rest(_a, ["approved_data", "pending_changes", "admin_note"]);
+        if (approved_data && typeof approved_data === 'object') {
+            generalInfo = Object.assign(Object.assign({}, rest), approved_data);
+        }
+        // Also merge pending_changes so latest edits (photos etc.) always show
+        if (pending_changes && typeof pending_changes === 'object') {
+            generalInfo = Object.assign(Object.assign({}, generalInfo), pending_changes);
+        }
+    }
     const address = yield address_model_1.default.findOne({ user: userId }).lean();
     const educationQualification = yield educational_qualification_model_1.default.findOne({
         user: userId,
@@ -93,7 +116,13 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     }
     // console.log(user);
     const userId = user._id;
-    const generalInfo = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    const generalInfoRaw = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    // Admin view: merge pending_changes so admin sees the latest user edits for review
+    let generalInfo = generalInfoRaw;
+    if (generalInfoRaw && generalInfoRaw.pending_changes && typeof generalInfoRaw.pending_changes === 'object') {
+        const _b = generalInfoRaw, { pending_changes } = _b, rest = __rest(_b, ["pending_changes"]);
+        generalInfo = Object.assign(Object.assign(Object.assign({}, rest), pending_changes), { pending_changes, approved_data: generalInfoRaw.approved_data });
+    }
     const address = yield address_model_1.default.findOne({ user: userId }).lean();
     const educationQualification = yield educational_qualification_model_1.default.findOne({
         user: userId,
@@ -134,7 +163,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
 const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _c, _d;
     console.log("response data");
     const genderCounts = yield user_info_model_1.UserInfoModel.aggregate([
         {
@@ -162,7 +191,7 @@ const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         acc[item._id] = item.count;
         return acc;
     }, {});
-    const total = (_b = (_a = result["পুরুষ"]) !== null && _a !== void 0 ? _a : 0 + result["মহিলা"]) !== null && _b !== void 0 ? _b : 0;
+    const total = (_d = (_c = result["পুরুষ"]) !== null && _c !== void 0 ? _c : 0 + result["মহিলা"]) !== null && _d !== void 0 ? _d : 0;
     res
         .status(200)
         .json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", Object.assign(Object.assign({}, result), { total }), 200));

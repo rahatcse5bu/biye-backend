@@ -49,6 +49,13 @@ const GeneralInfoSchema = new mongoose_1.Schema({
     isFbPosted: { type: Boolean, default: false, required: false },
     isFeatured: { type: Boolean, required: false, default: false },
     zilla: { type: String, required: false },
+    biodata_status: { type: String, enum: ['pending', 'approved', 'rejected', 'changes_requested'], default: 'pending' },
+    version: { type: Number, default: 1 },
+    approved_data: { type: mongoose_1.Schema.Types.Mixed, required: false, default: null },
+    pending_changes: { type: mongoose_1.Schema.Types.Mixed, required: false, default: null },
+    admin_note: { type: String, required: false, default: '' },
+    last_approved_at: { type: Date, required: false, default: null },
+    last_approved_by: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: false, default: null },
 }, {
     timestamps: true,
 });

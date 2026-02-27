@@ -26,4 +26,11 @@ export interface IGeneralInfo {
   isFbPosted: boolean;
   isFeatured: boolean;
   zilla?: string; // Add this if `zilla` is part of the schema in some cases
+  biodata_status?: string;
+  version?: number;
+  approved_data?: any;
+  pending_changes?: any;
+  admin_note?: string;
+  last_approved_at?: Date;
+  last_approved_by?: Schema.Types.ObjectId;
 }

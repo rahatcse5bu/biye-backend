@@ -19,4 +19,7 @@ GeneralInfoRouter.route("/watch/:id").get(general_info_controller_1.GeneralInfoC
 GeneralInfoRouter.route("/:id")
     .get((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.getSingleGeneralInfo)
     .delete((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.deleteGeneralInfo);
+// Admin approval routes
+GeneralInfoRouter.route("/:id/admin/approve").post((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.approveBiodataChanges);
+GeneralInfoRouter.route("/:id/admin/reject").post((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.rejectBiodataChanges);
 exports.default = GeneralInfoRouter;

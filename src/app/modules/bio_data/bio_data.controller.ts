@@ -35,7 +35,21 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
   }
 
   const userId = user._id;
-  const generalInfo = await GeneralInfo.findOne({ user: userId }).lean();
+  const generalInfoRaw = await GeneralInfo.findOne({ user: userId }).lean();
+  
+  // Merge versioning data: prefer approved_data for public, then pending_changes for latest edits
+  let generalInfo: any = generalInfoRaw;
+  if (generalInfoRaw) {
+    const { approved_data, pending_changes, admin_note, ...rest } = generalInfoRaw as any;
+    if (approved_data && typeof approved_data === 'object') {
+      generalInfo = { ...rest, ...approved_data };
+    }
+    // Also merge pending_changes so latest edits (photos etc.) always show
+    if (pending_changes && typeof pending_changes === 'object') {
+      generalInfo = { ...generalInfo, ...pending_changes };
+    }
+  }
+  
   const address = await Address.findOne({ user: userId }).lean();
   const educationQualification = await EducationalQualification.findOne({
     user: userId,
@@ -88,7 +102,15 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
   // console.log(user);
 
   const userId = user._id;
-  const generalInfo = await GeneralInfo.findOne({ user: userId }).lean();
+  const generalInfoRaw = await GeneralInfo.findOne({ user: userId }).lean();
+  
+  // Admin view: merge pending_changes so admin sees the latest user edits for review
+  let generalInfo: any = generalInfoRaw;
+  if (generalInfoRaw && (generalInfoRaw as any).pending_changes && typeof (generalInfoRaw as any).pending_changes === 'object') {
+    const { pending_changes, ...rest } = generalInfoRaw as any;
+    generalInfo = { ...rest, ...pending_changes, pending_changes, approved_data: (generalInfoRaw as any).approved_data };
+  }
+  
   const address = await Address.findOne({ user: userId }).lean();
   const educationQualification = await EducationalQualification.findOne({
     user: userId,
