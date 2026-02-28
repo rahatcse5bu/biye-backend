@@ -15,6 +15,7 @@ export const BioQuestionController = {
         success: true,
         message: "No custom questions set by this user",
         data: {
+          isCustom: false,
           questions: [
             // Default questions if user hasn't set custom ones
             "মেয়েদের চোখ ঢাকা নিকাব পড়াকে অনেকে বাড়াবাড়ি মনে করে। ইসলাম তো সহজ, আপনি এব্যাপারে কি মনে করেন?",
@@ -31,7 +32,10 @@ export const BioQuestionController = {
     res.status(httpStatus.OK).json({
       success: true,
       message: "Questions retrieved successfully",
-      data: questions,
+      data: {
+        ...questions,
+        isCustom: true,
+      },
     });
   }),
 
@@ -55,6 +59,7 @@ export const BioQuestionController = {
         success: true,
         message: "No custom questions set",
         data: {
+          isCustom: false,
           questions: [
             // Default questions if user hasn't set custom ones
             "মেয়েদের চোখ ঢাকা নিকাব পড়াকে অনেকে বাড়াবাড়ি মনে করে। ইসলাম তো সহজ, আপনি এব্যাপারে কি মনে করেন?",
@@ -71,7 +76,10 @@ export const BioQuestionController = {
     res.status(httpStatus.OK).json({
       success: true,
       message: "Questions retrieved successfully",
-      data: questions,
+      data: {
+        ...questions,
+        isCustom: true,
+      },
     });
   }),
 
