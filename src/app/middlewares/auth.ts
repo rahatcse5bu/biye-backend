@@ -45,9 +45,11 @@ export const auth =
 
       next();
     } catch (error: any) {
-      res.status(500).send({
-        statusCode: 500,
-        message: "Internal Server Error",
+      const statusCode = error.statusCode || 500;
+      const message = error.isOperational ? error.message : "Internal Server Error";
+      res.status(statusCode).send({
+        statusCode,
+        message,
         error: error.message,
         success: false,
       });

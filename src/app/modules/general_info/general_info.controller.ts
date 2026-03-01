@@ -57,14 +57,29 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     andConditions.push({ gender });
   }
 
-  // Religion filter
+  // Religion filter - check both top-level and approved_data
+  // Also match null/missing religion as "islam" (the default)
   if (religion) {
-    andConditions.push({ religion });
+    const religionConditions: any[] = [
+      { religion },
+      { "approved_data.religion": religion },
+    ];
+    // Documents with null/missing religion default to islam
+    if (religion === "islam") {
+      religionConditions.push({ religion: null });
+      religionConditions.push({ religion: { $exists: false } });
+    }
+    andConditions.push({ $or: religionConditions });
   }
 
-  // Religious type filter
+  // Religious type filter - check both top-level and approved_data
   if (religious_type) {
-    andConditions.push({ religious_type });
+    andConditions.push({
+      $or: [
+        { religious_type },
+        { "approved_data.religious_type": religious_type },
+      ],
+    });
   }
 
   // Age filter (calculated from date_of_birth)
@@ -153,11 +168,11 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   if (current_division && current_division !== "all") {
     if (typeof current_division === "string") {
       andConditions.push({
-        "present_address.division": { $in: current_division.split(",") },
+        "address.present_division": { $in: current_division.split(",") },
       });
     } else if (Array.isArray(current_division)) {
       andConditions.push({
-        "present_address.division": { $in: current_division },
+        "address.present_division": { $in: current_division },
       });
     }
   }
@@ -166,11 +181,11 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   if (current_zilla) {
     if (typeof current_zilla === "string") {
       andConditions.push({
-        "present_address.zilla": { $in: current_zilla.split(",") },
+        "address.present_zilla": { $in: current_zilla.split(",") },
       });
     } else if (Array.isArray(current_zilla)) {
       andConditions.push({
-        "present_address.zilla": { $in: current_zilla },
+        "address.present_zilla": { $in: current_zilla },
       });
     }
   }
@@ -179,11 +194,11 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   if (current_upzilla) {
     if (typeof current_upzilla === "string") {
       andConditions.push({
-        "present_address.upzilla": { $in: current_upzilla.split(",") },
+        "address.present_upzilla": { $in: current_upzilla.split(",") },
       });
     } else if (Array.isArray(current_upzilla)) {
       andConditions.push({
-        "present_address.upzilla": { $in: current_upzilla },
+        "address.present_upzilla": { $in: current_upzilla },
       });
     }
   }
@@ -251,9 +266,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   // Economic status filter
   if (economic_status) {
     if (typeof economic_status === "string") {
-      additionalMatches["familyStatus.financial_situation"] = { $in: economic_status.split(",") };
+      additionalMatches["familyStatus.eco_condition_type"] = { $in: economic_status.split(",") };
     } else if (Array.isArray(economic_status)) {
-      additionalMatches["familyStatus.financial_situation"] = { $in: economic_status };
+      additionalMatches["familyStatus.eco_condition_type"] = { $in: economic_status };
     }
   }
 
@@ -285,7 +300,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       },
     },
     {
-      $unwind: "$address",
+      $unwind: { path: "$address", preserveNullAndEmptyArrays: true },
     },
     {
       $lookup: {
@@ -378,7 +393,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       },
     },
     {
-      $unwind: "$address",
+      $unwind: { path: "$address", preserveNullAndEmptyArrays: true },
     },
     {
       $lookup: {
@@ -449,6 +464,11 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         user_id: "$userDetails.user_id",
         user: "$userDetails._id",
         upzilla: "$address.upzilla",
+        zilla: "$address.zilla",
+        division: "$address.division",
+        present_upzilla: "$address.present_upzilla",
+        present_zilla: "$address.present_zilla",
+        present_division: "$address.present_division",
         bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
         date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
         height: { $ifNull: ["$approved_data.height", "$height"] },
@@ -467,7 +487,6 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         isFeatured: 1,
         dislikes_count: 1,
         likes_count: 1,
-        zilla: 1,
       },
     },
   ];
