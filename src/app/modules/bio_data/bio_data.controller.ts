@@ -37,17 +37,32 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
   const userId = user._id;
   const generalInfoRaw = await GeneralInfo.findOne({ user: userId }).lean();
   
+  // Debug logging
+  console.log('🔍 getBioData Debug for bioId:', bioId);
+  console.log('  generalInfoRaw.religion:', (generalInfoRaw as any)?.religion);
+  console.log('  generalInfoRaw.approved_data:', (generalInfoRaw as any)?.approved_data);
+  console.log('  generalInfoRaw.approved_data?.religion:', (generalInfoRaw as any)?.approved_data?.religion);
+  
   // Merge versioning data: prefer approved_data for public, then pending_changes for latest edits
   let generalInfo: any = generalInfoRaw;
   if (generalInfoRaw) {
     const { approved_data, pending_changes, admin_note, ...rest } = generalInfoRaw as any;
+    console.log('  rest.religion:', rest.religion);
     if (approved_data && typeof approved_data === 'object') {
       generalInfo = { ...rest, ...approved_data };
+      console.log('  after approved_data merge, religion:', generalInfo.religion);
     }
     // Also merge pending_changes so latest edits (photos etc.) always show
     if (pending_changes && typeof pending_changes === 'object') {
       generalInfo = { ...generalInfo, ...pending_changes };
+      console.log('  after pending_changes merge, religion:', generalInfo.religion);
     }
+    // Ensure religion defaults to 'islam' if not set
+    if (!generalInfo.religion) {
+      console.log('  religion was falsy, defaulting to islam');
+      generalInfo.religion = 'islam';
+    }
+    console.log('  final religion:', generalInfo.religion);
   }
   
   const address = await Address.findOne({ user: userId }).lean();
@@ -109,6 +124,10 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
   if (generalInfoRaw && (generalInfoRaw as any).pending_changes && typeof (generalInfoRaw as any).pending_changes === 'object') {
     const { pending_changes, ...rest } = generalInfoRaw as any;
     generalInfo = { ...rest, ...pending_changes, pending_changes, approved_data: (generalInfoRaw as any).approved_data };
+  }
+  // Ensure religion defaults to 'islam' if not set
+  if (generalInfo && !generalInfo.religion) {
+    generalInfo.religion = 'islam';
   }
   
   const address = await Address.findOne({ user: userId }).lean();

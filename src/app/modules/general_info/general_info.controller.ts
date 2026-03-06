@@ -478,9 +478,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
         nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
         marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
-        religion: { $ifNull: ["$approved_data.religion", "$religion"] },
+        religion: { $ifNull: ["$approved_data.religion", { $ifNull: ["$religion", "islam"] }] },
         religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
-        photos: { $ifNull: ["$approved_data.photos", "$photos"] },
+        photos: { $ifNull: ["$pending_changes.photos", { $ifNull: ["$approved_data.photos", "$photos"] }] },
         views_count: 1,
         purchases_count: 1,
         isFbPosted: 1,
@@ -678,7 +678,7 @@ const getFeaturedGeneralInfo = catchAsync(
           marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
           religion: { $ifNull: ["$approved_data.religion", "$religion"] },
           religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
-          photos: { $ifNull: ["$approved_data.photos", "$photos"] },
+          photos: { $ifNull: ["$pending_changes.photos", { $ifNull: ["$approved_data.photos", "$photos"] }] },
           views_count: 1,
           purchases_count: 1,
           isFbPosted: 1,
@@ -789,6 +789,10 @@ const getGeneralInfoByToken = catchAsync(
     if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
       responseData = { ...responseData, ...responseData.pending_changes };
     }
+    // Ensure religion defaults to 'islam' if not set
+    if (!responseData.religion) {
+      responseData.religion = 'islam';
+    }
 
     res.status(200).json({
       message: "General info retrieved successfully",
@@ -814,6 +818,10 @@ const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   let responseData: any = generalInfo.toObject();
   if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
     responseData = { ...responseData, ...responseData.pending_changes };
+  }
+  // Ensure religion defaults to 'islam' if not set
+  if (!responseData.religion) {
+    responseData.religion = 'islam';
   }
 
   res.status(200).json(sendSuccess("General info retrieved", responseData, 200));

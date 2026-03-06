@@ -44,9 +44,11 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
         next();
     }
     catch (error) {
-        res.status(500).send({
-            statusCode: 500,
-            message: "Internal Server Error",
+        const statusCode = error.statusCode || 500;
+        const message = error.isOperational ? error.message : "Internal Server Error";
+        res.status(statusCode).send({
+            statusCode,
+            message,
             error: error.message,
             success: false,
         });

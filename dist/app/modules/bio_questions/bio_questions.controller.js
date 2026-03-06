@@ -26,6 +26,7 @@ exports.BioQuestionController = {
                 success: true,
                 message: "No custom questions set by this user",
                 data: {
+                    isCustom: false,
                     questions: [
                         // Default questions if user hasn't set custom ones
                         "মেয়েদের চোখ ঢাকা নিকাব পড়াকে অনেকে বাড়াবাড়ি মনে করে। ইসলাম তো সহজ, আপনি এব্যাপারে কি মনে করেন?",
@@ -41,7 +42,7 @@ exports.BioQuestionController = {
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Questions retrieved successfully",
-            data: questions,
+            data: Object.assign(Object.assign({}, questions), { isCustom: true }),
         });
     })),
     // Get current user's own questions
@@ -60,6 +61,7 @@ exports.BioQuestionController = {
                 success: true,
                 message: "No custom questions set",
                 data: {
+                    isCustom: false,
                     questions: [
                         // Default questions if user hasn't set custom ones
                         "মেয়েদের চোখ ঢাকা নিকাব পড়াকে অনেকে বাড়াবাড়ি মনে করে। ইসলাম তো সহজ, আপনি এব্যাপারে কি মনে করেন?",
@@ -75,7 +77,7 @@ exports.BioQuestionController = {
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Questions retrieved successfully",
-            data: questions,
+            data: Object.assign(Object.assign({}, questions), { isCustom: true }),
         });
     })),
     // Create or update user's questions
