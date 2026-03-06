@@ -48,6 +48,14 @@ const ExpectedPartnerSchema: Schema = new Schema({
   // Christian-specific partner expectations
   partner_denomination_preference: [{ type: String }],
   partner_church_attendance_preference: { type: String, required: false },
+  
+  // Common fields for all religions
+  partner_own_home_type: [{ type: String }],
+  flexibility_areas: [{ type: String }],
+  partner_father_profession: [{ type: String }],
+  partner_home_type: [{ type: String }],
+  min_ssc_result: [{ type: String }],
+  min_hsc_result: [{ type: String }],
 });
 
 const ExpectedPartner = mongoose.model<IExpectedPartner>(

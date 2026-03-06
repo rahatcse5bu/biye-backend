@@ -18,7 +18,7 @@ const UserFamilyInfoSchema: Schema = new Schema<IFamilyStatus>(
     uncle_info: { type: String, required: false },
     family_eco_condition: { type: String, required: true },
     eco_condition_type: { type: String, required: true },
-    family_deeni_info: { type: String, required: true },
+    family_deeni_info: { type: String, required: false },
   },
   {
     timestamps: true,
