@@ -227,7 +227,7 @@ export const ShortlistController = {
     res.status(httpStatus.OK).json({
       success: true,
       message: "Shortlist check result",
-      data: !!data,
+      data: { shortlisted: !!data },
     });
   }),
 };

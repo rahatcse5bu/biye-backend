@@ -228,7 +228,7 @@ exports.ShortlistController = {
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Shortlist check result",
-            data: !!data,
+            data: { shortlisted: !!data },
         });
     })),
 };
