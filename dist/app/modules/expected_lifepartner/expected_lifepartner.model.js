@@ -60,6 +60,22 @@ const ExpectedPartnerSchema = new mongoose_1.Schema({
     isMasna: { type: String, required: false },
     isStudent: { type: String, required: false },
     expected_income: { type: Number, required: false },
+    // Hindu-specific partner expectations
+    partner_caste_preference: [{ type: String }],
+    partner_sub_caste_preference: [{ type: String }],
+    partner_gotra_preference: { type: String, required: false },
+    partner_sampraday_preference: [{ type: String }],
+    partner_mangalik_preference: { type: String, required: false },
+    // Christian-specific partner expectations
+    partner_denomination_preference: [{ type: String }],
+    partner_church_attendance_preference: { type: String, required: false },
+    // Common fields for all religions
+    partner_own_home_type: [{ type: String }],
+    flexibility_areas: [{ type: String }],
+    partner_father_profession: [{ type: String }],
+    partner_home_type: [{ type: String }],
+    min_ssc_result: [{ type: String }],
+    min_hsc_result: [{ type: String }],
 });
 const ExpectedPartner = mongoose_1.default.model("ExpectedPartner", ExpectedPartnerSchema);
 exports.default = ExpectedPartner;
