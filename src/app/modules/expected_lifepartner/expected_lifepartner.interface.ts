@@ -21,4 +21,15 @@ export interface IExpectedPartner extends Document {
   isMasna?: string;
   isStudent?: string;
   expected_income?: number;
+  
+  // Hindu-specific partner expectations
+  partner_caste_preference?: string[];
+  partner_sub_caste_preference?: string[];
+  partner_gotra_preference?: string;
+  partner_sampraday_preference?: string[];
+  partner_mangalik_preference?: string;
+  
+  // Christian-specific partner expectations
+  partner_denomination_preference?: string[];
+  partner_church_attendance_preference?: string;
 }
