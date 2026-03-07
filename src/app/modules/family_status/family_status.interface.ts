@@ -15,5 +15,7 @@ export interface IFamilyStatus {
   uncle_info: string; // Information about uncles
   family_eco_condition: string; // Economic condition of the family
   eco_condition_type: string; // Type of economic condition
+  house_type: string; // Current house and own house type
+  family_assets: string; // Family land, business or other assets
   family_deeni_info: string; // Religious information about the family
 }

@@ -40,6 +40,8 @@ const UserFamilyInfoSchema = new mongoose_1.Schema({
     uncle_info: { type: String, required: false },
     family_eco_condition: { type: String, required: true },
     eco_condition_type: { type: String, required: true },
+    house_type: { type: String, required: false },
+    family_assets: { type: String, required: false },
     family_deeni_info: { type: String, required: false },
 }, {
     timestamps: true,
