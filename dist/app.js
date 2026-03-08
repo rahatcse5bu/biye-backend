@@ -41,6 +41,7 @@ const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/u
 const contact_purchase_data_route_1 = __importDefault(require("./app/modules/contact_purchase_data/contact_purchase_data.route"));
 const admin_route_1 = __importDefault(require("./app/modules/admin/admin.route"));
 const shortlist_route_1 = __importDefault(require("./app/modules/shortlist/shortlist.route"));
+const achievement_route_1 = __importDefault(require("./app/modules/achievement/achievement.route"));
 const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
 const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -117,6 +118,7 @@ app.use("/api/v1/bkash", bkash_route_1.default);
 // app.use("/api/v1/refund", RefundsRouter);
 app.use("/api/v1/contact-purchase-data", contact_purchase_data_route_1.default);
 app.use("/api/v1/shortlist", shortlist_route_1.default);
+app.use("/api/v1/achievement", achievement_route_1.default);
 app.use("/api/admin", admin_route_1.default);
 app.use(globalErrorHandler_1.default);
 exports.default = app;

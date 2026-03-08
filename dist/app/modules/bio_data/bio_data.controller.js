@@ -37,6 +37,7 @@ const marital_info_model_1 = __importDefault(require("../marital_info/marital_in
 const expected_lifepartner_model_1 = __importDefault(require("../expected_lifepartner/expected_lifepartner.model"));
 const ongikar_nama_model_1 = __importDefault(require("../ongikar_nama/ongikar_nama.model"));
 const contact_model_1 = __importDefault(require("../contact/contact.model"));
+const achievement_model_1 = __importDefault(require("../achievement/achievement.model"));
 const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const bioId = req.params.id;
@@ -105,6 +106,7 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
     const ongikarNama = yield ongikar_nama_model_1.default.findOne({
         user: userId,
     }).lean();
+    const achievement = yield achievement_model_1.default.findOne({ user: userId }).lean();
     let data = {
         generalInfo,
         address,
@@ -115,6 +117,7 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
         maritalInfo,
         expectedLifePartner,
         ongikarNama,
+        achievement,
     };
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
@@ -167,6 +170,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     const contact = yield contact_model_1.default.findOne({
         user: userId,
     }).lean();
+    const achievement = yield achievement_model_1.default.findOne({ user: userId }).lean();
     let data = {
         generalInfo,
         address,
@@ -178,6 +182,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
         expectedLifePartner,
         ongikarNama,
         contact,
+        achievement,
     };
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));

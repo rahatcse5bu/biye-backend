@@ -40,7 +40,9 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     gender, minAge, maxAge, minHeight, maxHeight, complexion, // screen_color
     education_medium, deeni_edu, occupation, fiqh, economic_status, categories, permanent_address, current_upzilla, upazila, current_division, current_zilla, 
     // Religion filters
-    religion, religious_type, } = req.query;
+    religion, religious_type, 
+    // Expected partner filters
+    exp_zilla, exp_marital_status, exp_occupation, exp_economical_condition, exp_educational_qualifications, } = req.query;
     const andConditions = [
         {
             "userDetails.user_status": user_status,
@@ -261,6 +263,28 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         const categoriesArray = typeof categories === "string" ? categories.split(",") : categories;
         additionalMatches["personalInfo.my_categories"] = { $in: categoriesArray };
     }
+    // Expected partner filters (filter by what the biodata owner expects in their partner)
+    const expectedPartnerMatches = {};
+    if (exp_zilla) {
+        const arr = typeof exp_zilla === "string" ? exp_zilla.split(",") : exp_zilla;
+        expectedPartnerMatches["expectedPartner.zilla"] = { $in: arr };
+    }
+    if (exp_marital_status) {
+        const arr = typeof exp_marital_status === "string" ? exp_marital_status.split(",") : exp_marital_status;
+        expectedPartnerMatches["expectedPartner.marital_status"] = { $in: arr };
+    }
+    if (exp_occupation) {
+        const arr = typeof exp_occupation === "string" ? exp_occupation.split(",") : exp_occupation;
+        expectedPartnerMatches["expectedPartner.occupation"] = { $in: arr };
+    }
+    if (exp_economical_condition) {
+        const arr = typeof exp_economical_condition === "string" ? exp_economical_condition.split(",") : exp_economical_condition;
+        expectedPartnerMatches["expectedPartner.economical_condition"] = { $in: arr };
+    }
+    if (exp_educational_qualifications) {
+        const arr = typeof exp_educational_qualifications === "string" ? exp_educational_qualifications.split(",") : exp_educational_qualifications;
+        expectedPartnerMatches["expectedPartner.educational_qualifications"] = { $in: arr };
+    }
     // Construct aggregation pipeline for counting total size
     const countPipeline = [
         {
@@ -330,14 +354,25 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
         },
         {
+            $lookup: {
+                from: "expectedpartners",
+                localField: "user",
+                foreignField: "user",
+                as: "expectedPartner",
+            },
+        },
+        {
+            $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
+        },
+        {
             $match: {
                 $and: andConditions,
             },
         },
-        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
+        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
             ? [
                 {
-                    $match: Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches),
+                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches), expectedPartnerMatches),
                 },
             ]
             : []),
@@ -417,14 +452,25 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
         },
         {
+            $lookup: {
+                from: "expectedpartners",
+                localField: "user",
+                foreignField: "user",
+                as: "expectedPartner",
+            },
+        },
+        {
+            $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
+        },
+        {
             $match: {
                 $and: andConditions,
             },
         },
-        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
+        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
             ? [
                 {
-                    $match: Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches),
+                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches), expectedPartnerMatches),
                 },
             ]
             : []),
