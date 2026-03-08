@@ -13,6 +13,7 @@ import MaritalInfo from "../marital_info/marital_info.model";
 import ExpectedPartner from "../expected_lifepartner/expected_lifepartner.model";
 import OngikarNama from "../ongikar_nama/ongikar_nama.model";
 import Contact from "../contact/contact.model";
+import Achievement from "../achievement/achievement.model";
 
 const getBioData = catchAsync(async (req: Request, res: Response) => {
   const bioId = req.params.id;
@@ -87,6 +88,7 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
   const ongikarNama = await OngikarNama.findOne({
     user: userId,
   }).lean();
+  const achievement = await Achievement.findOne({ user: userId }).lean();
   let data = {
     generalInfo,
     address,
@@ -97,6 +99,7 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
     maritalInfo,
     expectedLifePartner,
     ongikarNama,
+    achievement,
   };
 
   res.status(200).json(sendSuccess("Retrieve bio data", data, 200));
@@ -155,6 +158,7 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
   const contact = await Contact.findOne({
     user: userId,
   }).lean();
+  const achievement = await Achievement.findOne({ user: userId }).lean();
   let data = {
     generalInfo,
     address,
@@ -166,6 +170,7 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
     expectedLifePartner,
     ongikarNama,
     contact,
+    achievement,
   };
 
   res.status(200).json(sendSuccess("Retrieve bio data", data, 200));

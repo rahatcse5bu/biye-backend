@@ -44,6 +44,12 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     // Religion filters
     religion,
     religious_type,
+    // Expected partner filters
+    exp_zilla,
+    exp_marital_status,
+    exp_occupation,
+    exp_economical_condition,
+    exp_educational_qualifications,
   } = req.query;
 
   const andConditions: any = [
@@ -278,6 +284,29 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     additionalMatches["personalInfo.my_categories"] = { $in: categoriesArray };
   }
 
+  // Expected partner filters (filter by what the biodata owner expects in their partner)
+  const expectedPartnerMatches: any = {};
+  if (exp_zilla) {
+    const arr = typeof exp_zilla === "string" ? exp_zilla.split(",") : (exp_zilla as string[]);
+    expectedPartnerMatches["expectedPartner.zilla"] = { $in: arr };
+  }
+  if (exp_marital_status) {
+    const arr = typeof exp_marital_status === "string" ? exp_marital_status.split(",") : (exp_marital_status as string[]);
+    expectedPartnerMatches["expectedPartner.marital_status"] = { $in: arr };
+  }
+  if (exp_occupation) {
+    const arr = typeof exp_occupation === "string" ? exp_occupation.split(",") : (exp_occupation as string[]);
+    expectedPartnerMatches["expectedPartner.occupation"] = { $in: arr };
+  }
+  if (exp_economical_condition) {
+    const arr = typeof exp_economical_condition === "string" ? exp_economical_condition.split(",") : (exp_economical_condition as string[]);
+    expectedPartnerMatches["expectedPartner.economical_condition"] = { $in: arr };
+  }
+  if (exp_educational_qualifications) {
+    const arr = typeof exp_educational_qualifications === "string" ? exp_educational_qualifications.split(",") : (exp_educational_qualifications as string[]);
+    expectedPartnerMatches["expectedPartner.educational_qualifications"] = { $in: arr };
+  }
+
   // Construct aggregation pipeline for counting total size
   const countPipeline: any = [
     {
@@ -347,17 +376,29 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
     },
     {
+      $lookup: {
+        from: "expectedpartners",
+        localField: "user",
+        foreignField: "user",
+        as: "expectedPartner",
+      },
+    },
+    {
+      $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
+    },
+    {
       $match: {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
+    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
       ? [
           {
             $match: {
               ...(bio_type && { bio_type }),
               ...(marital_status && { marital_status }),
               ...additionalMatches,
+              ...expectedPartnerMatches,
             },
           },
         ]
@@ -440,17 +481,29 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
     },
     {
+      $lookup: {
+        from: "expectedpartners",
+        localField: "user",
+        foreignField: "user",
+        as: "expectedPartner",
+      },
+    },
+    {
+      $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
+    },
+    {
       $match: {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0
+    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
       ? [
           {
             $match: {
               ...(bio_type && { bio_type }),
               ...(marital_status && { marital_status }),
               ...additionalMatches,
+              ...expectedPartnerMatches,
             },
           },
         ]
