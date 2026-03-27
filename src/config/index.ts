@@ -17,6 +17,7 @@ export default {
   bkash_password: process.env.BKASH_PASSWORD,
   email_pass: process.env.EMAIL_PASS,
   email_user: process.env.EMAIL_USER,
+  openrouter_api_key: process.env.OPENROUTER_API_KEY,
   mongo_url:
     process.env["NODE_ENV"] === "development"
       ? process.env["MONG_DEV_URL"]
