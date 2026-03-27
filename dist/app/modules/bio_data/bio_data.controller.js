@@ -39,7 +39,6 @@ const ongikar_nama_model_1 = __importDefault(require("../ongikar_nama/ongikar_na
 const contact_model_1 = __importDefault(require("../contact/contact.model"));
 const achievement_model_1 = __importDefault(require("../achievement/achievement.model"));
 const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     const bioId = req.params.id;
     const user = yield user_info_model_1.UserInfoModel.findOne({
         user_id: bioId,
@@ -58,31 +57,22 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
     }
     const userId = user._id;
     const generalInfoRaw = yield general_info_model_1.default.findOne({ user: userId }).lean();
-    // Debug logging
-    console.log('🔍 getBioData Debug for bioId:', bioId);
-    console.log('  generalInfoRaw.religion:', generalInfoRaw === null || generalInfoRaw === void 0 ? void 0 : generalInfoRaw.religion);
-    console.log('  generalInfoRaw.approved_data:', generalInfoRaw === null || generalInfoRaw === void 0 ? void 0 : generalInfoRaw.approved_data);
-    console.log('  generalInfoRaw.approved_data?.religion:', (_a = generalInfoRaw === null || generalInfoRaw === void 0 ? void 0 : generalInfoRaw.approved_data) === null || _a === void 0 ? void 0 : _a.religion);
-    // Merge versioning data: prefer approved_data for public, then pending_changes for latest edits
+    // Public view: always show the last approved snapshot, never expose pending_changes
     let generalInfo = generalInfoRaw;
     if (generalInfoRaw) {
-        const _b = generalInfoRaw, { approved_data, pending_changes, admin_note } = _b, rest = __rest(_b, ["approved_data", "pending_changes", "admin_note"]);
-        console.log('  rest.religion:', rest.religion);
+        const _a = generalInfoRaw, { approved_data, pending_changes, admin_note } = _a, rest = __rest(_a, ["approved_data", "pending_changes", "admin_note"]);
+        const hasPendingChanges = !!(pending_changes && typeof pending_changes === 'object');
         if (approved_data && typeof approved_data === 'object') {
-            generalInfo = Object.assign(Object.assign({}, rest), approved_data);
-            console.log('  after approved_data merge, religion:', generalInfo.religion);
+            // Use approved_data as the canonical public view regardless of biodata_status
+            generalInfo = Object.assign(Object.assign(Object.assign({}, rest), approved_data), { biodata_status: rest.biodata_status, has_pending_changes: hasPendingChanges });
         }
-        // Also merge pending_changes so latest edits (photos etc.) always show
-        if (pending_changes && typeof pending_changes === 'object') {
-            generalInfo = Object.assign(Object.assign({}, generalInfo), pending_changes);
-            console.log('  after pending_changes merge, religion:', generalInfo.religion);
+        else {
+            // No approved snapshot yet (new profile) — show raw fields
+            generalInfo = Object.assign(Object.assign({}, rest), { biodata_status: rest.biodata_status, has_pending_changes: hasPendingChanges });
         }
-        // Ensure religion defaults to 'islam' if not set
         if (!generalInfo.religion) {
-            console.log('  religion was falsy, defaulting to islam');
             generalInfo.religion = 'islam';
         }
-        console.log('  final religion:', generalInfo.religion);
     }
     const address = yield address_model_1.default.findOne({ user: userId }).lean();
     const educationQualification = yield educational_qualification_model_1.default.findOne({
@@ -138,7 +128,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     // Admin view: merge pending_changes so admin sees the latest user edits for review
     let generalInfo = generalInfoRaw;
     if (generalInfoRaw && generalInfoRaw.pending_changes && typeof generalInfoRaw.pending_changes === 'object') {
-        const _c = generalInfoRaw, { pending_changes } = _c, rest = __rest(_c, ["pending_changes"]);
+        const _b = generalInfoRaw, { pending_changes } = _b, rest = __rest(_b, ["pending_changes"]);
         generalInfo = Object.assign(Object.assign(Object.assign({}, rest), pending_changes), { pending_changes, approved_data: generalInfoRaw.approved_data });
     }
     // Ensure religion defaults to 'islam' if not set
@@ -187,7 +177,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
 const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d, _e;
+    var _c, _d;
     console.log("response data");
     const genderCounts = yield user_info_model_1.UserInfoModel.aggregate([
         {
@@ -215,7 +205,7 @@ const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         acc[item._id] = item.count;
         return acc;
     }, {});
-    const total = (_e = (_d = result["পুরুষ"]) !== null && _d !== void 0 ? _d : 0 + result["মহিলা"]) !== null && _e !== void 0 ? _e : 0;
+    const total = (_d = (_c = result["পুরুষ"]) !== null && _c !== void 0 ? _c : 0 + result["মহিলা"]) !== null && _d !== void 0 ? _d : 0;
     res
         .status(200)
         .json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", Object.assign(Object.assign({}, result), { total }), 200));

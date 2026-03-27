@@ -16,6 +16,8 @@ GeneralInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), general
 GeneralInfoRouter.route("/dash-board").get((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoDashboardByUser);
 GeneralInfoRouter.route("/:id/user-id").get(general_info_controller_1.GeneralInfoController.getGeneralInfoByUserId);
 GeneralInfoRouter.route("/watch/:id").get(general_info_controller_1.GeneralInfoController.updateWatchOfBioData);
+// User submit-for-review — must be before /:id to avoid param capture
+GeneralInfoRouter.route("/submit-review").post((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.submitForReview);
 GeneralInfoRouter.route("/:id")
     .get((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.getSingleGeneralInfo)
     .delete((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.deleteGeneralInfo);

@@ -16,6 +16,7 @@ exports.UserInfoService = void 0;
 const config_1 = __importDefault(require("../../../config"));
 const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
 const user_info_model_1 = require("./user_info.model");
+const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
 exports.UserInfoService = {
     getAllUserInfo: () => __awaiter(void 0, void 0, void 0, function* () {
         return user_info_model_1.UserInfoModel.find().exec();
@@ -35,7 +36,19 @@ exports.UserInfoService = {
         return user_info_model_1.UserInfoModel.findById(id).session(session).exec();
     }),
     getUserStatus: (id) => __awaiter(void 0, void 0, void 0, function* () {
-        return user_info_model_1.UserInfoModel.findById(id).select("user_status").exec();
+        var _a;
+        const userInfo = yield user_info_model_1.UserInfoModel.findById(id).select("user_status").lean().exec();
+        if (!userInfo)
+            return null;
+        const bioInfo = yield general_info_model_1.default.findOne({ user: id })
+            .select("biodata_status pending_changes")
+            .lean()
+            .exec();
+        return {
+            user_status: userInfo.user_status,
+            biodata_status: (_a = bioInfo === null || bioInfo === void 0 ? void 0 : bioInfo.biodata_status) !== null && _a !== void 0 ? _a : null,
+            has_pending_changes: !!((bioInfo === null || bioInfo === void 0 ? void 0 : bioInfo.pending_changes) && typeof bioInfo.pending_changes === 'object'),
+        };
     }),
     getUserInfoByEmail: (email) => __awaiter(void 0, void 0, void 0, function* () {
         return yield user_info_model_1.UserInfoModel.findOne({ email }).lean().exec();

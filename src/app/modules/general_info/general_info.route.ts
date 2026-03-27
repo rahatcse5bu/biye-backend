@@ -25,6 +25,13 @@ GeneralInfoRouter.route("/:id/user-id").get(
 GeneralInfoRouter.route("/watch/:id").get(
   GeneralInfoController.updateWatchOfBioData
 );
+
+// User submit-for-review — must be before /:id to avoid param capture
+GeneralInfoRouter.route("/submit-review").post(
+  auth("user", "admin"),
+  GeneralInfoController.submitForReview
+);
+
 GeneralInfoRouter.route("/:id")
   .get(auth("admin"), GeneralInfoController.getSingleGeneralInfo)
   .delete(auth("admin"), GeneralInfoController.deleteGeneralInfo);

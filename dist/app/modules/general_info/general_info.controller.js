@@ -35,14 +35,41 @@ const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", sortOrder = "desc", 
     // New filter parameters
     gender, minAge, maxAge, minHeight, maxHeight, complexion, // screen_color
     education_medium, deeni_edu, occupation, fiqh, economic_status, categories, permanent_address, current_upzilla, upazila, current_division, current_zilla, 
     // Religion filters
     religion, religious_type, 
+    // English alias filters (for API/agent use — avoids Bengali in query params)
+    bio_gender, // 'male' | 'female'  →  maps to bio_type Bengali value
+    marital_status_en, // 'unmarried'|'married'|'divorced'|'widow'|'widower'
     // Expected partner filters
     exp_zilla, exp_marital_status, exp_occupation, exp_economical_condition, exp_educational_qualifications, } = req.query;
+    // Resolve bio_type from English alias if provided
+    const BIO_GENDER_MAP = {
+        male: 'পাত্রের বায়োডাটা',
+        groom: 'পাত্রের বায়োডাটা',
+        female: 'পাত্রীর বায়োডাটা',
+        bride: 'পাত্রীর বায়োডাটা',
+    };
+    const resolvedBioType = bio_gender
+        ? (_a = BIO_GENDER_MAP[String(bio_gender).toLowerCase()]) !== null && _a !== void 0 ? _a : bio_type
+        : bio_type;
+    // Resolve marital_status from English alias if provided
+    const MARITAL_EN_MAP = {
+        unmarried: 'অবিবাহিত',
+        single: 'অবিবাহিত',
+        married: 'বিবাহিত',
+        divorced: 'ডিভোর্সড',
+        widow: 'বিধবা',
+        widowed: 'বিধবা',
+        widower: 'বিপত্নীক',
+    };
+    const resolvedMaritalStatus = marital_status_en
+        ? (_b = MARITAL_EN_MAP[String(marital_status_en).toLowerCase()]) !== null && _b !== void 0 ? _b : marital_status
+        : marital_status;
     const andConditions = [
         {
             "userDetails.user_status": user_status,
@@ -369,10 +396,10 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 $and: andConditions,
             },
         },
-        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
+        ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
             ? [
                 {
-                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches), expectedPartnerMatches),
+                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (resolvedBioType && { bio_type: resolvedBioType })), (resolvedMaritalStatus && { marital_status: resolvedMaritalStatus })), additionalMatches), expectedPartnerMatches),
                 },
             ]
             : []),
@@ -467,10 +494,10 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 $and: andConditions,
             },
         },
-        ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
+        ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
             ? [
                 {
-                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (bio_type && { bio_type })), (marital_status && { marital_status })), additionalMatches), expectedPartnerMatches),
+                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (resolvedBioType && { bio_type: resolvedBioType })), (resolvedMaritalStatus && { marital_status: resolvedMaritalStatus })), additionalMatches), expectedPartnerMatches),
                 },
             ]
             : []),
@@ -745,9 +772,9 @@ const getGeneralInfoDashboardByUser = (0, catchAsync_1.default)((req, res) => __
     });
 }));
 const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _c;
     // console.log(req.user);
-    const generalInfo = yield general_info_model_1.default.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
+    const generalInfo = yield general_info_model_1.default.findOne({ user: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id });
     if (!generalInfo) {
         return res.status(404).json({
             message: "General info not found",
@@ -790,9 +817,9 @@ const getSingleGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(v
     res.status(200).json((0, SendSuccess_1.sendSuccess)("General info retrieved", responseData, 200));
 }));
 const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
-    const _c = req.body, { user_form } = _c, data = __rest(_c, ["user_form"]);
-    if (!((_b = req.user) === null || _b === void 0 ? void 0 : _b._id)) {
+    var _d;
+    const _e = req.body, { user_form } = _e, data = __rest(_e, ["user_form"]);
+    if (!((_d = req.user) === null || _d === void 0 ? void 0 : _d._id)) {
         return res.status(401).send({
             statusCode: http_status_1.default.UNAUTHORIZED,
             message: "You are not authorized",
@@ -834,9 +861,9 @@ const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
     }
 }));
 const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
+    var _f;
     const data = req.body;
-    const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+    const userId = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
     if (!userId) {
         return res.status(401).json({
             success: false,
@@ -918,9 +945,9 @@ const deleteGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
 }));
 // Admin approves pending biodata changes
 const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
+    var _g;
     const biodataId = req.params.id;
-    const adminId = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+    const adminId = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
     if (!adminId) {
         return res.status(401).json({
             success: false,
@@ -958,9 +985,9 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
 }));
 // Admin rejects pending biodata changes
 const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _f;
+    var _h;
     const biodataId = req.params.id;
-    const adminId = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+    const adminId = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
     const { reason = '' } = req.body;
     if (!adminId) {
         return res.status(401).json({
@@ -994,6 +1021,25 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
         data: generalInfo,
     });
 }));
+// User explicitly submits their saved edits for admin review (active biodata stays live).
+const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _j;
+    const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const generalInfo = yield general_info_model_1.default.findOne({ user: userId });
+    if (!generalInfo) {
+        return res.status(404).json({ success: false, message: "Biodata not found" });
+    }
+    // Mark as pending if there are unsaved changes (or force pending even if already set)
+    generalInfo.biodata_status = 'pending';
+    yield generalInfo.save();
+    res.status(200).json({
+        success: true,
+        message: "Biodata submitted for review. Your current approved version remains live.",
+    });
+}));
 exports.GeneralInfoController = {
     getGeneralInfo,
     getSingleGeneralInfo,
@@ -1007,4 +1053,5 @@ exports.GeneralInfoController = {
     getGeneralInfoDashboardByUser,
     approveBiodataChanges,
     rejectBiodataChanges,
+    submitForReview,
 };

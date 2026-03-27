@@ -3,6 +3,7 @@ import config from "../../../config";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoModel } from "./user_info.model";
+import GeneralInfo from "../general_info/general_info.model";
 
 export const UserInfoService = {
   getAllUserInfo: async (): Promise<IUserInfo[]> => {
@@ -26,8 +27,18 @@ export const UserInfoService = {
     const { session } = options;
     return UserInfoModel.findById(id).session(session).exec();
   },
-  getUserStatus: async (id: string): Promise<Partial<IUserInfo> | null> => {
-    return UserInfoModel.findById(id).select("user_status").exec();
+  getUserStatus: async (id: string): Promise<Record<string, any> | null> => {
+    const userInfo = await UserInfoModel.findById(id).select("user_status").lean().exec();
+    if (!userInfo) return null;
+    const bioInfo = await GeneralInfo.findOne({ user: id })
+      .select("biodata_status pending_changes")
+      .lean()
+      .exec() as any;
+    return {
+      user_status: userInfo.user_status,
+      biodata_status: bioInfo?.biodata_status ?? null,
+      has_pending_changes: !!(bioInfo?.pending_changes && typeof bioInfo.pending_changes === 'object'),
+    };
   },
   getUserInfoByEmail: async (
     email: string

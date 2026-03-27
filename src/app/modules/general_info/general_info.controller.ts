@@ -44,6 +44,9 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     // Religion filters
     religion,
     religious_type,
+    // English alias filters (for API/agent use — avoids Bengali in query params)
+    bio_gender,   // 'male' | 'female'  →  maps to bio_type Bengali value
+    marital_status_en, // 'unmarried'|'married'|'divorced'|'widow'|'widower'
     // Expected partner filters
     exp_zilla,
     exp_marital_status,
@@ -51,6 +54,31 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     exp_economical_condition,
     exp_educational_qualifications,
   } = req.query;
+
+  // Resolve bio_type from English alias if provided
+  const BIO_GENDER_MAP: Record<string, string> = {
+    male: 'পাত্রের বায়োডাটা',
+    groom: 'পাত্রের বায়োডাটা',
+    female: 'পাত্রীর বায়োডাটা',
+    bride: 'পাত্রীর বায়োডাটা',
+  };
+  const resolvedBioType = bio_gender
+    ? BIO_GENDER_MAP[String(bio_gender).toLowerCase()] ?? bio_type
+    : bio_type;
+
+  // Resolve marital_status from English alias if provided
+  const MARITAL_EN_MAP: Record<string, string> = {
+    unmarried: 'অবিবাহিত',
+    single: 'অবিবাহিত',
+    married: 'বিবাহিত',
+    divorced: 'ডিভোর্সড',
+    widow: 'বিধবা',
+    widowed: 'বিধবা',
+    widower: 'বিপত্নীক',
+  };
+  const resolvedMaritalStatus = marital_status_en
+    ? MARITAL_EN_MAP[String(marital_status_en).toLowerCase()] ?? marital_status
+    : marital_status;
 
   const andConditions: any = [
     {
@@ -391,12 +419,12 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
+    ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
       ? [
           {
             $match: {
-              ...(bio_type && { bio_type }),
-              ...(marital_status && { marital_status }),
+              ...(resolvedBioType && { bio_type: resolvedBioType }),
+              ...(resolvedMaritalStatus && { marital_status: resolvedMaritalStatus }),
               ...additionalMatches,
               ...expectedPartnerMatches,
             },
@@ -496,12 +524,12 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         $and: andConditions,
       },
     },
-    ...(bio_type || marital_status || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
+    ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
       ? [
           {
             $match: {
-              ...(bio_type && { bio_type }),
-              ...(marital_status && { marital_status }),
+              ...(resolvedBioType && { bio_type: resolvedBioType }),
+              ...(resolvedMaritalStatus && { marital_status: resolvedMaritalStatus }),
               ...additionalMatches,
               ...expectedPartnerMatches,
             },
@@ -1129,6 +1157,28 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// User explicitly submits their saved edits for admin review (active biodata stays live).
+const submitForReview = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user?._id;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const generalInfo = await GeneralInfo.findOne({ user: userId });
+  if (!generalInfo) {
+    return res.status(404).json({ success: false, message: "Biodata not found" });
+  }
+
+  // Mark as pending if there are unsaved changes (or force pending even if already set)
+  generalInfo.biodata_status = 'pending';
+  await generalInfo.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Biodata submitted for review. Your current approved version remains live.",
+  });
+});
+
 export const GeneralInfoController = {
   getGeneralInfo,
   getSingleGeneralInfo,
@@ -1142,4 +1192,5 @@ export const GeneralInfoController = {
   getGeneralInfoDashboardByUser,
   approveBiodataChanges,
   rejectBiodataChanges,
+  submitForReview,
 };
