@@ -19,17 +19,23 @@ export const validateExtraField = (
     return { isValid: false, message: "Field label is required" };
   }
 
-  if (field.value === null || field.value === undefined || field.value === "") {
-    return { isValid: false, message: `Value for "${field.label}" is required` };
-  }
-
   if (!field.fieldType) {
     return { isValid: false, message: `Field type for "${field.label}" is required` };
+  }
+
+  // Section headers have no value
+  if (field.fieldType === "section") {
+    return { isValid: true };
+  }
+
+  if (field.value === null || field.value === undefined || field.value === "") {
+    return { isValid: false, message: `Value for "${field.label}" is required` };
   }
 
   // Validate based on field type
   switch (field.fieldType) {
     case "text":
+    case "multi-line":
       return validateTextField(field);
 
     case "numeric":
@@ -167,11 +173,6 @@ export const validateExtraFields = (
 
   if (!fields || !Array.isArray(fields)) {
     return { isValid: true, errors: [] };
-  }
-
-  // Max 20 fields per biodata
-  if (fields.length > 20) {
-    errors.push("Maximum 20 extra fields allowed per biodata");
   }
 
   // Validate each field

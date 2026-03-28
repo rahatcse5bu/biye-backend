@@ -30,12 +30,19 @@ const UnverifiedBiodataSchema: Schema<IUnverifiedBiodata> = new Schema(
     upzilla: { type: String, required: false, default: "" },
     division: { type: String, required: false, default: "" },
     extra_fields: {
-      type: [{ label: { type: String, required: true }, value: { type: String, required: true } }],
+      type: [
+        {
+          label: { type: String, required: true },
+          value: { type: Schema.Types.Mixed, required: true },
+          fieldType: { type: String, required: true, enum: ["section", "text", "multi-line", "numeric", "email", "phone", "select", "boolean"] },
+          options: { type: [String], default: [] },
+        },
+      ],
       default: [],
     },
-    contact_name: { type: String, required: true },
-    contact_phone: { type: String, required: true },
-    contact_email: { type: String, required: true },
+    contact_name: { type: String, required: false, default: "" },
+    contact_phone: { type: String, required: false, default: "" },
+    contact_email: { type: String, required: false, default: "" },
     views_count: { type: Number, default: 0 },
     purchases_count: { type: Number, default: 0 },
     is_active: { type: Boolean, default: true },

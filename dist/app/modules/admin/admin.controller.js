@@ -41,7 +41,7 @@ exports.AdminController = {
         });
         // Get payment statistics
         const totalPayments = yield payments_service_1.PaymentService.getAllPayments();
-        const completedPayments = totalPayments.filter((p) => p.status === 'completed');
+        const completedPayments = totalPayments.filter((p) => p.status === 'Completed');
         const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
         // Mock additional statistics
         const totalBiodatas = totalUsers; // Assuming each user has one biodata
@@ -66,7 +66,7 @@ exports.AdminController = {
                 payments: {
                     total: totalPayments.length,
                     completed: completedPayments.length,
-                    pending: totalPayments.filter((p) => p.status === 'pending').length,
+                    pending: totalPayments.filter((p) => p.status === 'Pending').length,
                     revenue: totalRevenue
                 },
                 refunds: {
@@ -98,7 +98,7 @@ exports.AdminController = {
             filter.user_status = status;
         }
         if (user_type && user_type !== 'all') {
-            filter.user_type = user_type;
+            filter.user_role = user_type;
         }
         const users = yield user_info_model_1.UserInfoModel.find(filter)
             .select('-password -__v')
@@ -226,7 +226,8 @@ exports.AdminController = {
             .lean();
         // Get biodata info for each user
         const biodatas = yield Promise.all(users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-            const generalInfo = yield general_info_model_1.default.findOne({ user: user._id }).select('date_of_birth').lean();
+            var _a;
+            const generalInfo = yield general_info_model_1.default.findOne({ user: user._id }).select('date_of_birth marital_status').lean();
             const personalInfo = yield personal_info_model_1.default.findOne({ user: user._id }).select('').lean();
             const educationInfo = yield educational_qualification_model_1.default.findOne({ user: user._id }).select('education_medium').lean();
             const occupation = yield occupation_model_1.default.findOne({ user: user._id }).select('').lean();
@@ -237,18 +238,19 @@ exports.AdminController = {
                 ? Math.floor((Date.now() - new Date(generalInfo.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                 : 0;
             return {
-                id: user._id,
+                _id: user._id,
+                user: user._id,
+                generalInfo_id: (_a = generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo._id) !== null && _a !== void 0 ? _a : null,
                 user_id: user.user_id,
+                user_status: user.user_status,
                 name: (contact === null || contact === void 0 ? void 0 : contact.full_name) || user.email.split('@')[0],
                 email: user.email,
                 age: age,
-                occupation: 'Not specified',
                 location: address ? `${address.present_zilla || 'Unknown'}, ${address.present_division || 'Unknown'}` : 'Not specified',
-                status: user.user_status,
                 marital_status: (generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo.marital_status) || 'Not specified',
                 education: (educationInfo === null || educationInfo === void 0 ? void 0 : educationInfo.education_medium) || 'Not specified',
-                created_at: user.createdAt,
-                updated_at: user.updatedAt
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
             };
         })));
         const total = yield user_info_model_1.UserInfoModel.countDocuments(userFilter);
@@ -273,18 +275,25 @@ exports.AdminController = {
     updateBiodataStatus: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { id } = req.params;
         const { status, reason } = req.body;
-        const validStatuses = ['active', 'inactive', 'pending', 'blocked'];
+        const validStatuses = ['active', 'inactive', 'banned', 'pending', 'blocked'];
         if (!validStatuses.includes(status)) {
             return res.status(http_status_1.default.BAD_REQUEST).json({
                 success: false,
-                message: "Invalid status value"
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
             });
         }
-        const user = yield user_info_model_1.UserInfoModel.findByIdAndUpdate(id, Object.assign(Object.assign({ user_status: status }, (reason && { status_reason: reason })), { updatedAt: new Date() }), { new: true, select: '-password -__v' });
+        // id may be the user's _id (admin endpoint) OR the GeneralInfo _id (fallback endpoint).
+        // Try to resolve to the user's _id via GeneralInfo first.
+        let userId = id;
+        const generalInfoDoc = yield general_info_model_1.default.findById(id).select('user').lean();
+        if (generalInfoDoc) {
+            userId = generalInfoDoc.user;
+        }
+        const user = yield user_info_model_1.UserInfoModel.findByIdAndUpdate(userId, Object.assign(Object.assign({ user_status: status }, (reason && { status_reason: reason })), { updatedAt: new Date() }), { new: true, select: '-password -__v' });
         if (!user) {
             return res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,
-                message: "Biodata not found"
+                message: "User not found"
             });
         }
         res.status(http_status_1.default.OK).json({
@@ -367,11 +376,11 @@ exports.AdminController = {
     updatePaymentStatus: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { id } = req.params;
         const { status, admin_notes } = req.body;
-        const validStatuses = ['pending', 'completed', 'failed', 'refunded'];
+        const validStatuses = ['Pending', 'Completed', 'Refunded'];
         if (!validStatuses.includes(status)) {
             return res.status(http_status_1.default.BAD_REQUEST).json({
                 success: false,
-                message: "Invalid status value"
+                message: `Invalid status value. Must be one of: ${validStatuses.join(', ')}`
             });
         }
         try {
@@ -402,11 +411,11 @@ exports.AdminController = {
         try {
             const payments = yield payments_service_1.PaymentService.getAllPayments();
             const totalPayments = payments.length;
-            const completedPayments = payments.filter((p) => p.status === 'completed').length;
-            const pendingPayments = payments.filter((p) => p.status === 'pending').length;
-            const failedPayments = payments.filter((p) => p.status === 'failed').length;
+            const completedPayments = payments.filter((p) => p.status === 'Completed').length;
+            const pendingPayments = payments.filter((p) => p.status === 'Pending').length;
+            const refundedPayments = payments.filter((p) => p.status === 'Refunded').length;
             const totalRevenue = payments
-                .filter((p) => p.status === 'completed')
+                .filter((p) => p.status === 'Completed')
                 .reduce((sum, p) => sum + (p.amount || 0), 0);
             res.status(http_status_1.default.OK).json({
                 success: true,
@@ -415,7 +424,7 @@ exports.AdminController = {
                     totalPayments,
                     completedPayments,
                     pendingPayments,
-                    failedPayments,
+                    refundedPayments,
                     totalRevenue
                 }
             });

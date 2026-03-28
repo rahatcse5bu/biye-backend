@@ -315,82 +315,34 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // Construct aggregation pipeline for counting total size
     const countPipeline = [
         {
-            $lookup: {
-                from: "users",
-                localField: "user",
-                foreignField: "_id",
-                as: "userDetails",
-            },
+            $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
         },
+        { $addFields: { userDetails: { $first: "$userDetails" } } },
+        { $match: { userDetails: { $ne: null } } },
         {
-            $unwind: "$userDetails",
+            $lookup: { from: "addresses", localField: "user", foreignField: "user", as: "address" },
         },
+        { $addFields: { address: { $first: "$address" } } },
         {
-            $lookup: {
-                from: "addresses",
-                localField: "user",
-                foreignField: "user",
-                as: "address",
-            },
+            $lookup: { from: "educationalqualifications", localField: "user", foreignField: "user", as: "education" },
         },
+        { $addFields: { education: { $first: "$education" } } },
         {
-            $unwind: { path: "$address", preserveNullAndEmptyArrays: true },
+            $lookup: { from: "occupations", localField: "user", foreignField: "user", as: "occupation" },
         },
+        { $addFields: { occupation: { $first: "$occupation" } } },
         {
-            $lookup: {
-                from: "educationalqualifications",
-                localField: "user",
-                foreignField: "user",
-                as: "education",
-            },
+            $lookup: { from: "personalinfos", localField: "user", foreignField: "user", as: "personalInfo" },
         },
+        { $addFields: { personalInfo: { $first: "$personalInfo" } } },
         {
-            $unwind: { path: "$education", preserveNullAndEmptyArrays: true },
+            $lookup: { from: "familystatuses", localField: "user", foreignField: "user", as: "familyStatus" },
         },
+        { $addFields: { familyStatus: { $first: "$familyStatus" } } },
         {
-            $lookup: {
-                from: "occupations",
-                localField: "user",
-                foreignField: "user",
-                as: "occupation",
-            },
+            $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
         },
-        {
-            $unwind: { path: "$occupation", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "personalinfos",
-                localField: "user",
-                foreignField: "user",
-                as: "personalInfo",
-            },
-        },
-        {
-            $unwind: { path: "$personalInfo", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "familystatuses",
-                localField: "user",
-                foreignField: "user",
-                as: "familyStatus",
-            },
-        },
-        {
-            $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "expectedpartners",
-                localField: "user",
-                foreignField: "user",
-                as: "expectedPartner",
-            },
-        },
-        {
-            $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
-        },
+        { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
         {
             $match: {
                 $and: andConditions,
@@ -413,82 +365,34 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // Construct aggregation pipeline for actual data retrieval
     const dataPipeline = [
         {
-            $lookup: {
-                from: "users",
-                localField: "user",
-                foreignField: "_id",
-                as: "userDetails",
-            },
+            $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
         },
+        { $addFields: { userDetails: { $first: "$userDetails" } } },
+        { $match: { userDetails: { $ne: null } } },
         {
-            $unwind: "$userDetails",
+            $lookup: { from: "addresses", localField: "user", foreignField: "user", as: "address" },
         },
+        { $addFields: { address: { $first: "$address" } } },
         {
-            $lookup: {
-                from: "addresses",
-                localField: "user",
-                foreignField: "user",
-                as: "address",
-            },
+            $lookup: { from: "educationalqualifications", localField: "user", foreignField: "user", as: "education" },
         },
+        { $addFields: { education: { $first: "$education" } } },
         {
-            $unwind: { path: "$address", preserveNullAndEmptyArrays: true },
+            $lookup: { from: "occupations", localField: "user", foreignField: "user", as: "occupation" },
         },
+        { $addFields: { occupation: { $first: "$occupation" } } },
         {
-            $lookup: {
-                from: "educationalqualifications",
-                localField: "user",
-                foreignField: "user",
-                as: "education",
-            },
+            $lookup: { from: "personalinfos", localField: "user", foreignField: "user", as: "personalInfo" },
         },
+        { $addFields: { personalInfo: { $first: "$personalInfo" } } },
         {
-            $unwind: { path: "$education", preserveNullAndEmptyArrays: true },
+            $lookup: { from: "familystatuses", localField: "user", foreignField: "user", as: "familyStatus" },
         },
+        { $addFields: { familyStatus: { $first: "$familyStatus" } } },
         {
-            $lookup: {
-                from: "occupations",
-                localField: "user",
-                foreignField: "user",
-                as: "occupation",
-            },
+            $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
         },
-        {
-            $unwind: { path: "$occupation", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "personalinfos",
-                localField: "user",
-                foreignField: "user",
-                as: "personalInfo",
-            },
-        },
-        {
-            $unwind: { path: "$personalInfo", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "familystatuses",
-                localField: "user",
-                foreignField: "user",
-                as: "familyStatus",
-            },
-        },
-        {
-            $unwind: { path: "$familyStatus", preserveNullAndEmptyArrays: true },
-        },
-        {
-            $lookup: {
-                from: "expectedpartners",
-                localField: "user",
-                foreignField: "user",
-                as: "expectedPartner",
-            },
-        },
-        {
-            $unwind: { path: "$expectedPartner", preserveNullAndEmptyArrays: true },
-        },
+        { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
         {
             $match: {
                 $and: andConditions,

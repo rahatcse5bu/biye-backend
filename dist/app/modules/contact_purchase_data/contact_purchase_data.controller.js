@@ -32,10 +32,24 @@ exports.ContactPurchaseController = {
         });
     })),
     getAllContactPurchasesByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { status, page = 1, limit = 10 } = req.query;
+        const { status, page = 1, limit = 10, search } = req.query;
         const matchStage = status ? { status } : {};
         const skip = (Number(page) - 1) * Number(limit);
         const limitNum = Number(limit);
+        // Build search match stage if search query provided
+        const searchMatchStage = search
+            ? {
+                $or: [
+                    { "userDetails.email": { $regex: search, $options: "i" } },
+                    { "bioUserDetails.email": { $regex: search, $options: "i" } },
+                    { "userDetails.user_id": isNaN(Number(search)) ? undefined : Number(search) },
+                    { "bioUserDetails.user_id": isNaN(Number(search)) ? undefined : Number(search) },
+                ].filter((condition) => {
+                    const values = Object.values(condition);
+                    return values.every((v) => v !== undefined);
+                }),
+            }
+            : null;
         const contactPurchases = yield contact_purchase_data_model_1.default.aggregate([
             {
                 $lookup: {
@@ -84,6 +98,7 @@ exports.ContactPurchaseController = {
             {
                 $match: matchStage,
             },
+            ...(searchMatchStage ? [{ $match: searchMatchStage }] : []),
             {
                 $project: {
                     _id: 1,
@@ -131,7 +146,50 @@ exports.ContactPurchaseController = {
                 $limit: limitNum, // Limit the number of documents returned
             },
         ]);
-        const totalCount = yield contact_purchase_data_model_1.default.countDocuments(matchStage); // Count total documents after filtering
+        // Build count pipeline (same filters as data pipeline but without skip/limit)
+        const countPipeline = [
+            {
+                $lookup: {
+                    from: "contacts",
+                    localField: "user",
+                    foreignField: "user",
+                    as: "userContact",
+                },
+            },
+            {
+                $lookup: {
+                    from: "contacts",
+                    localField: "bio_user",
+                    foreignField: "user",
+                    as: "bioUserContact",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "userDetails",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "bio_user",
+                    foreignField: "_id",
+                    as: "bioUserDetails",
+                },
+            },
+            { $unwind: "$userContact" },
+            { $unwind: "$bioUserContact" },
+            { $unwind: "$bioUserDetails" },
+            { $unwind: "$userDetails" },
+            { $match: matchStage },
+            ...(searchMatchStage ? [{ $match: searchMatchStage }] : []),
+            { $count: "total" },
+        ];
+        const countResult = yield contact_purchase_data_model_1.default.aggregate(countPipeline);
+        const totalCount = countResult.length > 0 ? countResult[0].total : 0;
         res.status(200).json({
             totalPages: Math.ceil(totalCount / limitNum),
             currentPage: Number(page),

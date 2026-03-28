@@ -205,7 +205,7 @@ const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         acc[item._id] = item.count;
         return acc;
     }, {});
-    const total = (_d = (_c = result["পুরুষ"]) !== null && _c !== void 0 ? _c : 0 + result["মহিলা"]) !== null && _d !== void 0 ? _d : 0;
+    const total = ((_c = result["পুরুষ"]) !== null && _c !== void 0 ? _c : 0) + ((_d = result["মহিলা"]) !== null && _d !== void 0 ? _d : 0);
     res
         .status(200)
         .json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", Object.assign(Object.assign({}, result), { total }), 200));

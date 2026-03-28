@@ -1,6 +1,6 @@
 import { Document, Types } from "mongoose";
 
-export type FieldType = "text" | "numeric" | "email" | "phone" | "select" | "boolean";
+export type FieldType = "section" | "text" | "multi-line" | "numeric" | "email" | "phone" | "select" | "boolean";
 
 export interface IExtraField {
   label: string;
@@ -26,9 +26,9 @@ export interface IUnverifiedBiodata extends Document {
   upzilla: string;
   division: string;
   // Contact info — only revealed after purchase
-  contact_name: string;
-  contact_phone: string;
-  contact_email: string;
+  contact_name?: string;
+  contact_phone?: string;
+  contact_email?: string;
   // Extra dynamic fields (label + value pairs shown on detail page)
   extra_fields: IExtraField[];
   // Stats

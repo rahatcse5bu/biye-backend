@@ -363,7 +363,7 @@ const parseCustomFieldsWithLLM = catchAsync(async (req: Request, res: Response) 
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "meta-llama/llama-2-7b-chat:free",
+        model: "google/gemma-3-4b-it:free",
         messages: [
           {
             role: "system",
@@ -416,7 +416,7 @@ Only return JSON array, no other text.`,
           f.value !== null &&
           f.fieldType
       )
-      .slice(0, 20); // Max 20 fields
+;
 
     res.status(200).json({
       success: true,
@@ -424,11 +424,12 @@ Only return JSON array, no other text.`,
       message: `Extracted ${fields.length} custom field(s)`,
     });
   } catch (error: any) {
-    console.error("LLM parsing error:", error.message);
+    const detail = error.response?.data || error.message;
+    console.error("LLM parsing error:", JSON.stringify(detail));
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Failed to parse fields with LLM",
-      error: error.message,
+      error: detail,
     });
   }
 });
