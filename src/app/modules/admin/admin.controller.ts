@@ -30,7 +30,7 @@ export const AdminController = {
 
     // Get payment statistics
     const totalPayments = await PaymentService.getAllPayments();
-    const completedPayments = totalPayments.filter((p: any) => p.status === 'completed');
+    const completedPayments = totalPayments.filter((p: any) => p.status === 'Completed');
     const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
 
     // Mock additional statistics
@@ -57,7 +57,7 @@ export const AdminController = {
         payments: {
           total: totalPayments.length,
           completed: completedPayments.length,
-          pending: totalPayments.filter((p: any) => p.status === 'pending').length,
+          pending: totalPayments.filter((p: any) => p.status === 'Pending').length,
           revenue: totalRevenue
         },
         refunds: {
@@ -80,7 +80,7 @@ export const AdminController = {
 
     // Build filter query
     const filter: any = {};
-    
+
     if (search) {
       filter.$or = [
         { user_name: { $regex: search, $options: 'i' } },
@@ -94,7 +94,7 @@ export const AdminController = {
     }
 
     if (user_type && user_type !== 'all') {
-      filter.user_type = user_type;
+      filter.user_role = user_type;
     }
 
     const users = await UserInfoModel.find(filter)
@@ -257,7 +257,7 @@ export const AdminController = {
     // Get biodata info for each user
     const biodatas = await Promise.all(
       users.map(async (user) => {
-        const generalInfo = await GeneralInfo.findOne({ user: user._id }).select('date_of_birth').lean();
+        const generalInfo = await GeneralInfo.findOne({ user: user._id }).select('date_of_birth marital_status').lean();
         const personalInfo = await PersonalInfo.findOne({ user: user._id }).select('').lean();
         const educationInfo = await EducationalQualification.findOne({ user: user._id }).select('education_medium').lean();
         const occupation = await Occupation.findOne({ user: user._id }).select('').lean();
@@ -270,18 +270,19 @@ export const AdminController = {
           : 0;
 
         return {
-          id: user._id,
+          _id: user._id,          // user's _id — used for status mutations
+          user: user._id,         // alias for consistency with general-info fallback shape
+          generalInfo_id: (generalInfo as any)?._id ?? null,  // GeneralInfo _id — used for delete
           user_id: user.user_id,
+          user_status: user.user_status,
           name: contact?.full_name || user.email.split('@')[0],
           email: user.email,
           age: age,
-          occupation: 'Not specified', // occupation field needs to be identified
           location: address ? `${address.present_zilla || 'Unknown'}, ${address.present_division || 'Unknown'}` : 'Not specified',
-          status: user.user_status,
           marital_status: generalInfo?.marital_status || 'Not specified',
           education: educationInfo?.education_medium || 'Not specified',
-          created_at: (user as any).createdAt,
-          updated_at: (user as any).updatedAt
+          createdAt: (user as any).createdAt,
+          updatedAt: (user as any).updatedAt
         };
       })
     );
@@ -311,17 +312,25 @@ export const AdminController = {
     const { id } = req.params;
     const { status, reason } = req.body;
 
-    const validStatuses = ['active', 'inactive', 'pending', 'blocked'];
+    const validStatuses = ['active', 'inactive', 'banned', 'pending', 'blocked'];
     if (!validStatuses.includes(status)) {
       return res.status(httpStatus.BAD_REQUEST).json({
         success: false,
-        message: "Invalid status value"
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
       });
     }
 
+    // id may be the user's _id (admin endpoint) OR the GeneralInfo _id (fallback endpoint).
+    // Try to resolve to the user's _id via GeneralInfo first.
+    let userId: any = id;
+    const generalInfoDoc = await GeneralInfo.findById(id).select('user').lean();
+    if (generalInfoDoc) {
+      userId = generalInfoDoc.user;
+    }
+
     const user = await UserInfoModel.findByIdAndUpdate(
-      id,
-      { 
+      userId,
+      {
         user_status: status,
         ...(reason && { status_reason: reason }),
         updatedAt: new Date()
@@ -332,7 +341,7 @@ export const AdminController = {
     if (!user) {
       return res.status(httpStatus.NOT_FOUND).json({
         success: false,
-        message: "Biodata not found"
+        message: "User not found"
       });
     }
 
@@ -426,11 +435,11 @@ export const AdminController = {
     const { id } = req.params;
     const { status, admin_notes } = req.body;
 
-    const validStatuses = ['pending', 'completed', 'failed', 'refunded'];
+    const validStatuses = ['Pending', 'Completed', 'Refunded'];
     if (!validStatuses.includes(status)) {
       return res.status(httpStatus.BAD_REQUEST).json({
         success: false,
-        message: "Invalid status value"
+        message: `Invalid status value. Must be one of: ${validStatuses.join(', ')}`
       });
     }
 
@@ -465,11 +474,11 @@ export const AdminController = {
       const payments = await PaymentService.getAllPayments();
       
       const totalPayments = payments.length;
-      const completedPayments = payments.filter((p: any) => p.status === 'completed').length;
-      const pendingPayments = payments.filter((p: any) => p.status === 'pending').length;
-      const failedPayments = payments.filter((p: any) => p.status === 'failed').length;
+      const completedPayments = payments.filter((p: any) => p.status === 'Completed').length;
+      const pendingPayments = payments.filter((p: any) => p.status === 'Pending').length;
+      const refundedPayments = payments.filter((p: any) => p.status === 'Refunded').length;
       const totalRevenue = payments
-        .filter((p: any) => p.status === 'completed')
+        .filter((p: any) => p.status === 'Completed')
         .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
 
       res.status(httpStatus.OK).json({
@@ -479,7 +488,7 @@ export const AdminController = {
           totalPayments,
           completedPayments,
           pendingPayments,
-          failedPayments,
+          refundedPayments,
           totalRevenue
         }
       });

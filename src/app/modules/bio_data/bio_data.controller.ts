@@ -205,7 +205,7 @@ const getBioDataStat = catchAsync(async (req: Request, res: Response) => {
     return acc;
   }, {});
 
-  const total = result["পুরুষ"] ?? 0 + result["মহিলা"] ?? 0;
+  const total = (result["পুরুষ"] ?? 0) + (result["মহিলা"] ?? 0);
 
   res
     .status(200)

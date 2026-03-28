@@ -29,6 +29,8 @@ import AdminRouter from "./app/modules/admin/admin.route";
 import ShortlistRouter from "./app/modules/shortlist/shortlist.route";
 import AchievementRouter from "./app/modules/achievement/achievement.route";
 import LlmRouter from "./app/modules/llm/llm.route";
+import UnverifiedBiodataRouter from "./app/modules/unverified_biodata/unverified_biodata.route";
+import UnverifiedContactPurchaseRouter from "./app/modules/unverified_contact_purchase/unverified_contact_purchase.route";
 import sendEmail from "./shared/SendEmail";
 import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -123,6 +125,8 @@ app.use("/api/v1/shortlist", ShortlistRouter);
 app.use("/api/v1/achievement", AchievementRouter);
 app.use("/api/admin", AdminRouter);
 app.use("/api/v1/llm", LlmRouter);
+app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
+app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);
 
 export default app;
