@@ -470,6 +470,12 @@ const parseCustomFieldsWithLLM = catchAsync(async (req: Request, res: Response) 
   }
 
   try {
+    // Truncate very long text to avoid exceeding token limits
+    const maxChars = 2000;
+    const truncatedText = biodata_text.length > maxChars 
+      ? biodata_text.substring(0, maxChars) + "..." 
+      : biodata_text;
+
     const { callGroqAPI } = require("../../../services/groqService");
 
     const response = await callGroqAPI(
@@ -485,22 +491,48 @@ Extract custom fields like: profession, education, income, family background, in
 For each field, determine type: "text"|"numeric"|"email"|"phone"|"select"|"boolean"
 
 Return a JSON array: [{"label":"Field name","value":"Sample value","fieldType":"text","options":[]}]
-Only return JSON array, no other text.`,
+Only return JSON array, no other text or markdown.`,
         },
         {
           role: "user",
-          content: `Extract custom fields from: ${biodata_text}`,
+          content: `Extract custom fields from: ${truncatedText}`,
         },
       ],
       "meta-llama/llama-4-scout-17b-16e-instruct",
       0.3,
-      1000
+      800
     );
 
-    const content = response.choices[0].message.content;
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    // Safely access response content
+    if (!response || !response.choices || !response.choices[0]) {
+      console.warn("Invalid Groq response structure");
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "Could not parse fields from response",
+      });
+    }
+
+    const content = response.choices[0].message?.content;
+    if (!content) {
+      console.warn("No content in Groq response");
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "No content received from LLM",
+      });
+    }
+
+    // Remove markdown code blocks if present
+    const cleanedContent = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
 
     if (!jsonMatch) {
+      console.warn("No JSON array found in response:", cleanedContent.substring(0, 200));
       return res.status(200).json({
         success: true,
         data: [],
@@ -508,16 +540,37 @@ Only return JSON array, no other text.`,
       });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (jsonError) {
+      console.error("JSON parse error:", jsonError);
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "Could not parse JSON from response",
+      });
+    }
+
+    // Ensure parsed is an array
+    if (!Array.isArray(parsed)) {
+      console.warn("Parsed response is not an array");
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "Invalid response format",
+      });
+    }
+
     const fields = parsed
       .filter(
         (f: any) =>
+          f &&
           f.label &&
           f.value !== undefined &&
           f.value !== null &&
           f.fieldType
-      )
-      ;
+      );
 
     res.status(200).json({
       success: true,
@@ -525,8 +578,8 @@ Only return JSON array, no other text.`,
       message: `Extracted ${fields.length} custom field(s)`,
     });
   } catch (error: any) {
-    const detail = error.response?.data || error.message;
-    console.error("LLM parsing error:", JSON.stringify(detail));
+    const detail = error.response?.data?.error?.message || error.message || "Unknown error";
+    console.error("LLM parsing error:", detail);
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Failed to parse fields with LLM",
