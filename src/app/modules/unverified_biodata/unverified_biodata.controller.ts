@@ -18,6 +18,7 @@ const createUnverifiedBiodata = catchAsync(async (req: Request, res: Response) =
   // Validate extra_fields if provided
   const validation = validateExtraFields(req.body.extra_fields);
   if (!validation.isValid) {
+    console.error("[createUnverifiedBiodata] Validation errors:", validation.errors);
     return res.status(httpStatus.BAD_REQUEST).json({
       success: false,
       message: "Validation failed",
@@ -25,14 +26,133 @@ const createUnverifiedBiodata = catchAsync(async (req: Request, res: Response) =
     });
   }
 
-  const data = { ...req.body, created_by: adminId };
-  const biodata = await UnverifiedBiodata.create(data);
+  // Clean up empty strings for optional fields
+  const cleanedData = {
+    ...req.body,
+    created_by: adminId,
+    // Convert empty strings to null for optional fields
+    date_of_birth: req.body.date_of_birth ? new Date(req.body.date_of_birth) : null,
+    zilla: req.body.zilla || null,
+    upzilla: req.body.upzilla || null,
+    division: req.body.division || null,
+    contact_phone: req.body.contact_phone || null,
+  };
 
-  res.status(201).json({
-    success: true,
-    message: "Unverified biodata created successfully",
-    data: biodata,
-  });
+  try {
+    const biodata = await UnverifiedBiodata.create(cleanedData);
+
+    // Send welcome email to the user with their biodata link
+    if (biodata.contact_email) {
+      try {
+        const biodataLink = `https://biye.info/biodata/unverified/${biodata._id}`;
+        const emailSubject = "Welcome to বিয়ে.ইনফো - Your Biodata Profile Created";
+        const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 8px; }
+        .header { background: linear-gradient(135deg, #1a2e1a 0%, #2d4a2d 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+        .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+        .welcome-text { font-size: 16px; margin-bottom: 20px; }
+        .info-box { background: #f0f8f0; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .link-section { margin: 25px 0; text-align: center; }
+        .share-link { background: #4CAF50; color: white; padding: 15px; border-radius: 6px; display: inline-block; word-break: break-all; font-weight: bold; }
+        .benefits { margin: 20px 0; }
+        .benefit-item { padding: 10px 0; padding-left: 25px; position: relative; }
+        .benefit-item:before { content: "✓"; position: absolute; left: 0; color: #4CAF50; font-weight: bold; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
+        .cta-button { display: inline-block; background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>স্বাগতম দ্বি.ইনফোতে</h1>
+            <p>Welcome to বিয়ে.ইনফো - Matrimony Platform</p>
+        </div>
+        <div class="content">
+            <p class="welcome-text">
+                আপনার সাথে যোগাযোগ করতে পেরে আমরা আনন্দিত। আপনার তথ্য সফলভাবে আমাদের প্ল্যাটফর্মে যোগ করা হয়েছে।
+            </p>
+            
+            <div class="info-box">
+                <strong>Good news!</strong> আপনার বায়োডেটা প্রোফাইল এখন লাইভ আছে এবং সম্ভাব্য ম্যাচদের কাছে দৃশ্যমান।
+            </div>
+
+            <h3 style="color: #1a2e1a;">আপনার প্রোফাইল লিঙ্ক:</h3>
+            <div class="link-section">
+                <div class="share-link">${biodataLink}</div>
+            </div>
+
+            <div class="benefits">
+                <h3 style="color: #1a2e1a;">এই লিঙ্কটি শেয়ার করুন এবং পান:</h3>
+                <div class="benefit-item">আরও ভালো সাড়া এবং মিলের সম্ভাবনা</div>
+                <div class="benefit-item">পরিবার এবং বন্ধুদের সাথে সহজে শেয়ার করুন</div>
+                <div class="benefit-item">আপনার প্রোফাইল সম্পূর্ণ নিয়ন্ত্রণে থাকে</div>
+                <div class="benefit-item">যেকোনো সময় আপডেট করুন</div>
+            </div>
+
+            <h3 style="color: #1a2e1a;">আপনার প্রোফাইল দেখতে:</h3>
+            <p>নিচের বাটনে ক্লিক করুন অথবা উপরের লিঙ্কটি আপনার ব্রাউজারে কপি করুন।</p>
+            <p style="text-align: center;">
+                <a href="${biodataLink}" class="cta-button">আপনার প্রোফাইল দেখুন</a>
+            </p>
+
+            <h3 style="color: #1a2e1a;">প্রশ্ন থাকলে?</h3>
+            <p>আমাদের সাথে যোগাযোগ করুন info@biye.info এ অথবা আমাদের ওয়েবসাইট visit করুন।</p>
+
+            <div class="footer">
+                <p>সর্বদা আমাদের সাথে থাকার জন্য ধন্যবাদ। বিয়ে.ইনফো টিম</p>
+                <p>© 2026 বিয়ে.ইনফো | সকল অধিকার সংরক্ষিত</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        // Send email asynchronously (don't wait for it)
+        sendEmail(
+          biodata.contact_email,
+          emailSubject,
+          emailBody
+        ).catch((emailError: any) => {
+          console.warn("[createUnverifiedBiodata] Email sending failed:", emailError.message);
+          // Don't fail the API response if email fails
+        });
+      } catch (emailError: any) {
+        console.warn("[createUnverifiedBiodata] Email preparation failed:", emailError.message);
+        // Continue with response even if email fails
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Unverified biodata created successfully",
+      data: biodata,
+    });
+  } catch (dbError: any) {
+    console.error("[createUnverifiedBiodata] Database error:", dbError.message);
+
+    // Handle validation errors from MongoDB schema
+    if (dbError.name === "ValidationError") {
+      const errors = Object.entries(dbError.errors).map(
+        ([key, err]: [string, any]) => `${key}: ${err.message}`
+      );
+      return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
+        success: false,
+        message: "Database validation failed",
+        errors,
+      });
+    }
+
+    throw dbError;
+  }
 });
 
 const getAllUnverifiedBiodatas = catchAsync(async (req: Request, res: Response) => {
@@ -350,24 +470,13 @@ const parseCustomFieldsWithLLM = catchAsync(async (req: Request, res: Response) 
   }
 
   try {
-    const axios = require("axios");
-    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    const { callGroqAPI } = require("../../../services/groqService");
 
-    if (!OPENROUTER_API_KEY) {
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: "LLM service not configured",
-      });
-    }
-
-    const response = await axios.post(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        model: "google/gemma-3-4b-it:free",
-        messages: [
-          {
-            role: "system",
-            content: `You are a biodata data extraction specialist. Extract ONLY custom/additional fields from biodata text.
+    const response = await callGroqAPI(
+      [
+        {
+          role: "system",
+          content: `You are a biodata data extraction specialist. Extract ONLY custom/additional fields from biodata text.
 
 IGNORE standard fields: name, phone, email, gender, DOB, height, weight, blood group, religion, marital status, address, nationality, complexion.
 
@@ -377,26 +486,18 @@ For each field, determine type: "text"|"numeric"|"email"|"phone"|"select"|"boole
 
 Return a JSON array: [{"label":"Field name","value":"Sample value","fieldType":"text","options":[]}]
 Only return JSON array, no other text.`,
-          },
-          {
-            role: "user",
-            content: `Extract custom fields from: ${biodata_text}`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
-        top_p: 0.7,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "http://localhost:5000",
-          "X-Title": "PNC Nikah Backend",
         },
-      }
+        {
+          role: "user",
+          content: `Extract custom fields from: ${biodata_text}`,
+        },
+      ],
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+      0.3,
+      1000
     );
 
-    const content = response.data.choices[0].message.content;
+    const content = response.choices[0].message.content;
     const jsonMatch = content.match(/\[[\s\S]*\]/);
 
     if (!jsonMatch) {
@@ -416,7 +517,7 @@ Only return JSON array, no other text.`,
           f.value !== null &&
           f.fieldType
       )
-;
+      ;
 
     res.status(200).json({
       success: true,

@@ -12,7 +12,7 @@ export interface IExtraField {
 export interface IUnverifiedBiodata extends Document {
   bio_type: string;
   gender: string;
-  date_of_birth: Date;
+  date_of_birth?: Date | null;
   height: number;
   weight: number;
   blood_group: string;
@@ -22,9 +22,9 @@ export interface IUnverifiedBiodata extends Document {
   religion: "islam" | "hinduism" | "christianity";
   religious_type?: string;
   photos: string[];
-  zilla: string;
-  upzilla: string;
-  division: string;
+  zilla?: string | null;
+  upzilla?: string;
+  division?: string;
   // Contact info — only revealed after purchase
   contact_name?: string;
   contact_phone?: string;

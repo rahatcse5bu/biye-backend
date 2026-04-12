@@ -17,12 +17,15 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const http_1 = __importDefault(require("http"));
 require("colors");
 const index_1 = __importDefault(require("./index"));
+const photocard_template_seed_1 = require("../app/modules/photocard_template/photocard_template.seed");
 function connectDb(app) {
     return __awaiter(this, void 0, void 0, function* () {
         let server;
         try {
             yield mongoose_1.default.connect(index_1.default.mongo_url);
             console.log("connection established successfully into database".green.underline);
+            // Seed built-in photocard templates
+            yield (0, photocard_template_seed_1.seedPhotocardTemplates)();
             server = http_1.default.createServer(app);
             server.listen(index_1.default.port, () => {
                 console.log(`app listening on port=> ${index_1.default.port}`.yellow.underline);

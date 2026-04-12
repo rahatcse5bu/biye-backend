@@ -14,21 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
-const config_1 = __importDefault(require("../../../config"));
-const axios_1 = __importDefault(require("axios"));
+const groqService_1 = require("../../../services/groqService");
 const LlmRouter = express_1.default.Router();
 LlmRouter.post("/chat", (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const apiKey = config_1.default.openrouter_api_key;
-    if (!apiKey) {
-        return res.status(500).json({ success: false, message: "LLM not configured" });
+    const { messages, model = "meta-llama/llama-4-scout-17b-16e-instruct", temperature = 0.7, max_tokens = 2048 } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ success: false, message: "Messages array is required" });
     }
-    const response = yield axios_1.default.post("https://openrouter.ai/api/v1/chat/completions", req.body, {
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://pncnikah.com",
-        },
-    });
-    res.status(200).json(response.data);
+    const response = yield (0, groqService_1.callGroqAPI)(messages, model, temperature, max_tokens);
+    res.status(200).json(response);
 })));
 exports.default = LlmRouter;

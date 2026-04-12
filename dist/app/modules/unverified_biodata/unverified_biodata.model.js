@@ -28,7 +28,7 @@ let counter = 0;
 const UnverifiedBiodataSchema = new mongoose_1.Schema({
     bio_type: { type: String, required: true },
     gender: { type: String, required: true },
-    date_of_birth: { type: Date, required: true },
+    date_of_birth: { type: Date, required: false, default: null },
     height: { type: Number, required: true },
     weight: { type: Number, required: true },
     blood_group: { type: String, required: true },
@@ -47,7 +47,7 @@ const UnverifiedBiodataSchema = new mongoose_1.Schema({
         default: [],
         validate: [(v) => v.length <= 5, "Maximum 5 photos allowed"],
     },
-    zilla: { type: String, required: true },
+    zilla: { type: String, required: false, default: null },
     upzilla: { type: String, required: false, default: "" },
     division: { type: String, required: false, default: "" },
     extra_fields: {

@@ -1,0 +1,349 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generatePhotocardWithTemplate = exports.generatePhotocard = exports.generatePhotocardSVG = exports.extractPhotocardContent = void 0;
+const groqService_1 = require("./groqService");
+/**
+ * Extract the most attractive and compelling aspects of a biodata using Groq
+ * Returns highlighted text suitable for Facebook promotion
+ */
+const extractPhotocardContent = (biodata) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    // Build a comprehensive biodata description for analysis
+    const biodataDescription = `
+Bio Type: ${biodata.bio_type}
+Gender: ${biodata.gender}
+Age: ${biodata.date_of_birth ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear() : "Not specified"}
+Height: ${biodata.height} cm
+Weight: ${biodata.weight} kg
+Blood Group: ${biodata.blood_group}
+Complexion: ${biodata.screen_color}
+Nationality: ${biodata.nationality}
+Marital Status: ${biodata.marital_status}
+Religion: ${biodata.religion}
+Religious Type: ${biodata.religious_type || "Not specified"}
+Location: ${biodata.zilla || "Not specified"}
+Division: ${biodata.division || "Not specified"}
+
+Extra Information:
+${biodata.extra_fields
+        .map((field) => `- ${field.label}: ${typeof field.value === "string"
+        ? field.value
+        : JSON.stringify(field.value)}`)
+        .join("\n")}
+`;
+    const messages = [
+        {
+            role: "system",
+            content: `You are an expert matrimony marketing specialist who creates compelling promotional content for biodata profiles. 
+Your task is to extract the most attractive and valuable aspects of a biodata profile to create engaging promotional material.
+
+Return ONLY a valid JSON object (no markdown, no extra text) with exactly this structure:
+{
+  "mainHighlight": "The most compelling single aspect (max 40 chars, Bengali or English)",
+  "subHighlight": "Secondary interesting feature (max 40 chars, Bengali or English)",
+  "profileText": "Brief compelling description (max 100 chars, Bengali or English)",
+  "emoji": "One relevant emoji that represents the profile",
+  "strength1": "First personal strength or positive trait (max 35 chars)",
+  "strength2": "Second personal strength or quality (max 35 chars)",
+  "valueProposal": "What this person values or seeks in a partner (max 50 chars)"
+}
+
+Focus on:
+- Positive qualities and strengths
+- Personal virtues and character
+- Career/education achievements if present
+- Family values and beliefs
+- What makes this profile unique and appealing
+
+Be creative, positive, and compelling!`,
+        },
+        {
+            role: "user",
+            content: `Extract comprehensive promotional content from this biodata profile:\n\n${biodataDescription}`,
+        },
+    ];
+    try {
+        const response = yield (0, groqService_1.callGroqAPI)(messages, "meta-llama/llama-4-scout-17b-16e-instruct", 0.7, 768);
+        let content = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "{}";
+        // Remove markdown code blocks if present
+        content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+        // Parse the JSON response
+        const photocardData = JSON.parse(content);
+        // Validate and provide defaults
+        return {
+            mainHighlight: photocardData.mainHighlight || "সুন্দর জীবন খুঁজছি",
+            subHighlight: photocardData.subHighlight || "নিষ্ঠাবান ও শিক্ষিত",
+            profileText: photocardData.profileText ||
+                "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
+            emoji: photocardData.emoji || "💕",
+            strength1: photocardData.strength1 || "সৎ স্বভাব",
+            strength2: photocardData.strength2 || "পরিবার প্রিয়",
+            valueProposal: photocardData.valueProposal || "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
+        };
+    }
+    catch (error) {
+        console.error("[extractPhotocardContent] Error:", error);
+        // Return default content if extraction fails
+        return {
+            mainHighlight: "সুন্দর জীবন খুঁজছি",
+            subHighlight: "নিষ্ঠাবান ও শিক্ষিত",
+            profileText: "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
+            emoji: "💕",
+            strength1: "সৎ স্বভাব",
+            strength2: "পরিবার প্রিয়",
+            valueProposal: "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
+        };
+    }
+});
+exports.extractPhotocardContent = extractPhotocardContent;
+/**
+ * Generate an SVG photocard for Facebook promotion
+ * Includes biodata information in an attractive format
+ */
+const generatePhotocardSVG = (biodata, photocardContent, uid) => {
+    var _a;
+    const WIDTH = 1080; // Facebook post standard width
+    const HEIGHT = 1500; // Increased height for more content
+    const PADDING = 40;
+    // Get initials for avatar
+    const contactName = biodata.contact_name || "User";
+    const initials = contactName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    // Gender-based colors
+    const isDemand = ((_a = biodata.bio_type) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes("চাই")) || false;
+    const primaryColor = biodata.gender === "নারী" ? "#E84B8A" : "#2E86AB";
+    const accentColor = isDemand ? "#FF6B6B" : "#06D6A0";
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+      * { font-family: 'Noto Sans Bengali', Arial, sans-serif; }
+    </style>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:${primaryColor};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1B3656;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#F8FBFF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main background -->
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative top ribbons -->
+  <path d="M 0 0 L ${WIDTH} 0 L ${WIDTH} 120 Q ${WIDTH / 2} 180 0 120 Z" fill="${accentColor}" opacity="0.2"/>
+  
+  <!-- Company branding area -->
+  <rect x="${PADDING}" y="${PADDING}" width="${WIDTH - 2 * PADDING}" height="100" fill="rgba(255,255,255,0.1)" rx="10"/>
+  <circle cx="${PADDING + 50}" cy="${PADDING + 50}" r="35" fill="white" opacity="0.3"/>
+  <text x="${PADDING + 70}" y="${PADDING + 50}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="48" font-weight="bold" fill="white">
+    বিয়ে.ইনফো
+  </text>
+  <text x="${PADDING + 70}" y="${PADDING + 75}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.8)">
+    Matrimony Platform
+  </text>
+
+  <!-- Main profile card -->
+  <g filter="drop-shadow(0 10px 30px rgba(0,0,0,0.3))">
+    <rect x="${PADDING}" y="200" width="${WIDTH - 2 * PADDING}" height="950" fill="url(#cardGradient)" rx="20"/>
+  </g>
+
+  <!-- Avatar circle -->
+  <circle cx="${WIDTH / 2}" cy="320" r="80" fill="${primaryColor}"/>
+  <circle cx="${WIDTH / 2}" cy="320" r="75" fill="white" opacity="0.1"/>
+  <text x="${WIDTH / 2}" y="340" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="${primaryColor}" text-anchor="middle">
+    ${initials}
+  </text>
+
+  <!-- Main highlight (most attractive feature) -->
+  <text x="${WIDTH / 2}" y="450" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="${primaryColor}" text-anchor="middle" xml:space="preserve">
+    ${photocardContent.emoji}
+  </text>
+  
+  <foreignObject x="${PADDING + 20}" y="480" width="${WIDTH - 2 * PADDING - 40}" height="140">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 56px; font-weight: bold; color: ${primaryColor}; word-wrap: break-word; line-height: 1.3;">
+      ${photocardContent.mainHighlight}
+    </div>
+  </foreignObject>
+
+  <!-- Separator line -->
+  <line x1="${PADDING + 40}" y1="600" x2="${WIDTH - PADDING - 40}" y2="600" stroke="${accentColor}" stroke-width="3" opacity="0.5"/>
+
+  <!-- Sub highlight -->
+  <foreignObject x="${PADDING + 20}" y="620" width="${WIDTH - 2 * PADDING - 40}" height="110">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 40px; font-weight: 600; color: #666666; word-wrap: break-word; line-height: 1.4;">
+      ⭐ ${photocardContent.subHighlight}
+    </div>
+  </foreignObject>
+
+  <!-- Profile text -->
+  <foreignObject x="${PADDING + 30}" y="730" width="${WIDTH - 2 * PADDING - 60}" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 28px; color: #555555; word-wrap: break-word; line-height: 1.5;">
+      "${photocardContent.profileText}"
+    </div>
+  </foreignObject>
+
+  <!-- Strengths and Values Section -->
+  <rect x="${PADDING + 20}" y="840" width="${WIDTH - 2 * PADDING - 40}" height="2" fill="${accentColor}" opacity="0.3"/>
+  
+  <!-- Strength 1 -->
+  <foreignObject x="${PADDING + 30}" y="860" width="${WIDTH - 2 * PADDING - 60}" height="60">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 24px; font-weight: 600; color: ${primaryColor}; word-wrap: break-word;">
+      💫 ${photocardContent.strength1}
+    </div>
+  </foreignObject>
+
+  <!-- Strength 2 -->
+  <foreignObject x="${PADDING + 30}" y="920" width="${WIDTH - 2 * PADDING - 60}" height="60">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 24px; font-weight: 600; color: ${primaryColor}; word-wrap: break-word;">
+      ✨ ${photocardContent.strength2}
+    </div>
+  </foreignObject>
+
+  <!-- Value Proposal -->
+  <foreignObject x="${PADDING + 30}" y="980" width="${WIDTH - 2 * PADDING - 60}" height="90">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 22px; font-style: italic; color: #666666; word-wrap: break-word; line-height: 1.4;">
+      "${photocardContent.valueProposal}"
+    </div>
+  </foreignObject>
+
+  <!-- Info grid -->
+  <g font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="28" fill="#333333">
+    <!-- Left column -->
+    <text x="${PADDING + 40}" y="1080" font-weight="bold" fill="${primaryColor}" font-size="30">বয়স</text>
+    <text x="${PADDING + 40}" y="1110" font-size="28">${biodata.date_of_birth
+        ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
+        : "—"} বছর</text>
+    
+    <text x="${PADDING + 40}" y="1150" font-weight="bold" fill="${primaryColor}" font-size="30">উচ্চতা</text>
+    <text x="${PADDING + 40}" y="1180" font-size="28">${biodata.height} সেমি</text>
+    
+    <text x="${PADDING + 40}" y="1220" font-weight="bold" fill="${primaryColor}" font-size="30">ধর্ম</text>
+    <text x="${PADDING + 40}" y="1250" font-size="28">${biodata.religion}</text>
+
+    <!-- Right column -->
+    <text x="${WIDTH / 2 + 40}" y="1080" font-weight="bold" fill="${primaryColor}" font-size="30">মর্যাদা</text>
+    <text x="${WIDTH / 2 + 40}" y="1110" font-size="28">${biodata.marital_status}</text>
+    
+    <text x="${WIDTH / 2 + 40}" y="1150" font-weight="bold" fill="${primaryColor}" font-size="30">ওজন</text>
+    <text x="${WIDTH / 2 + 40}" y="1180" font-size="28">${biodata.weight} কেজি</text>
+    
+    <text x="${WIDTH / 2 + 40}" y="1220" font-weight="bold" fill="${primaryColor}" font-size="30">অবস্থান</text>
+    <text x="${WIDTH / 2 + 40}" y="1250" font-size="28">${biodata.zilla || "—"}</text>
+  </g>
+
+  <!-- Footer area with CTA -->
+  <rect x="${PADDING}" y="1260" width="${WIDTH - 2 * PADDING}" height="150" fill="${accentColor}" opacity="0.1" rx="15"/>
+  
+  <text x="${WIDTH / 2}" y="1310" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="28" fill="${accentColor}" text-anchor="middle" font-weight="bold">
+    আরও জানতে ভিজিট করুন
+  </text>
+  
+  <rect x="${PADDING + 40}" y="1320" width="${WIDTH - 2 * PADDING - 80}" height="50" fill="${primaryColor}" rx="8"/>
+  <text x="${WIDTH / 2}" y="1360" font-family="'Courier New', monospace" font-size="20" fill="white" text-anchor="middle" font-weight="bold">
+    https://biye.info/biodata/unverified/${uid}
+  </text>
+
+  <!-- Bottom branding -->
+  <text x="${WIDTH / 2}" y="${HEIGHT - PADDING - 10}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">
+    Made with ❤️ by বিয়ে.ইনফো
+  </text>
+</svg>`;
+    return svg;
+};
+exports.generatePhotocardSVG = generatePhotocardSVG;
+/**
+ * Generate complete photocard with both LLM extraction and SVG rendering
+ */
+const generatePhotocard = (biodata, uid) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Extract attractive content using Groq
+        const photocardContent = yield (0, exports.extractPhotocardContent)(biodata);
+        // Generate SVG
+        const svg = (0, exports.generatePhotocardSVG)(biodata, photocardContent, uid);
+        return svg;
+    }
+    catch (error) {
+        console.error("[generatePhotocard] Error:", error);
+        throw error;
+    }
+});
+exports.generatePhotocard = generatePhotocard;
+/**
+ * Generate photocard using a template
+ * If template is provided, use it with placeholder rendering
+ * Otherwise fall back to hard-coded SVG generation
+ */
+const generatePhotocardWithTemplate = (biodata, uid, template) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c, _d;
+    try {
+        // If no template provided, use the original method
+        if (!template || !template.svgCode) {
+            return (0, exports.generatePhotocard)(biodata, uid);
+        }
+        // Extract content for template placeholders
+        const photocardContent = yield (0, exports.extractPhotocardContent)(biodata);
+        const age = biodata.date_of_birth
+            ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
+            : "—";
+        // Build data object for template rendering
+        const templateData = {
+            headline: photocardContent.mainHighlight,
+            name: biodata.contact_name || "User",
+            age: age,
+            height: biodata.height ? `${biodata.height} সেমি` : "—",
+            weight: biodata.weight ? `${biodata.weight} কেজি` : "—",
+            religion: biodata.religion,
+            location: biodata.zilla || "—",
+            complexion: biodata.screen_color,
+            profession: ((_d = (_c = biodata.extra_fields) === null || _c === void 0 ? void 0 : _c.find((f) => f.label.toLowerCase().includes("পেশা"))) === null || _d === void 0 ? void 0 : _d.value) || "—",
+            quote: photocardContent.profileText,
+            url: `https://biye.info/biodata/unverified/${uid}`,
+            gender: biodata.gender,
+            bio_type: biodata.bio_type,
+            strength1: photocardContent.strength1,
+            strength2: photocardContent.strength2,
+            valueProposal: photocardContent.valueProposal,
+            emoji: photocardContent.emoji,
+            mainHighlight: photocardContent.mainHighlight,
+            subHighlight: photocardContent.subHighlight,
+            profileText: photocardContent.profileText,
+        };
+        // Render template with data
+        let svg = template.svgCode;
+        // Replace all placeholders
+        for (const [key, value] of Object.entries(templateData)) {
+            if (value === undefined || value === null)
+                continue;
+            const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
+            svg = svg.replace(regex, String(value));
+        }
+        // Remove any unreplaced placeholders
+        svg = svg.replace(/\{[^}]+\}/g, "—");
+        return svg;
+    }
+    catch (error) {
+        console.error("[generatePhotocardWithTemplate] Error:", error);
+        // Fall back to standard generation
+        return (0, exports.generatePhotocard)(biodata, uid);
+    }
+});
+exports.generatePhotocardWithTemplate = generatePhotocardWithTemplate;

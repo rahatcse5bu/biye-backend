@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import http from "http";
 import "colors";
 import config from "./index";
+import { seedPhotocardTemplates } from "../app/modules/photocard_template/photocard_template.seed";
 
 export async function connectDb(app: any) {
   let server: any;
@@ -10,6 +11,9 @@ export async function connectDb(app: any) {
     console.log(
       "connection established successfully into database".green.underline
     );
+
+    // Seed built-in photocard templates
+    await seedPhotocardTemplates();
 
     server = http.createServer(app);
     server.listen(config.port, () => {

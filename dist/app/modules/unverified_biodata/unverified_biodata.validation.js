@@ -7,6 +7,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
 /**
  * Validates an extra field based on its type
+ * More robust validation that allows optional fields
  * @param field - The field to validate
  * @returns Object with isValid and error message
  */
@@ -22,8 +23,12 @@ const validateExtraField = (field) => {
     if (field.fieldType === "section") {
         return { isValid: true };
     }
-    if (field.value === null || field.value === undefined || field.value === "") {
-        return { isValid: false, message: `Value for "${field.label}" is required` };
+    // Allow empty values for numeric, boolean, and select fields
+    // For text/email/phone, allow null but check content if provided
+    if (field.fieldType !== "numeric" && field.fieldType !== "boolean" && field.fieldType !== "select") {
+        if (field.value === null || field.value === undefined) {
+            return { isValid: false, message: `Value for "${field.label}" is required` };
+        }
     }
     // Validate based on field type
     switch (field.fieldType) {
@@ -50,8 +55,16 @@ const validateExtraField = (field) => {
 exports.validateExtraField = validateExtraField;
 /**
  * Validates a text field
+ * Allows empty strings (optional field)
  */
 const validateTextField = (field) => {
+    // Allow empty strings for text fields (optional)
+    if (field.value === null || field.value === undefined) {
+        return {
+            isValid: false,
+            message: `"${field.label}" cannot be null`,
+        };
+    }
     const value = String(field.value).trim();
     if (value.length > 1000) {
         return {
@@ -63,8 +76,13 @@ const validateTextField = (field) => {
 };
 /**
  * Validates a numeric field
+ * Allows 0 and empty values (optional field)
  */
 const validateNumericField = (field) => {
+    // Allow empty/null values for numeric fields (0 is valid, as is empty)
+    if (field.value === null || field.value === undefined || field.value === "") {
+        return { isValid: true }; // Optional numeric field
+    }
     const numValue = Number(field.value);
     if (isNaN(numValue)) {
         return {
@@ -76,8 +94,13 @@ const validateNumericField = (field) => {
 };
 /**
  * Validates an email field
+ * Allows empty values (optional field)
  */
 const validateEmailField = (field) => {
+    // Allow empty email fields (optional)
+    if (field.value === null || field.value === undefined || String(field.value).trim() === "") {
+        return { isValid: true };
+    }
     const emailValue = String(field.value).trim().toLowerCase();
     if (!EMAIL_REGEX.test(emailValue)) {
         return {
@@ -89,8 +112,13 @@ const validateEmailField = (field) => {
 };
 /**
  * Validates a phone field
+ * Allows empty values (optional field)
  */
 const validatePhoneField = (field) => {
+    // Allow empty phone fields (optional)
+    if (field.value === null || field.value === undefined || String(field.value).trim() === "") {
+        return { isValid: true };
+    }
     const phoneValue = String(field.value).trim();
     if (!PHONE_REGEX.test(phoneValue)) {
         return {
@@ -102,21 +130,24 @@ const validatePhoneField = (field) => {
 };
 /**
  * Validates a select field
+ * Allows empty values and freeform input (no options validation if options array is empty)
  */
 const validateSelectField = (field) => {
-    if (!field.options || field.options.length === 0) {
-        return {
-            isValid: false,
-            message: `"${field.label}" must have at least one option`,
-        };
+    // Allow empty values for select fields (optional)
+    if (field.value === null || field.value === undefined || String(field.value).trim() === "") {
+        return { isValid: true };
     }
-    const value = String(field.value).trim();
-    if (!field.options.includes(value)) {
-        return {
-            isValid: false,
-            message: `"${field.label}" value must be one of: ${field.options.join(", ")}`,
-        };
+    // If options are provided and not empty, validate value is in options
+    if (field.options && field.options.length > 0) {
+        const value = String(field.value).trim();
+        if (!field.options.includes(value)) {
+            return {
+                isValid: false,
+                message: `"${field.label}" value must be one of: ${field.options.join(", ")}`,
+            };
+        }
     }
+    // If no options provided, accept any value (freeform select)
     return { isValid: true };
 };
 /**
