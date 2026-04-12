@@ -472,8 +472,8 @@ const parseCustomFieldsWithLLM = catchAsync(async (req: Request, res: Response) 
   try {
     // Truncate very long text to avoid exceeding token limits
     const maxChars = 2000;
-    const truncatedText = biodata_text.length > maxChars 
-      ? biodata_text.substring(0, maxChars) + "..." 
+    const truncatedText = biodata_text.length > maxChars
+      ? biodata_text.substring(0, maxChars) + "..."
       : biodata_text;
 
     const { callGroqAPI } = require("../../../services/groqService");

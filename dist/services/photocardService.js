@@ -128,11 +128,12 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
     const accentColor = isDemand ? "#FF6B6B" : "#06D6A0";
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background gradient -->
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
-      * { font-family: 'Noto Sans Bengali', Arial, sans-serif; }
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap');
+      .bn-text { font-family: 'Noto Sans Bengali', sans-serif; }
+      .bn-bold { font-family: 'Noto Sans Bengali', sans-serif; font-weight: 700; }
+      .bn-heavy { font-family: 'Noto Sans Bengali', sans-serif; font-weight: 800; }
     </style>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:${primaryColor};stop-opacity:1" />
@@ -154,10 +155,10 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
   <!-- Company branding area -->
   <rect x="${PADDING}" y="${PADDING}" width="${WIDTH - 2 * PADDING}" height="100" fill="rgba(255,255,255,0.1)" rx="10"/>
   <circle cx="${PADDING + 50}" cy="${PADDING + 50}" r="35" fill="white" opacity="0.3"/>
-  <text x="${PADDING + 70}" y="${PADDING + 50}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="48" font-weight="bold" fill="white">
+  <text x="${PADDING + 70}" y="${PADDING + 50}" class="bn-heavy" font-size="48" fill="white">
     বিয়ে.ইনফো
   </text>
-  <text x="${PADDING + 70}" y="${PADDING + 75}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.8)">
+  <text x="${PADDING + 70}" y="${PADDING + 75}" class="bn-text" font-size="18" fill="rgba(255,255,255,0.8)">
     Matrimony Platform
   </text>
 
@@ -173,68 +174,57 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
     ${initials}
   </text>
 
-  <!-- Main highlight (most attractive feature) -->
-  <text x="${WIDTH / 2}" y="450" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="${primaryColor}" text-anchor="middle" xml:space="preserve">
+  <!-- Main highlight emoji -->
+  <text x="${WIDTH / 2}" y="450" font-size="48" text-anchor="middle">
     ${photocardContent.emoji}
   </text>
   
-  <foreignObject x="${PADDING + 20}" y="480" width="${WIDTH - 2 * PADDING - 40}" height="140">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 56px; font-weight: bold; color: ${primaryColor}; word-wrap: break-word; line-height: 1.3;">
-      ${photocardContent.mainHighlight}
-    </div>
-  </foreignObject>
+  <!-- Main highlight text -->
+  <text x="${WIDTH / 2}" y="520" class="bn-heavy" font-size="48" fill="${primaryColor}" text-anchor="middle" xml:space="preserve">
+    ${photocardContent.mainHighlight}
+  </text>
 
   <!-- Separator line -->
   <line x1="${PADDING + 40}" y1="600" x2="${WIDTH - PADDING - 40}" y2="600" stroke="${accentColor}" stroke-width="3" opacity="0.5"/>
 
-  <!-- Sub highlight -->
-  <foreignObject x="${PADDING + 20}" y="620" width="${WIDTH - 2 * PADDING - 40}" height="110">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 40px; font-weight: 600; color: #666666; word-wrap: break-word; line-height: 1.4;">
-      ⭐ ${photocardContent.subHighlight}
-    </div>
-  </foreignObject>
+  <!-- Sub highlight with emoji -->
+  <text x="${WIDTH / 2}" y="650" class="bn-bold" font-size="36" fill="#666666" text-anchor="middle" xml:space="preserve">
+    ⭐ ${photocardContent.subHighlight}
+  </text>
 
   <!-- Profile text -->
-  <foreignObject x="${PADDING + 30}" y="730" width="${WIDTH - 2 * PADDING - 60}" height="120">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 28px; color: #555555; word-wrap: break-word; line-height: 1.5;">
-      "${photocardContent.profileText}"
-    </div>
-  </foreignObject>
+  <text x="${WIDTH / 2}" y="710" class="bn-text" font-size="28" fill="#555555" text-anchor="middle" xml:space="preserve">
+    "${photocardContent.profileText}"
+  </text>
 
   <!-- Strengths and Values Section -->
-  <rect x="${PADDING + 20}" y="840" width="${WIDTH - 2 * PADDING - 40}" height="2" fill="${accentColor}" opacity="0.3"/>
+  <line x1="${PADDING + 20}" y1="750" x2="${WIDTH - PADDING - 20}" y2="750" stroke="${accentColor}" stroke-width="2" opacity="0.3"/>
   
   <!-- Strength 1 -->
-  <foreignObject x="${PADDING + 30}" y="860" width="${WIDTH - 2 * PADDING - 60}" height="60">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 24px; font-weight: 600; color: ${primaryColor}; word-wrap: break-word;">
-      💫 ${photocardContent.strength1}
-    </div>
-  </foreignObject>
+  <text x="${WIDTH / 2}" y="800" class="bn-bold" font-size="26" fill="${primaryColor}" text-anchor="middle" xml:space="preserve">
+    💫 ${photocardContent.strength1}
+  </text>
 
   <!-- Strength 2 -->
-  <foreignObject x="${PADDING + 30}" y="920" width="${WIDTH - 2 * PADDING - 60}" height="60">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 24px; font-weight: 600; color: ${primaryColor}; word-wrap: break-word;">
-      ✨ ${photocardContent.strength2}
-    </div>
-  </foreignObject>
+  <text x="${WIDTH / 2}" y="850" class="bn-bold" font-size="26" fill="${primaryColor}" text-anchor="middle" xml:space="preserve">
+    ✨ ${photocardContent.strength2}
+  </text>
 
   <!-- Value Proposal -->
-  <foreignObject x="${PADDING + 30}" y="980" width="${WIDTH - 2 * PADDING - 60}" height="90">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Noto Sans Bengali', Arial; font-size: 22px; font-style: italic; color: #666666; word-wrap: break-word; line-height: 1.4;">
-      "${photocardContent.valueProposal}"
-    </div>
-  </foreignObject>
+  <text x="${WIDTH / 2}" y="910" class="bn-text" font-size="22" fill="#666666" text-anchor="middle" xml:space="preserve" font-style="italic">
+    "${photocardContent.valueProposal}"
+  </text>
 
-  <!-- Info grid -->
-  <g font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="28" fill="#333333">
-    <!-- Left column -->
-    <text x="${PADDING + 40}" y="1080" font-weight="bold" fill="${primaryColor}" font-size="30">বয়স</text>
-    <text x="${PADDING + 40}" y="1110" font-size="28">${biodata.date_of_birth
+  <!-- Info section -->
+  <!-- Age -->
+  <text x="${PADDING + 40}" y="1000" class="bn-bold" font-size="28" fill="${primaryColor}">বয়স</text>
+  <text x="${PADDING + 40}" y="1035" class="bn-text" font-size="24" fill="#333333">${biodata.date_of_birth
         ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
         : "—"} বছর</text>
     
-    <text x="${PADDING + 40}" y="1150" font-weight="bold" fill="${primaryColor}" font-size="30">উচ্চতা</text>
-    <text x="${PADDING + 40}" y="1180" font-size="28">${biodata.height} সেমি</text>
+  <!-- Height -->
+  <text x="${PADDING + 40}" y="1080" class="bn-bold" font-size="28" fill="${primaryColor}">উচ্চতা</text>
+  <text x="${PADDING + 40}" y="1115" class="bn-text" font-size="24" fill="#333333">${biodata.height} সেমি</text>
     
     <text x="${PADDING + 40}" y="1220" font-weight="bold" fill="${primaryColor}" font-size="30">ধর্ম</text>
     <text x="${PADDING + 40}" y="1250" font-size="28">${biodata.religion}</text>
