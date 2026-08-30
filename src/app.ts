@@ -22,6 +22,7 @@ import { ReactionRoutes } from "./app/modules/reactions/reactions.route";
 // @ts-ignore
 import cors from "cors";
 import config from "./config";
+import { connectMongo } from "./config/mongo";
 import bkashRouter from "./app/modules/bkash/bkash.route";
 import UnFavouritesRouter from "./app/modules/unfavorites/unfavorites.route";
 import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
@@ -35,6 +36,7 @@ import UnverifiedShortlistRouter from "./app/modules/unverified_shortlist/unveri
 import AiBiodataRouter from "./app/modules/ai_biodata/ai_biodata.route";
 import PhotocardRouter from "./app/modules/photocard/photocard.route";
 import { PhotocardTemplateRoutes } from "./app/modules/photocard_template/photocard_template.route";
+import UploadRouter from "./app/modules/upload/upload.route";
 import sendEmail from "./shared/SendEmail";
 import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -86,6 +88,19 @@ app.get("/send-email", async (req: Request, res: Response) => {
   }
 });
 
+app.use(async (req, res, next) => {
+  try {
+    await connectMongo();
+    next();
+  } catch (error) {
+    console.error("Database connection unavailable:", error);
+    res.status(503).json({
+      message: "Database temporarily unavailable",
+      success: false,
+    });
+  }
+});
+
 app.put("/update-addresses", async (req, res) => {
   try {
     const addresses = await Address.find({});
@@ -133,6 +148,7 @@ app.use("/api/v1/llm", LlmRouter);
 app.use("/api/v1/ai-biodata", AiBiodataRouter);
 app.use("/api/v1/photocard", PhotocardRouter);
 app.use("/api/v1/photocard-templates", PhotocardTemplateRoutes);
+app.use("/api/v1/uploads", UploadRouter);
 app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
 app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);

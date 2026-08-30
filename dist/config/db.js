@@ -13,41 +13,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDb = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
 const http_1 = __importDefault(require("http"));
 require("colors");
 const index_1 = __importDefault(require("./index"));
 const photocard_template_seed_1 = require("../app/modules/photocard_template/photocard_template.seed");
+const mongo_1 = require("./mongo");
 function connectDb(app) {
     return __awaiter(this, void 0, void 0, function* () {
-        let server;
-        try {
-            yield mongoose_1.default.connect(index_1.default.mongo_url);
-            console.log("connection established successfully into database".green.underline);
-            // Seed built-in photocard templates
-            yield (0, photocard_template_seed_1.seedPhotocardTemplates)();
-            server = http_1.default.createServer(app);
+        yield (0, mongo_1.connectMongo)();
+        console.log("connection established successfully into database".green.underline);
+        // Seed built-in photocard templates
+        yield (0, photocard_template_seed_1.seedPhotocardTemplates)();
+        const server = http_1.default.createServer(app);
+        yield new Promise((resolve, reject) => {
+            const handleError = (error) => reject(error);
+            server.once("error", handleError);
             server.listen(index_1.default.port, () => {
+                server.off("error", handleError);
                 console.log(`app listening on port=> ${index_1.default.port}`.yellow.underline);
+                resolve();
             });
-        }
-        catch (err) {
-            console.error(err);
-        }
-        process.on("unhandledRejection", (error) => {
-            // eslint-disable-next-line no-console
-            console.log("Unhandled Rejection is detected ,we are closing our server".red.underline);
-            if (server) {
-                server.close(() => {
-                    console.error(error);
-                    process.exit(1);
-                });
-            }
-            else {
-                console.log(error);
-                process.exit(1);
-            }
         });
+        return server;
     });
 }
 exports.connectDb = connectDb;

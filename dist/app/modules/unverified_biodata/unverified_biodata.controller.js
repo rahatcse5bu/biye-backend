@@ -46,7 +46,7 @@ const createUnverifiedBiodata = (0, catchAsync_1.default)((req, res) => __awaite
         // Send welcome email to the user with their biodata link
         if (biodata.contact_email) {
             try {
-                const biodataLink = `https://biye.info/biodata/unverified/${biodata._id}`;
+                const biodataLink = `https://www.biye.info/biodata/unverified/${biodata._id}`;
                 const emailSubject = "Welcome to বিয়ে.ইনফো - Your Biodata Profile Created";
                 const emailBody = `
 <!DOCTYPE html>

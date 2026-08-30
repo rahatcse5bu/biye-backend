@@ -79,27 +79,37 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     if (gender) {
         andConditions.push({ gender });
     }
-    // Religion filter - check both top-level and approved_data
-    // Also match null/missing religion as "islam" (the default)
+    // Filter by the same approved-first values that are returned publicly.
+    // Pending top-level edits must not place a biodata in a different religion
+    // filter before an admin approves those changes.
     if (religion) {
-        const religionConditions = [
-            { religion },
-            { "approved_data.religion": religion },
-        ];
-        // Documents with null/missing religion default to islam
-        if (religion === "islam") {
-            religionConditions.push({ religion: null });
-            religionConditions.push({ religion: { $exists: false } });
-        }
-        andConditions.push({ $or: religionConditions });
+        andConditions.push({
+            $expr: {
+                $eq: [
+                    {
+                        $ifNull: [
+                            "$approved_data.religion",
+                            { $ifNull: ["$religion", "islam"] },
+                        ],
+                    },
+                    religion,
+                ],
+            },
+        });
     }
-    // Religious type filter - check both top-level and approved_data
     if (religious_type) {
         andConditions.push({
-            $or: [
-                { religious_type },
-                { "approved_data.religious_type": religious_type },
-            ],
+            $expr: {
+                $eq: [
+                    {
+                        $ifNull: [
+                            "$approved_data.religious_type",
+                            "$religious_type",
+                        ],
+                    },
+                    religious_type,
+                ],
+            },
         });
     }
     // Age filter (calculated from date_of_birth)
@@ -734,6 +744,11 @@ const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
     session.startTransaction();
     try {
         data.user = req.user._id;
+        const approvedData = Object.assign({}, data);
+        data.approved_data = approvedData;
+        data.pending_changes = null;
+        data.biodata_status = "approved";
+        data.last_approved_at = new Date();
         // Insert general_information into the database
         const generalInfo = new general_info_model_1.default(data);
         yield generalInfo.save({ session });
@@ -782,33 +797,34 @@ const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
             message: "General info not found",
         });
     }
-    // Versioning logic:
-    // If this is the first edit (approved_data is null), initialize approved_data from current generalInfo
-    if (!generalInfo.approved_data) {
-        const currentData = generalInfo.toObject();
-        delete currentData._id;
-        delete currentData.__v;
-        delete currentData.biodata_status;
-        delete currentData.pending_changes;
-        delete currentData.admin_note;
-        delete currentData.version;
-        delete currentData.last_approved_at;
-        delete currentData.last_approved_by;
-        generalInfo.approved_data = currentData;
-    }
-    // Update top-level document fields directly so data always persists (photos, etc.)
-    const metaFields = ['_id', '__v', 'user', 'approved_data', 'pending_changes', 'biodata_status', 'version', 'admin_note', 'last_approved_at', 'last_approved_by'];
+    const metaFields = [
+        "_id",
+        "__v",
+        "user",
+        "approved_data",
+        "pending_changes",
+        "biodata_status",
+        "version",
+        "admin_note",
+        "last_approved_at",
+        "last_approved_by",
+    ];
+    const approvedChanges = {};
     Object.keys(data).forEach((key) => {
         if (!metaFields.includes(key)) {
             generalInfo[key] = data[key];
+            approvedChanges[key] = data[key];
         }
     });
-    // Also save to pending_changes for admin review, set status to pending
-    generalInfo.pending_changes = data;
-    generalInfo.biodata_status = 'pending';
+    generalInfo.approved_data = Object.assign(Object.assign({}, (generalInfo.approved_data || {})), approvedChanges);
+    generalInfo.pending_changes = null;
+    generalInfo.biodata_status = "approved";
+    generalInfo.version = (generalInfo.version || 1) + 1;
+    generalInfo.admin_note = "";
+    generalInfo.last_approved_at = new Date();
     yield generalInfo.save();
     res.status(200).json({
-        message: "Changes saved. Awaiting admin approval.",
+        message: "Changes saved and published automatically.",
         success: true,
         data: generalInfo,
     });
@@ -925,7 +941,7 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
         data: generalInfo,
     });
 }));
-// User explicitly submits their saved edits for admin review (active biodata stays live).
+// Preserve the existing endpoint while publishing any legacy pending changes immediately.
 const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _j;
     const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
@@ -936,12 +952,18 @@ const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
     if (!generalInfo) {
         return res.status(404).json({ success: false, message: "Biodata not found" });
     }
-    // Mark as pending if there are unsaved changes (or force pending even if already set)
-    generalInfo.biodata_status = 'pending';
+    if (generalInfo.pending_changes) {
+        generalInfo.approved_data = Object.assign(Object.assign({}, (generalInfo.approved_data || {})), generalInfo.pending_changes);
+        generalInfo.version = (generalInfo.version || 1) + 1;
+    }
+    generalInfo.pending_changes = null;
+    generalInfo.biodata_status = "approved";
+    generalInfo.admin_note = "";
+    generalInfo.last_approved_at = new Date();
     yield generalInfo.save();
     res.status(200).json({
         success: true,
-        message: "Biodata submitted for review. Your current approved version remains live.",
+        message: "Biodata approved and published automatically.",
     });
 }));
 exports.GeneralInfoController = {

@@ -15,7 +15,29 @@ const userInfoSchema = new mongoose_1.Schema({
         enum: ["pending", "active", "in review", "inactive", "banned"],
         default: "pending",
     },
-    email: { type: String, required: true, unique: true },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
+    google_id: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
+    password_hash: {
+        type: String,
+        select: false,
+    },
+    username: {
+        type: String,
+        trim: true,
+    },
+    picture: {
+        type: String,
+    },
     user_role: {
         type: String,
         required: false,
@@ -27,10 +49,6 @@ const userInfoSchema = new mongoose_1.Schema({
     last_edited_timeline_index: { type: Number, default: 0 },
     gender: {
         type: String,
-    },
-    fcmToken: {
-        type: String,
-        default: null,
     },
 }, {
     timestamps: true,

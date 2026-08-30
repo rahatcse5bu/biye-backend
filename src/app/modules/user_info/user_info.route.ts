@@ -1,16 +1,23 @@
-import { verifyIdToken } from "./../../middlewares/verifyIdToken";
 import express from "express";
 import { auth } from "../../middlewares/auth";
 import { UserInfoController } from "./user_info.controller";
 const userRouter = express.Router();
 
+userRouter.route("/google-auth").post(UserInfoController.googleAuth);
+userRouter.route("/register").post(UserInfoController.register);
+userRouter.route("/login").post(UserInfoController.login);
+userRouter
+  .route("/change-password")
+  .patch(auth("admin", "user"), UserInfoController.changePassword);
+userRouter
+  .route("/me")
+  .get(auth("admin", "user"), UserInfoController.getMe);
+
 userRouter.route("/").post(UserInfoController.createUserInfo);
 userRouter
   .route("/")
   .put(auth("user", "admin"), UserInfoController.updateUserInfo);
-userRouter
-  .route("/fcm")
-  .put(auth("user", "admin"), UserInfoController.updateUserInfoForFCM);
+
 userRouter
   .route("/update-status")
   .put(auth("user", "admin"), UserInfoController.updateUserStatusByUser);
@@ -28,14 +35,6 @@ userRouter
   .route("/user-email/:email")
   .post(auth("admin"), UserInfoController.sendUserEmail);
 userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
-userRouter
-  .route("/create-login-user")
-  .post(verifyIdToken, UserInfoController.createUserForGoogleSignIn);
-
-// app
-userRouter
-  .route("/create-login-user/app")
-  .post(UserInfoController.createUserForGoogleSignIn);
 // userRouter.route("/:id").get(UserInfoController.getSingleUserInfo);
 
 export default userRouter;

@@ -6,10 +6,13 @@ export interface IUserInfo extends Document {
   user_id: number;
   user_status: string;
   email: string;
+  google_id?: string;
+  password_hash?: string;
+  username?: string;
+  picture?: string;
   user_role: string;
   edited_timeline_index: number;
   points: number;
   last_edited_timeline_index: number;
   gender?: string;
-  fcmToken?: string;
 }

@@ -132,21 +132,58 @@ exports.UserInfoController = {
             data: createdUserInfo,
         });
     })),
-    createUserForGoogleSignIn: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const userInfo = req.body;
-        if ((req === null || req === void 0 ? void 0 : req.user) && (req === null || req === void 0 ? void 0 : req.user.email) !== (userInfo === null || userInfo === void 0 ? void 0 : userInfo.email)) {
-            throw new ApiError_1.default(401, "You are not allowed to access this");
-        }
-        const createdUserInfo = yield user_info_services_1.UserInfoService.createUserForGoogleSignIn(userInfo);
+    googleAuth: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const authData = yield user_info_services_1.UserInfoService.googleAuth(req.body);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Google authentication successful",
+            data: authData,
+        });
+    })),
+    register: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const authData = yield user_info_services_1.UserInfoService.register(req.body);
         res.status(http_status_1.default.CREATED).json({
             success: true,
-            message: "User info created successfully",
-            data: createdUserInfo,
+            message: "User registered successfully",
+            data: authData,
+        });
+    })),
+    login: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const authData = yield user_info_services_1.UserInfoService.login(req.body);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Login successful",
+            data: authData,
+        });
+    })),
+    changePassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        if (!id) {
+            throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
+        }
+        yield user_info_services_1.UserInfoService.changePassword(String(id), req.body);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Password changed successfully",
+        });
+    })),
+    getMe: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
+        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        if (!id) {
+            throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
+        }
+        const userInfo = yield user_info_services_1.UserInfoService.getCurrentUser(String(id));
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "User info retrieved successfully",
+            data: userInfo,
         });
     })),
     updateUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
-        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -154,7 +191,7 @@ exports.UserInfoController = {
                 success: false,
             });
         }
-        const _b = req.body, { points, user_role } = _b, others = __rest(_b, ["points", "user_role"]);
+        const _d = req.body, { points, user_role } = _d, others = __rest(_d, ["points", "user_role"]);
         if ((others === null || others === void 0 ? void 0 : others.userRole) && !user_info_constant_1.userRoleChangeByUser.includes(others)) {
             throw new ApiError_1.default(403, "You are not allowed to change user role");
         }
@@ -553,37 +590,9 @@ exports.UserInfoController = {
             data: updatedUserInfo,
         });
     })),
-    updateUserInfoForFCM: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
-        if (!id) {
-            return res.status(http_status_1.default.UNAUTHORIZED).json({
-                statusCode: http_status_1.default.UNAUTHORIZED,
-                message: "You are not authorized",
-                success: false,
-            });
-        }
-        const { gender, fcmToken } = req.body;
-        const updateData = {
-            gender,
-            fcmToken,
-        };
-        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfoForFCM(id, updateData);
-        if (!updatedUserInfo) {
-            res.status(http_status_1.default.NOT_FOUND).json({
-                success: false,
-                message: "User info not found",
-            });
-        }
-        res.status(http_status_1.default.OK).json({
-            success: true,
-            message: "User info updated successfully",
-            data: updatedUserInfo,
-        });
-    })),
     updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _e;
+        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -803,8 +812,8 @@ table {
         });
     })),
     updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _f;
+        const id = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -1017,8 +1026,8 @@ table {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f;
-        const id = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        var _g;
+        const id = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

@@ -88,19 +88,57 @@ export const UserInfoController = {
       data: createdUserInfo,
     });
   }),
-  createUserForGoogleSignIn: catchAsync(async (req: Request, res: Response) => {
-    const userInfo: IUserInfo = req.body;
+  googleAuth: catchAsync(async (req: Request, res: Response) => {
+    const authData = await UserInfoService.googleAuth(req.body);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Google authentication successful",
+      data: authData,
+    });
+  }),
 
-    if (req?.user && req?.user.email !== userInfo?.email) {
-      throw new ApiError(401, "You are not allowed to access this");
-    }
-    const createdUserInfo = await UserInfoService.createUserForGoogleSignIn(
-      userInfo
-    );
+  register: catchAsync(async (req: Request, res: Response) => {
+    const authData = await UserInfoService.register(req.body);
     res.status(httpStatus.CREATED).json({
       success: true,
-      message: "User info created successfully",
-      data: createdUserInfo,
+      message: "User registered successfully",
+      data: authData,
+    });
+  }),
+
+  login: catchAsync(async (req: Request, res: Response) => {
+    const authData = await UserInfoService.login(req.body);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Login successful",
+      data: authData,
+    });
+  }),
+
+  changePassword: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    if (!id) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
+    }
+
+    await UserInfoService.changePassword(String(id), req.body);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  }),
+
+  getMe: catchAsync(async (req: Request, res: Response) => {
+    const id = req.user?._id;
+    if (!id) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
+    }
+
+    const userInfo = await UserInfoService.getCurrentUser(String(id));
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "User info retrieved successfully",
+      data: userInfo,
     });
   }),
 
@@ -535,38 +573,7 @@ export const UserInfoController = {
       data: updatedUserInfo,
     });
   }),
-  updateUserInfoForFCM: catchAsync(async (req: Request, res: Response) => {
-    const id = req.user?._id;
-    if (!id) {
-      return res.status(httpStatus.UNAUTHORIZED).json({
-        statusCode: httpStatus.UNAUTHORIZED,
-        message: "You are not authorized",
-        success: false,
-      });
-    }
-    const { gender, fcmToken } = req.body;
-    const updateData: Partial<IUserInfo> = {
-      gender,
-      fcmToken,
-    };
 
-    const updatedUserInfo: any = await UserInfoService.updateUserInfoForFCM(
-      id,
-      updateData
-    );
-    if (!updatedUserInfo) {
-      res.status(httpStatus.NOT_FOUND).json({
-        success: false,
-        message: "User info not found",
-      });
-    }
-
-    res.status(httpStatus.OK).json({
-      success: true,
-      message: "User info updated successfully",
-      data: updatedUserInfo,
-    });
-  }),
   updateUserStatusByUser: catchAsync(async (req: Request, res: Response) => {
     const id = req.user?._id;
     if (!id) {

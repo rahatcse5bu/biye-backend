@@ -272,7 +272,7 @@ export const generatePhotocardSVG = (
   
   <rect x="${PADDING + 40}" y="1320" width="${WIDTH - 2 * PADDING - 80}" height="50" fill="${primaryColor}" rx="8"/>
   <text x="${WIDTH / 2}" y="1360" font-family="'Courier New', monospace" font-size="20" fill="white" text-anchor="middle" font-weight="bold">
-    https://biye.info/biodata/unverified/${uid}
+    https://www.biye.info/biodata/unverified/${uid}
   </text>
 
   <!-- Bottom branding -->
@@ -341,7 +341,7 @@ export const generatePhotocardWithTemplate = async (
                 ?.find((f) => f.label.toLowerCase().includes("পেশা"))
                 ?.value || "—",
             quote: photocardContent.profileText,
-            url: `https://biye.info/biodata/unverified/${uid}`,
+            url: `https://www.biye.info/biodata/unverified/${uid}`,
             gender: biodata.gender,
             bio_type: biodata.bio_type,
             strength1: photocardContent.strength1,

@@ -1,1 +1,1 @@
-export const baseUrl = "https://server.pncnikah.com/api/v1";
+export const baseUrl = "https://biye-backend.vercel.app/api/v1";

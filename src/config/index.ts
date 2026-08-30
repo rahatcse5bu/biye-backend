@@ -18,6 +18,10 @@ export default {
   email_pass: process.env.EMAIL_PASS,
   email_user: process.env.EMAIL_USER,
   groq_api_key: process.env.GROQ_API_KEY,
+  google_client_id: process.env.GOOGLE_CLIENT_ID,
+  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinary_api_key: process.env.CLOUDINARY_API_KEY,
+  cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,
   mongo_url:
     process.env["NODE_ENV"] === "development"
       ? process.env["MONG_DEV_URL"]

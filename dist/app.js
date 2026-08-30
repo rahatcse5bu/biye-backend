@@ -36,6 +36,7 @@ const reactions_route_1 = require("./app/modules/reactions/reactions.route");
 // @ts-ignore
 const cors_1 = __importDefault(require("cors"));
 const config_1 = __importDefault(require("./config"));
+const mongo_1 = require("./config/mongo");
 const bkash_route_1 = __importDefault(require("./app/modules/bkash/bkash.route"));
 const unfavorites_route_1 = __importDefault(require("./app/modules/unfavorites/unfavorites.route"));
 const contact_purchase_data_route_1 = __importDefault(require("./app/modules/contact_purchase_data/contact_purchase_data.route"));
@@ -49,6 +50,7 @@ const unverified_shortlist_route_1 = __importDefault(require("./app/modules/unve
 const ai_biodata_route_1 = __importDefault(require("./app/modules/ai_biodata/ai_biodata.route"));
 const photocard_route_1 = __importDefault(require("./app/modules/photocard/photocard.route"));
 const photocard_template_route_1 = require("./app/modules/photocard_template/photocard_template.route");
+const upload_route_1 = __importDefault(require("./app/modules/upload/upload.route"));
 const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
 const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -85,6 +87,19 @@ app.get("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
     catch (error) {
         res.send(error);
+    }
+}));
+app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield (0, mongo_1.connectMongo)();
+        next();
+    }
+    catch (error) {
+        console.error("Database connection unavailable:", error);
+        res.status(503).json({
+            message: "Database temporarily unavailable",
+            success: false,
+        });
     }
 }));
 app.put("/update-addresses", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -132,6 +147,7 @@ app.use("/api/v1/llm", llm_route_1.default);
 app.use("/api/v1/ai-biodata", ai_biodata_route_1.default);
 app.use("/api/v1/photocard", photocard_route_1.default);
 app.use("/api/v1/photocard-templates", photocard_template_route_1.PhotocardTemplateRoutes);
+app.use("/api/v1/uploads", upload_route_1.default);
 app.use("/api/v1/unverified-biodatas", unverified_biodata_route_1.default);
 app.use("/api/v1/unverified-contact-purchase", unverified_contact_purchase_route_1.default);
 app.use(globalErrorHandler_1.default);

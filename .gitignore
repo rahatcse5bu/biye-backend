@@ -7,3 +7,4 @@ config/db.ts
 text.ts
 
 config/serviceAccountKey.json
+.vercel
