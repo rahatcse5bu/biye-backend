@@ -226,84 +226,93 @@ export const AdminController = {
     });
   }),
 
-  // Get biodatas with filters
+  // Get biodatas with filters — aggregation pipeline joining GeneralInfo + UserInfo + Address
   getAllBiodatas: catchAsync(async (req: Request, res: Response) => {
-    const { page = 1, limit = 10, search = '', status = '' } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    const { page = 1, limit = 20, search = '', bio_type = '', status = '' } = req.query;
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 20));
 
-    // Build filter for users
-    const userFilter: any = {};
-    
-    if (search) {
-      userFilter.$or = [
-        { user_name: { $regex: search, $options: 'i' } },
-        { user_id: { $regex: search, $options: 'i' } },
-      ];
+    // Pre-filter: find matching user IDs if search targets user_id number
+    let matchingUserIds: any[] | null = null;
+    const searchStr = (search as string).trim();
+    if (searchStr) {
+      const numericId = parseInt(searchStr);
+      if (!isNaN(numericId)) {
+        const matchedUser = await UserInfoModel.findOne({ user_id: numericId }).select('_id').lean();
+        if (matchedUser) matchingUserIds = [matchedUser._id];
+        else matchingUserIds = [];
+      } else {
+        const matchedUsers = await UserInfoModel.find({
+          $or: [
+            { user_name: { $regex: searchStr, $options: 'i' } },
+            { email: { $regex: searchStr, $options: 'i' } },
+          ],
+        }).select('_id').lean();
+        matchingUserIds = matchedUsers.map((u: any) => u._id);
+      }
     }
 
-    if (status && status !== 'all') {
-      userFilter.user_status = status;
-    }
+    const matchConditions: any = {};
+    if (matchingUserIds !== null) matchConditions.user = { $in: matchingUserIds };
+    if (bio_type && bio_type !== 'all') matchConditions.bio_type = bio_type;
 
-    const users = await UserInfoModel.find(userFilter)
-      .select('_id user_id user_name email user_status createdAt')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    const countPipeline: any[] = [
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+      { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
+      { $match: { userDoc: { $ne: null } } },
+      ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+      ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+      { $count: 'totalCount' },
+    ];
+    const countResult = await GeneralInfo.aggregate(countPipeline);
+    const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
 
-    // Get biodata info for each user
-    const biodatas = await Promise.all(
-      users.map(async (user) => {
-        const generalInfo = await GeneralInfo.findOne({ user: user._id }).select('date_of_birth marital_status').lean();
-        const personalInfo = await PersonalInfo.findOne({ user: user._id }).select('').lean();
-        const educationInfo = await EducationalQualification.findOne({ user: user._id }).select('education_medium').lean();
-        const occupation = await Occupation.findOne({ user: user._id }).select('').lean();
-        const address = await Address.findOne({ user: user._id }).select('present_division present_zilla').lean();
-        const contact = await Contact.findOne({ user: user._id }).select('full_name').lean();
-
-        // Calculate age from date_of_birth
-        const age = generalInfo?.date_of_birth 
-          ? Math.floor((Date.now() - new Date(generalInfo.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-          : 0;
-
-        return {
-          _id: user._id,          // user's _id — used for status mutations
-          user: user._id,         // alias for consistency with general-info fallback shape
-          generalInfo_id: (generalInfo as any)?._id ?? null,  // GeneralInfo _id — used for delete
-          user_id: user.user_id,
-          user_status: user.user_status,
-          name: contact?.full_name || user.email.split('@')[0],
-          email: user.email,
-          age: age,
-          location: address ? `${address.present_zilla || 'Unknown'}, ${address.present_division || 'Unknown'}` : 'Not specified',
-          marital_status: generalInfo?.marital_status || 'Not specified',
-          education: educationInfo?.education_medium || 'Not specified',
-          createdAt: (user as any).createdAt,
-          updatedAt: (user as any).updatedAt
-        };
-      })
-    );
-
-    const total = await UserInfoModel.countDocuments(userFilter);
-    const totalPages = Math.ceil(total / limitNum);
+    const dataPipeline: any[] = [
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+      { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
+      { $match: { userDoc: { $ne: null } } },
+      { $lookup: { from: 'addresses', localField: 'user', foreignField: 'user', as: 'addressDoc' } },
+      { $addFields: { addressDoc: { $first: '$addressDoc' } } },
+      ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+      ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+      { $sort: { createdAt: -1 as const, _id: -1 as const } },
+      { $skip: limitNum * (pageNum - 1) },
+      { $limit: limitNum },
+      {
+        $project: {
+          _id: '$userDoc._id',
+          user: '$userDoc._id',
+          generalInfo_id: '$_id',
+          user_id: '$userDoc.user_id',
+          user_status: '$userDoc.user_status',
+          bio_type: 1, date_of_birth: 1, height: 1, gender: 1, weight: 1,
+          blood_group: 1, screen_color: 1, nationality: 1, marital_status: 1,
+          religion: 1, religious_type: 1, request_practicing_status: 1, photos: 1,
+          views_count: 1, likes_count: 1, dislikes_count: 1, purchases_count: 1,
+          isFeatured: 1, isMarriageDone: 1,
+          zilla: '$addressDoc.zilla', upzilla: '$addressDoc.upzilla',
+          biodata_status: 1, version: 1, approved_data: 1, pending_changes: 1,
+          admin_note: 1, last_approved_at: 1, last_approved_by: 1,
+          createdAt: 1, updatedAt: 1,
+        },
+      },
+    ];
+    const biodatas = await GeneralInfo.aggregate(dataPipeline);
 
     res.status(httpStatus.OK).json({
       success: true,
-      message: "Biodatas retrieved successfully",
+      message: 'Biodatas retrieved successfully',
       data: {
         biodatas,
         pagination: {
           currentPage: pageNum,
-          totalPages,
-          totalItems: total,
+          totalPages: Math.ceil(totalCount / limitNum),
+          totalItems: totalCount,
           itemsPerPage: limitNum,
-          hasNext: pageNum < totalPages,
-          hasPrev: pageNum > 1
-        }
-      }
+          hasNext: pageNum < Math.ceil(totalCount / limitNum),
+          hasPrev: pageNum > 1,
+        },
+      },
     });
   }),
 
