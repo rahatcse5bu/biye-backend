@@ -7,6 +7,7 @@ export const UserInfoFields: string[] = [
 ];
 
 export const adminEmails: string[] = [
+  "bibahosupport@gmail.com",
   "anis.cse5.bu@gmail.com",
   "rahat.cse5.bu@gmail.com",
 ];

@@ -4,6 +4,7 @@ import { UserInfoModel } from "../user_info/user_info.model";
 import { NotificationService } from "../notifications/notification.service";
 import { processRefund, RefundError } from "../bkash/bkash.refund";
 import RefundRequest from "./refund_request.model";
+import { escapeHtml, formatTaka, mailAdmins, mailUser } from "../../../shared/bibahoMail";
 
 const HOUR = 60 * 60 * 1000;
 const FULL_REFUND_WINDOW = 6 * HOUR;
@@ -77,6 +78,33 @@ export const RefundRequestService = {
         message: `${user.email} ৳${refundAmount} রিফান্ড চেয়েছেন (TrxID: ${payment.transaction_id})।`,
         link: "/refunds",
       });
+      mailAdmins("নতুন রিফান্ড অনুরোধ", {
+        title: "নতুন রিফান্ড অনুরোধ এসেছে",
+        tone: "warning",
+        paragraphs: ["একজন ব্যবহারকারী রিফান্ড অনুরোধ করেছেন। অ্যাডমিন প্যানেলের Refunds পেজ থেকে অনুমোদন বা বাতিল করুন।"],
+        details: [
+          { label: "ব্যবহারকারী", value: user.email },
+          { label: "ট্রানজেকশন আইডি", value: payment.transaction_id },
+          { label: "পেমেন্ট", value: formatTaka(payment.amount) },
+          { label: "রিফান্ড", value: formatTaka(refundAmount) },
+          { label: "আটকে রাখা পয়েন্ট", value: pointsToHold },
+          { label: "কারণ", value: request.reason },
+        ],
+      });
+      mailUser(user.email, "রিফান্ড অনুরোধ পাওয়া গেছে", {
+        title: "আপনার রিফান্ড অনুরোধ পাওয়া গেছে",
+        paragraphs: [
+          "আপনার রিফান্ড অনুরোধটি আমরা পেয়েছি। অ্যাডমিন পর্যালোচনা করে সর্বোচ্চ ৩ কার্যদিবসের মধ্যে সিদ্ধান্ত জানাবেন।",
+          `অনুরোধ চলাকালীন এই পেমেন্টের <strong>${pointsToHold} পয়েন্ট</strong> আটকে রাখা হয়েছে। অনুরোধ বাতিল হলে পয়েন্ট ফেরত দেওয়া হবে।`,
+        ],
+        details: [
+          { label: "ট্রানজেকশন আইডি", value: payment.transaction_id },
+          { label: "পেমেন্টের পরিমাণ", value: formatTaka(payment.amount) },
+          { label: "রিফান্ডের পরিমাণ", value: formatTaka(refundAmount) },
+          { label: "কারণ", value: request.reason },
+        ],
+        action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+      });
       return request.toObject();
     } catch (error: any) {
       await UserInfoModel.updateOne({ _id: user._id }, { $inc: { points: pointsToHold } });
@@ -137,6 +165,19 @@ export const RefundRequestService = {
       title: "রিফান্ড অনুরোধ বাতিল",
       message: `আপনার ৳${request.refund_amount} রিফান্ড অনুরোধ বাতিল হয়েছে এবং ${request.points_held} পয়েন্ট ফেরত দেওয়া হয়েছে।${adminNote ? ` কারণ: ${adminNote}` : ""}`,
       link: "/user/account/payment-and-refund",
+    });
+    mailUser(request.email, "রিফান্ড অনুরোধ বাতিল হয়েছে", {
+      title: "আপনার রিফান্ড অনুরোধ বাতিল হয়েছে",
+      tone: "warning",
+      paragraphs: [
+        `আপনার রিফান্ড অনুরোধটি অনুমোদিত হয়নি। আটকে রাখা <strong>${escapeHtml(request.points_held)} পয়েন্ট</strong> আপনার অ্যাকাউন্টে ফেরত দেওয়া হয়েছে।`,
+      ],
+      details: [
+        { label: "ট্রানজেকশন আইডি", value: request.transaction_id },
+        { label: "অনুরোধকৃত রিফান্ড", value: formatTaka(request.refund_amount) },
+        { label: "কারণ", value: adminNote },
+      ],
+      action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
     });
     return request;
   },

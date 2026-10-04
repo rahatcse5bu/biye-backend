@@ -261,14 +261,14 @@ export const UserInfoController = {
               }
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
-            <a href="https://admin.pnc-nikah.com/details/${
+            <a href="https://www.bibaho.org/biodata/${
               updatedUserInfo?.user_id
             }" class="button">Review Now</a>
           </td>
         </tr>
         <tr>
           <td class="footer">
-            &copy; 2024 PNC Nikah. All rights reserved.
+            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
           </td>
         </tr>
       </table>
@@ -368,7 +368,7 @@ export const UserInfoController = {
         </tr>
         <tr>
           <td class="footer">
-            &copy; 2024 PNC Nikah. All rights reserved.
+            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
           </td>
         </tr>
       </table> </body></html>
@@ -463,7 +463,7 @@ export const UserInfoController = {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -552,7 +552,7 @@ export const UserInfoController = {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 Your Company. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -690,7 +690,7 @@ export const UserInfoController = {
       </tr>
       <tr>
         <td class="footer">
-          &copy; 2024 PNC Nikah. All rights reserved.
+          &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
         </td>
       </tr>
     </table>
@@ -788,11 +788,11 @@ table {
       </td>
     </tr>
     <tr>
-     check your bio-data status <a href="https://admin.pnc-nikah.com/user/account/dashboard">https://admin.pnc-nikah.com/user/account/dashboard</a>
+     check your bio-data status <a href="https://www.bibaho.org/user/account/dashboard">https://www.bibaho.org/user/account/dashboard</a>
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table> </body></html>
@@ -924,7 +924,7 @@ table {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -1021,7 +1021,7 @@ table {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table> </body> </html>

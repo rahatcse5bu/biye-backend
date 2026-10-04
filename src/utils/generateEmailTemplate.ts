@@ -1,7 +1,7 @@
 const generateEmailTemplate = (
   subject: string,
   body: string,
-  website: string = "https://pnc-nikah.com/"
+  website: string = "https://www.bibaho.org/"
 ) => {
   const currentYear = new Date().getFullYear();
 
@@ -62,7 +62,7 @@ const generateEmailTemplate = (
                 <p>${body}</p>
             </div>
             <div class="footer">
-                <p>&copy; ${currentYear} PNC-Nikah. All rights reserved.</p>
+                <p>&copy; ${currentYear} Bibaho. All rights reserved.</p>
                 <p><a href="${website}" target="_blank">${website}</a></p>
             </div>
         </div>

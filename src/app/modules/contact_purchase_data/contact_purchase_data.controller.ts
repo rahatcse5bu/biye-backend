@@ -8,7 +8,7 @@ import ApiError from "../../middlewares/ApiError";
 import { IContactPurchase } from "./contact_purchase_data.interface";
 import BioChoice from "../bio_choice_data/bio_choice_data.model";
 import Contact from "../contact/contact.model";
-import sendEmail from "../../../shared/SendEmail";
+import { mailUser } from "../../../shared/bibahoMail";
 import ContactPurchase from "./contact_purchase_data.model";
 
 export const ContactPurchaseController = {
@@ -339,72 +339,6 @@ export const ContactPurchaseController = {
       userInfo.points = points;
       await userInfo.save({ session });
 
-      // bio html
-
-      const bioHtml = `
-      <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                }
-                .container {
-                    width: 100%;
-                    max-width: 600px;
-                    margin: auto;
-                    padding: 20px;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 10px;
-                }
-                .header {
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 10px;
-                    text-align: center;
-                    border-radius: 10px 10px 0 0;
-                }
-                .content {
-                    padding: 20px;
-                }
-                .footer {
-                    text-align: center;
-                    margin-top: 20px;
-                    color: #888;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Contact Information Shared</h1>
-                </div>
-                <div class="content">
-                    <p>Dear Sir/Mam,</p>
-                    <p>We wanted to inform you that your contact information has been purchased using points on our platform.</p>
-                    <p>Here are the details:</p>
-                    <ul>
-                        <li><strong>Buyer's BioId:</strong> ${userInfo.user_id}</li>
-                        <li><strong>Email:</strong>${userInfo.email}</li>
-                    </ul>
-                    <p>If you have any questions or concerns, please reach out to our support team.</p>
-                    <p>Thank you for being a part of our community!</p>
-                    <p>Best Regards,</p>
-                    <p>[Your Company Name]</p>
-            <p><a href="http://www.pnc-nikah.com">Visit our website</a> for more information.</p>
-
-                </div>
-                <div class="footer">
-                    <p>&copy; 2024 PNC-Nikah. All rights reserved.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-
-      
-      `;
-
-      await sendEmail(bioUser.email, "Contact Information Shared", bioHtml);
 
       // user html
 
@@ -422,74 +356,38 @@ export const ContactPurchaseController = {
         });
       }
 
-      const userHtml = `
-    <!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-        }
-        .header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-        }
-        .content {
-            padding: 20px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Purchase Confirmation</h1>
-        </div>
-        <div class="content">
-            <p>Dear Sir/Mam,</p>
-            <p>Thank you for your purchase!</p>
-            <p>You have successfully bought the contact information of ${bioContact.full_name} using your 70 points.now you have ${points} points. </p>
-            <p>Here are the details:</p>
-            <ul>
-                <li><strong>Full Name:</strong> ${bioContact.full_name}</li>
-                <li><strong>Email:</strong> ${bioContact.bio_receiving_email}</li>
-                <li><strong>Phone:</strong> ${bioContact.family_number}</li>
-            </ul>
-            <p>If you have any questions, feel free to contact our support team.</p>
-            <p>Thank you for using our service!</p>
-            <p>Best Regards,</p>
-            <p>PNC-Nikah</p>
-            <p><a href="http://www.pnc-nikah.com">Visit our website</a> for more information.</p>
-        </div>
-        <div class="footer">
-            <p>&copy; 2024 PNC-Nikah. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
-  
-      `;
-
-      await sendEmail(userInfo.email, "Purchase Confirmation", userHtml);
 
       // Commit the transaction
       await session.commitTransaction();
       session.endSession();
+
+      // TODO: emails only after the purchase is saved; buyer gets the contact, owner gets a heads-up.
+      mailUser(userInfo.email, "অভিভাবকের যোগাযোগ তথ্য", {
+        title: "আপনার কেনা যোগাযোগ তথ্য",
+        tone: "success",
+        paragraphs: [
+          "ধন্যবাদ! নিচে পাত্র/পাত্রীর অভিভাবকের যোগাযোগ তথ্য দেওয়া হলো। এই তথ্য আপনার অ্যাকাউন্টের \"ক্রয়কৃত\" অংশেও সবসময় দেখতে পাবেন।",
+          "অনুগ্রহ করে শালীনতা বজায় রেখে যোগাযোগ করুন।",
+        ],
+        details: [
+          { label: "বায়োডাটা নং", value: bioUser.user_id },
+          { label: "অভিভাবকের নাম", value: bioContact.full_name },
+          { label: "সম্পর্ক", value: bioContact.relation },
+          { label: "মোবাইল নম্বর", value: bioContact.family_number },
+          { label: "ইমেইল", value: bioContact.bio_receiving_email },
+          { label: "খরচ হওয়া পয়েন্ট", value: 70 },
+          { label: "অবশিষ্ট পয়েন্ট", value: points },
+        ],
+        action: { label: "ক্রয়কৃত বায়োডাটা দেখুন", path: "/user/account/purchases" },
+      });
+      mailUser(bioUser.email, "আপনার অভিভাবকের যোগাযোগ তথ্য নেওয়া হয়েছে", {
+        title: "একজন সদস্য আপনার অভিভাবকের যোগাযোগ তথ্য নিয়েছেন",
+        paragraphs: [
+          "আপনার প্রস্তাবে সম্মতির পর একজন সদস্য আপনার অভিভাবকের যোগাযোগ তথ্য নিয়েছেন। শীঘ্রই তিনি আপনার অভিভাবকের সাথে যোগাযোগ করতে পারেন।",
+        ],
+        details: [{ label: "সদস্যের বায়োডাটা নং", value: userInfo.user_id }],
+        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+      });
 
       res.status(httpStatus.CREATED).json({
         success: true,

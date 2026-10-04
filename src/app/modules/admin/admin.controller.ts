@@ -12,6 +12,7 @@ import MaritalInfo from "../marital_info/marital_info.model";
 import Contact from "../contact/contact.model";
 import { PaymentService } from "../payments/payments.service";
 import { NotificationService } from "../notifications/notification.service";
+import { mailUser } from "../../../shared/bibahoMail";
 import { processRefund, RefundError } from "../bkash/bkash.refund";
 
 export const AdminController = {
@@ -386,6 +387,13 @@ export const AdminController = {
       title: 'বায়োডাটার স্ট্যাটাস পরিবর্তন',
       message: `আপনার বায়োডাটা এখন ${statusLabels[status]}।${reason ? ` কারণ: ${reason}` : ''}`,
       link: '/user/account/dashboard',
+    });
+    mailUser(user.email, 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে', {
+      title: 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে',
+      tone: status === 'active' ? 'success' : 'warning',
+      paragraphs: [`Bibaho অ্যাডমিন আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন। আপনার বায়োডাটা এখন <strong>${statusLabels[status]}</strong>।`],
+      details: [{ label: 'কারণ', value: reason }],
+      action: { label: 'ড্যাশবোর্ড দেখুন', path: '/user/account/dashboard' },
     });
 
     res.status(httpStatus.OK).json({

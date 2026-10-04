@@ -11,6 +11,7 @@ import UnFavorite from "../unfavorites/unfavorites.model";
 import ApiError from "../../middlewares/ApiError";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 import { NotificationService } from "../notifications/notification.service";
+import { mailUserById } from "../../../shared/bibahoMail";
 
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const {
@@ -1175,6 +1176,13 @@ const approveBiodataChanges = catchAsync(
       message: "আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত ও প্রকাশিত হয়েছে।",
       link: "/user/account/dashboard",
     });
+    mailUserById(generalInfo.user, "আপনার বায়োডাটা অনুমোদিত হয়েছে", {
+      title: "আপনার বায়োডাটা অনুমোদিত হয়েছে",
+      tone: "success",
+      paragraphs: ["অভিনন্দন! আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত হয়েছে এবং এখন সবার কাছে প্রকাশিত।"],
+      details: [{ label: "সংস্করণ", value: generalInfo.version }],
+      action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+    });
 
     res.status(200).json({
       success: true,
@@ -1234,6 +1242,16 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
       : "আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। আগের সংস্করণটি প্রকাশিত আছে।",
     link: "/user/account/edit-biodata",
   });
+  mailUserById(generalInfo.user, "বায়োডাটার পরিবর্তন বাতিল হয়েছে", {
+    title: "বায়োডাটার পরিবর্তন বাতিল হয়েছে",
+    tone: "warning",
+    paragraphs: [
+      "আপনার বায়োডাটার সাম্প্রতিক পরিবর্তনগুলো অনুমোদিত হয়নি। আগের অনুমোদিত সংস্করণটি প্রকাশিত আছে।",
+      "প্রয়োজনীয় সংশোধন করে আবার জমা দিতে পারেন।",
+    ],
+    details: [{ label: "কারণ", value: reason }],
+    action: { label: "বায়োডাটা সংশোধন করুন", path: "/user/account/edit-biodata" },
+  });
 
   res.status(200).json({
     success: true,
@@ -1270,6 +1288,20 @@ const submitForReview = catchAsync(async (req: Request, res: Response) => {
   generalInfo.admin_note = "";
   generalInfo.last_approved_at = new Date();
   await generalInfo.save();
+
+  mailUserById(userId, "আপনার বায়োডাটা জমা হয়েছে", {
+    title: "আপনার বায়োডাটা সফলভাবে জমা হয়েছে",
+    tone: "success",
+    paragraphs: [
+      "ধন্যবাদ! আপনার বায়োডাটা জমা ও প্রকাশিত হয়েছে। এখন অন্য সদস্যরা আপনার বায়োডাটা দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
+      "যেকোনো সময় আপনার বায়োডাটা আপডেট করতে পারবেন।",
+    ],
+    details: [
+      { label: "বায়োডাটা ধরন", value: generalInfo.bio_type },
+      { label: "সংস্করণ", value: generalInfo.version },
+    ],
+    action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+  });
 
   res.status(200).json({
     success: true,

@@ -1,3 +1,4 @@
+import { mailUser } from "../../../shared/bibahoMail";
 import { Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
 import UnverifiedBiodata from "./unverified_biodata.model";
@@ -623,54 +624,28 @@ const purchaseUnverifiedBiodataContact = catchAsync(
       );
 
       // Send confirmation email to buyer
-      const buyerHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                .container { width: 100%; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; }
-                .header { background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { padding: 20px; }
-                .footer { text-align: center; margin-top: 20px; color: #888; }
-                .contact-box { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Contact Information Purchased</h1>
-                </div>
-                <div class="content">
-                    <p>Dear Sir/Madam,</p>
-                    <p>Thank you for your purchase! You have successfully bought the contact information for 50 points.</p>
-                    <p>Your remaining points: <strong>${remainingPoints}</strong></p>
-                    <div class="contact-box">
-                        <h3>Contact Details:</h3>
-                        <p><strong>Name:</strong> ${biodata.contact_name}</p>
-                        <p><strong>Phone:</strong> ${biodata.contact_phone}</p>
-                        <p><strong>Email:</strong> ${biodata.contact_email}</p>
-                    </div>
-                    <p>If you have any questions, please contact our support team.</p>
-                    <p>Best Regards,<br>PNC-Nikah Team</p>
-                    <p><a href="http://www.pnc-nikah.com">Visit our website</a></p>
-                </div>
-                <div class="footer">
-                    <p>&copy; 2024 PNC-Nikah. All rights reserved.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-      `;
-
-      await sendEmail(
-        userInfo.email,
-        "Contact Information Purchase Confirmation",
-        buyerHtml,
-      );
 
       // Commit the transaction
       await session.commitTransaction();
+
+      // TODO: email only after the purchase is saved, without delaying the response.
+      mailUser(userInfo.email, "যোগাযোগ তথ্য", {
+        title: "আপনার কেনা যোগাযোগ তথ্য",
+        tone: "success",
+        paragraphs: [
+          "ধন্যবাদ! নিচে বায়োডাটার যোগাযোগ তথ্য দেওয়া হলো। এই তথ্য আপনার অ্যাকাউন্টের \"ক্রয়কৃত\" অংশেও দেখতে পাবেন।",
+          "অনুগ্রহ করে শালীনতা বজায় রেখে যোগাযোগ করুন।",
+        ],
+        details: [
+          { label: "বায়োডাটা নং", value: biodata.bio_id },
+          { label: "নাম", value: biodata.contact_name },
+          { label: "মোবাইল নম্বর", value: biodata.contact_phone },
+          { label: "ইমেইল", value: biodata.contact_email },
+          { label: "খরচ হওয়া পয়েন্ট", value: 50 },
+          { label: "অবশিষ্ট পয়েন্ট", value: remainingPoints },
+        ],
+        action: { label: "ক্রয়কৃত বায়োডাটা দেখুন", path: "/user/account/purchases" },
+      });
       session.endSession();
 
       res.status(httpStatus.OK).json({

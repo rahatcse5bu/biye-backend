@@ -8,10 +8,8 @@ import { BioChoiceService } from "./bio_choice_data.services";
 import ApiError from "../../middlewares/ApiError";
 import BioChoice from "./bio_choice_data.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
-import sendEmail from "../../../shared/SendEmail";
-import { getCurrentTime } from "../../../shared/time";
+import { mailUser } from "../../../shared/bibahoMail";
 import { UserInfoService } from "../user_info/user_info.services";
-import { getFooter } from "../../../shared/getFooter";
 
 export const BioChoiceController = {
   getAllBioChoices: catchAsync(async (req: Request, res: Response) => {
@@ -665,185 +663,32 @@ export const BioChoiceController = {
         session,
       });
 
-      const date = getCurrentTime();
-
-      const bioHtml = `
-      <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Notification of Bio 1st Step Purchase</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 0;
-                }
-                .container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #ffffff;
-                    padding: 20px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                }
-                .header {
-                    background-color: #071952;
-                    color: white;
-                    padding: 10px 0;
-                    text-align: center;
-                }
-                .header h1 {
-                    margin: 0;
-                }
-                .content {
-                    padding: 20px;
-                }
-                .content h2 {
-                    color: #333;
-                }
-                .content p {
-                    color: #666;
-                }
-                .details {
-                    background-color: #f9f9f9;
-                    padding: 10px;
-                    margin: 20px 0;
-                    border: 1px solid #ddd;
-                }
-                .details p {
-                    margin: 5px 0;
-                }
-                .footer {
-                    text-align: center;
-                    padding: 10px;
-                    background-color: #071952;
-                    color: white;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Bio 1st Step Purchase Notification</h1>
-                </div>
-                <div class="content">
-                    <h2>Dear Sir/Mam,</h2>
-                    <p>We are pleased to inform you that the first step of your bio has been purchased.p . Below are the details</p>
-                    <div class="details">
-                        <p>Purchased By[Bio Id]: ${userInfo.user_id}</p>
-                        <p>Purchase Date: ${date}</p>
-                    </div>
-                    <p>Please,Give the feedback so that he/she can proceed for the next step</p>
-                    <p>If you have any questions or need further assistance, please do not hesitate to contact our support team.</p>
-                </div>
-                <div class="footer">
-                    <p>Best regards,<br>
-                    PNC-Nikah<br>
-                    pnc.nikah@gmail.com</p>
-                </div>
-            </div>
-        </body>
-        </html>
-      `;
-
-      const userHtml = `
-      <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Confirmation Email</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 0;
-                }
-                .container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #ffffff;
-                    padding: 20px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                }
-                .header {
-                    background-color: #071952;
-                    color: white;
-                    padding: 10px 0;
-                    text-align: center;
-                }
-                .header h1 {
-                    margin: 0;
-                }
-                .content {
-                    padding: 20px;
-                }
-                .content h2 {
-                    color: #333;
-                }
-                .content p {
-                    color: #666;
-                }
-                .details {
-                    background-color: #f9f9f9;
-                    padding: 10px;
-                    margin: 20px 0;
-                    border: 1px solid #ddd;
-                }
-                .details p {
-                    margin: 5px 0;
-                }
-                .footer {
-                    text-align: center;
-                    padding: 10px;
-                    background-color: #071952;
-                    color: white;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Confirmation of Your Purchase</h1>
-                </div>
-                <div class="content">
-                    <h2>Dear Sir/Mam,</h2>
-                    <p>We are pleased to inform you that your purchase of the <strong>"Bio 1st Step"</strong> has been successfully completed. A total of 30 points have been deducted from your account for this transaction.</p>
-                    <div class="details">
-                        <p>Item Purchased: Bio 1st Step</p>
-                        <p>Bio ID: ${bioUserInfo.user_id}</p>
-                        <p>Points Deducted: 30 points</p>
-                        <p>Remaining Points: ${points}</p>
-                        <p>Purchase Date: ${date}</p>
-                    </div>
-                    <p>Thank you for your purchase! If you have any questions or need further assistance, please do not hesitate to contact our support team.</p>
-                </div>
-                <div class="footer">
-                    <p>Best regards,<br>
-                    PNC-Nikah<br>
-                    pnc.nikah@gmail.com</p>
-                </div>
-            </div>
-        </body>
-        </html>
-
-      `;
-      await sendEmail(
-        userInfo.email,
-        "Confirmation of Your `Bio 1st Step` Purchase",
-        userHtml
-      );
-      await sendEmail(
-        bioUserInfo.email,
-        "Notification of Bio 1st Step Purchase",
-        bioHtml
-      );
-
       // Commit the transaction
       await session.commitTransaction();
+
+      // TODO: emails go out only after the request is saved, and never delay the response.
+      mailUser(userInfo.email, "আপনার প্রস্তাব পাঠানো হয়েছে", {
+        title: "আপনার প্রস্তাব সফলভাবে পাঠানো হয়েছে",
+        tone: "success",
+        paragraphs: [
+          "আপনার বায়োডাটা ও প্রস্তাব পাত্র/পাত্রীর কাছে পাঠানো হয়েছে। তিনি সাড়া দিলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
+        ],
+        details: [
+          { label: "বায়োডাটা নং", value: bioUserInfo.user_id },
+          { label: "খরচ হওয়া পয়েন্ট", value: 30 },
+          { label: "অবশিষ্ট পয়েন্ট", value: points },
+        ],
+        action: { label: "আমার অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
+      });
+      mailUser(bioUserInfo.email, "আপনি একটি নতুন প্রস্তাব পেয়েছেন", {
+        title: "আপনি একটি নতুন প্রস্তাব পেয়েছেন",
+        paragraphs: [
+          "একজন সদস্য আপনার বায়োডাটা দেখে আগ্রহ প্রকাশ করেছেন এবং তার বায়োডাটা আপনার কাছে পাঠিয়েছেন।",
+          "বায়োডাটাটি দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
+        ],
+        details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userInfo.user_id }],
+        action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
+      });
       return res.json({
         success: true,
         message: "BioChoice created successfully",
@@ -979,265 +824,57 @@ export const BioChoiceController = {
     );
 
     if (!updatedBioChoice) {
-      res.status(httpStatus.NOT_FOUND).json({
+      return res.status(httpStatus.NOT_FOUND).json({
         success: false,
         message: "BioChoice not found",
       });
     }
-    let html = "";
-    let subject = "";
-
     const bioUser = await UserInfoService.getUserInfoById(bio_user);
     const userData = await UserInfoService.getUserInfoById(user);
-    let status = others?.status;
-    if (type === "feedback" && bio_user) {
-      html = `
-        <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Template</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 0;
-      }
-      .email-container {
-        max-width: 600px;
-        margin: 20px auto;
-        background-color: #4f46e5;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        color:white;
-      }
-      .header {
-        text-align: center;
-        padding-bottom: 20px;
-      }
-      .header h1 {
-        color: #fff;
-        font-size: 24px;
-      }
-      .content {
-        line-height: 1.6;
-        color: #fff;
-      }
-      .content p {
-        margin-bottom: 15px;
-      }
-      .content a {
-        display: inline-block;
-        background-color: #28a745;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 5px;
-      }
-      .footer {
-        margin-top: 30px;
-        text-align: center;
-        font-size: 12px;
-        color: #ffff;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="email-container">
-      <div class="header">
-        <h1>You've Received Feedback from Bio-data NO: ${bioUser?.user_id}</h1>
-      </div>
-      <div class="content">
-        <p>Dear Sir/Mam,</p>
-        <p>I wanted to let you know that you’ve received feedback from <strong>Bio-data NO: ${
-          bioUser?.user_id
-        }</strong>.</p>
-        <div style="background-color: #3730a3;padding:10px;border-radius:10px;">
-          <strong>Feedback:</strong>
-          <p >
-          ${others?.feedback}            
-          </p>
-        </div>
-        <p>If you have any questions or need further clarification, don’t hesitate to reach out.</p>
-        <a href="https://pnc-nikah.com/user/account/purchases">View Feedback of Bio-data NO: ${
-          bioUser?.user_id
-        }</a>
-      </div>
-     ${getFooter()}
-    </div>
-  </body>
-  </html>      
-        `;
-      subject = `You've Received Feedback from Bio-data NO: ${bioUser?.user_id} `;
-    } else if (type === "status" && status) {
-      if (status === "accepted" || status === "approved") {
-        html = `
-        <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>>Bio Choice 1st steps Status - Accepted from Bio-data NO: ${
-    bioUser?.user_id
-  }</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .email-container {
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #3730a3;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-      color:#fff;
-    }
-    .header h1 {
-      color: #28a745;
-      font-size: 24px;
-    }
-    .content {
-      line-height: 1.6;
-      color: #fff !important;
-    }
-    .content a {
-        display: inline-block;
-        background-color: #28a745;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 5px;
-      }
-    .content p {
-      margin-bottom: 15px;
-      color:#fff;
-    }
-    .footer {
-      margin-top: 30px;
-      text-align: center;
-      font-size: 12px;
-      color:#fff;
-    }
-  </style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="header">
-      <h1>Congratulations, You're Accepted!</h1>
-    </div>
-    <div class="content">
-      <p>Dear Sir/Mam,</p>
-      <p>We are pleased to inform you that your Bio-data has been <strong>accepted</strong> by Bio-data NO: ${
-        bioUser?.user_id
-      }.</p>
-      <p>Feel free to proceed with the next 2nd steps. If you have any questions, please do not hesitate to reach out to us.</p>
-       <a href="https://pnc-nikah.com/biodata/${
-         bioUser?.user_id
-       }">View Bio-data NO: ${bioUser?.user_id}</a>
-    </div>
-    {${getFooter()}}
-  </div>
-</body>
-</html>
+    const status = others?.status;
+    const accepted = status === "accepted" || status === "approved";
 
-        `;
-        subject = `Bio Choice 1st steps Status - Accepted from Bio-data NO: ${bioUser?.user_id}`;
-      } else if (status === "rejected") {
-        html = `
-        <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Choice 1st steps Status - Rejected from Bio-data NO: ${
-    bioUser?.user_id
-  }</title>
-  <style>
-     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .email-container {
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #3730a3;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-    }
-    .header h1 {
-      color: #e74c3c;
-      font-size: 24px;
-    }
-    .content {
-      line-height: 1.6;
-      color: #ffff;
-    }
-    .content p {
-      margin-bottom: 15px;
-    }
-    .content a {
-        display: inline-block;
-        background-color: #28a745;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 5px;
-    }
-
-    .footer {
-      margin-top: 30px;
-      text-align: center;
-      font-size: 14px;
-      color: #ffff;
-    }
-  </style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="header">
-      <h1>Application Status: Rejected</h1>
-    </div>
-    <div class="content">
-      <p>Dear Sir/mam,</p>
-      <p>We regret to inform you that your Bio data has been <strong>rejected</strong> by Bio-data NO : ${
-        bioUser?.user_id
-      } .</p>
-
-      <a href="https://pnc-nikah.com/biodata/${
-        bioUser?.user_id
-      }">View Bio-data NO: ${bioUser?.user_id}</a>
-    </div>
-    ${getFooter()}
-  </div>
-</body>
-</html> 
-        `;
-        subject = `Bio Choice 1st steps Status - Rejected from Bio-data NO: ${bioUser?.user_id}`;
-      }
-    }
-    // console.log("userData", userData);
-    // console.log("bioUser", bioUser);
-
-    if (userData && html && subject) {
-      await sendEmail(userData.email, subject, html);
+    // TODO: both sides get an email: the requester learns the answer, the responder gets a confirmation.
+    if (type === "feedback") {
+      mailUser(userData?.email, "আপনি একটি মতামত পেয়েছেন", {
+        title: "আপনার প্রস্তাবে মতামত এসেছে",
+        paragraphs: ["আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তার পক্ষ থেকে একটি মতামত এসেছে।"],
+        details: [
+          { label: "বায়োডাটা নং", value: bioUser?.user_id },
+          { label: "মতামত", value: others?.feedback },
+        ],
+        action: { label: "বিস্তারিত দেখুন", path: "/user/account/bio-requests" },
+      });
+      mailUser(bioUser?.email, "আপনার মতামত পাঠানো হয়েছে", {
+        title: "আপনার মতামত পাঠানো হয়েছে",
+        paragraphs: ["আপনার মতামত প্রস্তাবকারীর কাছে পৌঁছে দেওয়া হয়েছে।"],
+        details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userData?.user_id }],
+        action: { label: "অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
+      });
+    } else if (accepted || status === "rejected") {
+      mailUser(userData?.email, accepted ? "আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে", {
+        title: accepted ? "অভিনন্দন! আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে",
+        tone: accepted ? "success" : "warning",
+        paragraphs: [
+          accepted
+            ? "আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি আপনার প্রস্তাবে সম্মতি দিয়েছেন। এখন পরবর্তী ধাপে অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"
+            : "দুঃখিত, আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি এই মুহূর্তে আগ্রহী নন। আরও বায়োডাটা দেখে নতুন প্রস্তাব পাঠাতে পারেন।",
+        ],
+        details: [{ label: "বায়োডাটা নং", value: bioUser?.user_id }],
+        action: accepted
+          ? { label: "পরবর্তী ধাপে যান", path: "/user/account/bio-requests" }
+          : { label: "আরও বায়োডাটা দেখুন", path: "/biodatas" },
+      });
+      mailUser(bioUser?.email, accepted ? "আপনি একটি প্রস্তাব গ্রহণ করেছেন" : "আপনি একটি প্রস্তাব প্রত্যাখ্যান করেছেন", {
+        title: accepted ? "আপনি প্রস্তাবটি গ্রহণ করেছেন" : "আপনি প্রস্তাবটি প্রত্যাখ্যান করেছেন",
+        paragraphs: [
+          accepted
+            ? "আপনার সম্মতি প্রস্তাবকারীকে জানানো হয়েছে। তিনি পরবর্তী ধাপে আপনার অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"
+            : "আপনার সিদ্ধান্ত প্রস্তাবকারীকে জানানো হয়েছে।",
+        ],
+        details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userData?.user_id }],
+        action: { label: "অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
+      });
     }
     res.status(httpStatus.OK).json({
       success: true,

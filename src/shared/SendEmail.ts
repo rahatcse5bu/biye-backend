@@ -20,7 +20,7 @@ const sendEmail = async (
   html: string
 ): Promise<void> => {
   const mailOptions = {
-    from: config.email_user,
+    from: `"Bibaho" <${config.email_user}>`,
     to,
     subject,
     html,
@@ -39,7 +39,7 @@ export const sendEmails = async (
   html: string
 ): Promise<void> => {
   const mailOptions = {
-    from: config.email_user,
+    from: `"Bibaho" <${config.email_user}>`,
     subject,
     html,
   };

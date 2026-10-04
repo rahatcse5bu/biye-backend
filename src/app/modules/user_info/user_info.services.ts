@@ -9,6 +9,7 @@ import { IUserInfo } from "./user_info.interface";
 import { UserInfoModel } from "./user_info.model";
 import GeneralInfo from "../general_info/general_info.model";
 import { NotificationService } from "../notifications/notification.service";
+import { mailUser } from "../../../shared/bibahoMail";
 
 const googleClient = new OAuth2Client();
 const scryptAsync = promisify(scrypt);
@@ -62,15 +63,26 @@ const addAppToken = (user: IUserInfo): Record<string, any> => ({
   token: createAppToken(user),
 });
 
-const sendWelcomeNotification = (user: { _id?: unknown; username?: string }) =>
+const sendWelcomeNotification = (user: { _id?: unknown; username?: string; email?: string }) => {
+  mailUser(user.email, "Bibaho-তে স্বাগতম", {
+    title: "Bibaho-তে আপনাকে স্বাগতম!",
+    greeting: `প্রিয় ${user.username || "সদস্য"},`,
+    paragraphs: [
+      "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। এখন আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করতে পারেন।",
+      "বায়োডাটা সম্পূর্ণ করলে অন্যরা আপনার প্রোফাইল দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
+    ],
+    details: [{ label: "অ্যাকাউন্ট ইমেইল", value: user.email }],
+    action: { label: "বায়োডাটা তৈরি করুন", path: "/user/account/edit-biodata" },
+  });
   NotificationService.notify({
     recipient: String(user._id),
     audience: "user",
     type: "system",
     title: "বিয়েতে স্বাগতম!",
     message: `${user.username ? `${user.username}, ` : ""}আপনার অ্যাকাউন্ট তৈরি হয়েছে। এখনই আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করুন।`,
-    link: "/biodata-submit",
+    link: "/user/account/edit-biodata",
   });
+};
 
 const hashPassword = async (password: string): Promise<string> => {
   const salt = randomBytes(16).toString("hex");

@@ -8,7 +8,7 @@ import { baseUrl } from "../../../shared/url";
 import { UserInfoModel } from "../user_info/user_info.model";
 import { late } from "zod";
 import Payment from "../payments/payment.model";
-import sendEmail from "../../../shared/SendEmail";
+import { formatTaka, mailUser } from "../../../shared/bibahoMail";
 import { NotificationService } from "../notifications/notification.service";
 import { PointsPackageService } from "../points_package/points_package.service";
 import { processRefund, RefundError } from "./bkash.refund";
@@ -145,76 +145,21 @@ const afterPay = async (req: Request, res: Response) => {
           message: `${email} ৳${response?.amount} পেমেন্ট করেছেন (TrxID: ${response?.trxID})।`,
           link: "/payments",
         });
-        const year = new Date().getFullYear();
-        const html = `<!DOCTYPE html>
-                        <html>
-                        <head>
-                          <style>
-                            .container {
-                              font-family: Arial, sans-serif;
-                              max-width: 600px;
-                              margin: 0 auto;
-                              padding: 20px;
-                              border: 1px solid #ddd;
-                              border-radius: 10px;
-                              background-color: #f9f9f9;
-                            }
-                            .header {
-                              text-align: center;
-                              padding-bottom: 20px;
-                            }
-                            .header h1 {
-                              margin: 0;
-                              color: #4CAF50;
-                            }
-                            .content {
-                              line-height: 1.6;
-                            }
-                            .footer {
-                              margin-top: 20px;
-                              text-align: center;
-                              font-size: 12px;
-                              color: #777;
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="container">
-                            <div class="header">
-                              <h1>Purchase Confirmation</h1>
-                            </div>
-                            <div class="content">
-                              <p>Dear Sir/Mam,</p>
-                              <p>Thank you for your purchase!</p>
-                              <p>We are pleased to inform you that your purchase of ${points}  points was successful. The points have been added to your account and are now available for use.</p>
-                              <p>Here are the details of your transaction:</p>
-                              <ul>
-                                <li><strong>Transaction ID:</strong> ${
-                                  response?.trxID
-                                }</li>
-                                <li><strong>Points Purchased:</strong>${points}</li>
-                                <li><strong>Amount Paid:</strong> ${
-                                  response?.amount
-                                }</li>
-                                <li><strong>Date of Purchase:</strong> ${
-                                  response?.paymentCreateTime ||
-                                  response?.paymentExecuteTime
-                                }</li>
-                              </ul>
-                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at pnc.nikah@gmail.com or 01714802800.</p>
-                              <p>Thank you for choosing our service!</p>
-                              <p>Best regards,</p>
-                              <p>PNC-Nikah</p>
-                            </div>
-                            <div class="footer">
-                              <p>&copy;${year}PNC-Nikah.com. All rights reserved.</p>
-                              <p>Barishal, Bangladesh</p>
-                            </div>
-                          </div>
-                        </body>
-                        </html>
-                        `;
-        sendEmail(email, "Your Purchase of Points was Successful!", html);
+        mailUser(email, "পয়েন্ট কেনা সফল হয়েছে", {
+          title: "পয়েন্ট কেনা সফল হয়েছে",
+          tone: "success",
+          paragraphs: [
+            `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে এবং আপনার অ্যাকাউন্টে <strong>${points} পয়েন্ট</strong> যোগ হয়েছে।`,
+            "পেমেন্টের ৩ দিনের মধ্যে আপনার পেমেন্ট হিস্টোরি থেকে রিফান্ড অনুরোধ করা যাবে।",
+          ],
+          details: [
+            { label: "পরিমাণ", value: formatTaka(response?.amount) },
+            { label: "যোগ হওয়া পয়েন্ট", value: points },
+            { label: "ট্রানজেকশন আইডি", value: response?.trxID },
+            { label: "সময়", value: response?.paymentCreateTime || response?.paymentExecuteTime },
+          ],
+          action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+        });
       }
 
       res.json({
