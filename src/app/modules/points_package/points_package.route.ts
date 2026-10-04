@@ -6,6 +6,12 @@ const router = Router();
 
 router.get("/", PointsPackageController.listActive);
 router.get("/admin", auth("admin"), PointsPackageController.listAll);
+router.get("/custom-settings", PointsPackageController.getCustomSettings);
+router.patch(
+  "/custom-settings",
+  auth("admin"),
+  PointsPackageController.updateCustomSettings,
+);
 router.post("/", auth("admin"), PointsPackageController.create);
 router.patch("/:id", auth("admin"), PointsPackageController.update);
 router.delete("/:id", auth("admin"), PointsPackageController.remove);

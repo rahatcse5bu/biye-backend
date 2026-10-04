@@ -136,6 +136,46 @@ export const PointsPackageController = {
     }
   }),
 
+  getCustomSettings: catchAsync(async (_req: Request, res: Response) => {
+    const settings = await PointsPackageService.getCustomSettings();
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Custom points settings retrieved successfully",
+      data: settings,
+    });
+  }),
+
+  updateCustomSettings: catchAsync(async (req: Request, res: Response) => {
+    const body = req.body || {};
+    const current = await PointsPackageService.getCustomSettings();
+    const next = {
+      enabled: body.enabled === undefined ? current.enabled : Boolean(body.enabled),
+      points_per_taka: Number(body.points_per_taka ?? current.points_per_taka),
+      min_amount: Number(body.min_amount ?? current.min_amount),
+      max_amount: Number(body.max_amount ?? current.max_amount),
+    };
+
+    let error = "";
+    if (!Number.isFinite(next.points_per_taka) || next.points_per_taka <= 0) {
+      error = "Points per taka must be greater than 0";
+    } else if (!Number.isInteger(next.min_amount) || next.min_amount < 1) {
+      error = "Minimum amount must be a whole number of at least 1";
+    } else if (!Number.isInteger(next.max_amount) || next.max_amount < next.min_amount) {
+      error = "Maximum amount must be a whole number not less than the minimum";
+    }
+    if (error) {
+      res.status(httpStatus.BAD_REQUEST).json({ success: false, message: error });
+      return;
+    }
+
+    const settings = await PointsPackageService.updateCustomSettings(next);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Custom points settings updated successfully",
+      data: settings,
+    });
+  }),
+
   remove: catchAsync(async (req: Request, res: Response) => {
     const deleted = isValidObjectId(req.params.id)
       ? await PointsPackageService.remove(req.params.id)

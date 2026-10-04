@@ -89,13 +89,12 @@ const afterPay = async (req: Request, res: Response) => {
       let saveInDb = false;
       if (singleUser) {
         // add payment to DB;
-        // TODO: credit the admin-set package points; fall back to the old 1.2x rule.
+        // TODO: admin pricing only for the points page; contact top-ups keep the fixed 1.2x.
         const paidAmount = Number(response?.amount);
-        const matchedPackage =
+        const points =
           purpose === "buy_package"
-            ? await PointsPackageService.findActiveByPrice(paidAmount)
-            : null;
-        const points = matchedPackage ? matchedPackage.points : paidAmount * 1.2;
+            ? await PointsPackageService.pointsForAmount(paidAmount)
+            : paidAmount * 1.2;
         await Payment.create({
           email,
           points,

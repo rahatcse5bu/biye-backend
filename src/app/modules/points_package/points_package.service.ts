@@ -1,4 +1,9 @@
 import PointsPackage, { IPointsPackage } from "./points_package.model";
+import CustomPointsSettings, {
+  ICustomPointsSettings,
+} from "./custom_points.model";
+
+const customSettingsFields = "enabled points_per_taka min_amount max_amount";
 
 const defaultPackages = [
   { name: "বেসিক প্যাকেজ", price: 30, points: 36, features: ["সর্বোচ্চ ১ বার বায়োডাটা শেয়ার", "সর্বোচ্চ ০ বার অভিভাবকের তথ্য"] },
@@ -45,4 +50,31 @@ export const PointsPackageService = {
 
   findActiveByPrice: async (price: number) =>
     PointsPackage.findOne({ price, is_active: true }).lean(),
+
+  getCustomSettings: async () =>
+    CustomPointsSettings.findOneAndUpdate(
+      { key: "default" },
+      { $setOnInsert: { key: "default" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    )
+      .select(customSettingsFields)
+      .lean(),
+
+  updateCustomSettings: async (data: Partial<ICustomPointsSettings>) =>
+    CustomPointsSettings.findOneAndUpdate({ key: "default" }, data, {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+      runValidators: true,
+    })
+      .select(customSettingsFields)
+      .lean(),
+
+  // TODO: package price match wins; otherwise the admin-set custom rate, rounded down.
+  pointsForAmount: async (amount: number): Promise<number> => {
+    const matched = await PointsPackageService.findActiveByPrice(amount);
+    if (matched) return matched.points;
+    const settings = await PointsPackageService.getCustomSettings();
+    return Math.floor(amount * settings.points_per_taka + 1e-9);
+  },
 };
