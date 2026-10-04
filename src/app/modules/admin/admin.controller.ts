@@ -12,6 +12,7 @@ import MaritalInfo from "../marital_info/marital_info.model";
 import Contact from "../contact/contact.model";
 import { PaymentService } from "../payments/payments.service";
 import { NotificationService } from "../notifications/notification.service";
+import { processRefund, RefundError } from "../bkash/bkash.refund";
 
 export const AdminController = {
   // Dashboard Statistics
@@ -320,6 +321,20 @@ export const AdminController = {
   }),
 
   // Update biodata status
+  // TODO: same join + user_status filter as getAllBiodatas, so the badge matches the Pending list.
+  getPendingBiodataCount: catchAsync(async (req: Request, res: Response) => {
+    const [result] = await GeneralInfo.aggregate([
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+      { $match: { 'userDoc.user_status': 'pending' } },
+      { $count: 'count' },
+    ]);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Pending biodata count retrieved successfully",
+      data: { count: result?.count || 0 }
+    });
+  }),
+
   updateBiodataStatus: catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status, reason } = req.body;
@@ -473,7 +488,7 @@ export const AdminController = {
 
     try {
       // You would need to implement this method in your payment service
-      const updatedPayment = await PaymentService.updatePayment(id, { 
+      const updatedPayment = await PaymentService.updatePaymentById(id, {
         status
       });
 
@@ -494,6 +509,33 @@ export const AdminController = {
         success: false,
         message: "Error updating payment status"
       });
+    }
+  }),
+
+  refundPayment: catchAsync(async (req: Request, res: Response) => {
+    const payment: any = await PaymentService.getPaymentById(req.params.id).catch(() => null);
+    if (!payment) {
+      return res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "Payment not found"
+      });
+    }
+
+    try {
+      const result = await processRefund({
+        paymentID: payment.payment_id,
+        trxID: payment.transaction_id,
+        amount: payment.amount,
+        reason: req.body?.reason,
+      });
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Payment refunded successfully",
+        data: result
+      });
+    } catch (error: any) {
+      if (!(error instanceof RefundError)) throw error;
+      res.status(error.statusCode).json({ success: false, message: error.message });
     }
   }),
 

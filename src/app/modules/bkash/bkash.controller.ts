@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import createPayment from "../../../helpers/createPayment";
 import queryPayment from "../../../helpers/queryPayment";
 import searchTransaction from "../../../helpers/searchTransaction";
-import refundTransaction from "../../../helpers/refundTransaction";
 import executePayment from "../../../helpers/executePayment";
 import axios from "axios";
 import { baseUrl } from "../../../shared/url";
@@ -11,6 +10,8 @@ import { late } from "zod";
 import Payment from "../payments/payment.model";
 import sendEmail from "../../../shared/SendEmail";
 import { NotificationService } from "../notifications/notification.service";
+import { PointsPackageService } from "../points_package/points_package.service";
+import { processRefund, RefundError } from "./bkash.refund";
 
 // Function to call the bKash execute payment API
 async function BkashExecutePaymentAPICall(paymentID: string) {
@@ -88,7 +89,13 @@ const afterPay = async (req: Request, res: Response) => {
       let saveInDb = false;
       if (singleUser) {
         // add payment to DB;
-        const points = response?.amount * 1.2;
+        // TODO: credit the admin-set package points; fall back to the old 1.2x rule.
+        const paidAmount = Number(response?.amount);
+        const matchedPackage =
+          purpose === "buy_package"
+            ? await PointsPackageService.findActiveByPrice(paidAmount)
+            : null;
+        const points = matchedPackage ? matchedPackage.points : paidAmount * 1.2;
         await Payment.create({
           email,
           points,
@@ -218,22 +225,14 @@ const afterPay = async (req: Request, res: Response) => {
 
 const refund = async (req: Request, res: Response) => {
   try {
-    const refundStatusBody = {
-      paymentID: req.body.paymentID,
-      trxID: req.body.trxID,
-    };
-
-    const refundStatusResponse: any = await refundTransaction(refundStatusBody);
-
-    if (refundStatusResponse?.refundTrxID) {
-      console.log("status");
-      res.send(refundStatusResponse);
-    } else {
-      console.log("refund");
-      res.send(await refundTransaction(req.body));
-    }
-  } catch (e) {
-    console.log(e);
+    res.json(await processRefund(req.body || {}));
+  } catch (error: any) {
+    const statusCode = error instanceof RefundError ? error.statusCode : 500;
+    if (statusCode === 500) console.error("bKash refund failed:", error);
+    res.status(statusCode).json({
+      success: false,
+      message: statusCode === 500 ? "Refund failed" : error.message,
+    });
   }
 };
 

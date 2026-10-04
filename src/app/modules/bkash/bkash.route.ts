@@ -1,6 +1,7 @@
 import express from "express";
 import { bkashControllers } from "./bkash.controller";
 import authCheck from "../../middlewares/authCheck";
+import { auth } from "../../middlewares/auth";
 const bkashRouter = express.Router();
 
 bkashRouter.use(authCheck);
@@ -12,7 +13,7 @@ bkashRouter.post("/query", bkashControllers.query);
 bkashRouter.post("/after-pay", bkashControllers.afterPay);
 
 // Admin Part
-bkashRouter.post("/search", bkashControllers.search);
-bkashRouter.post("/refund", bkashControllers.refund);
+bkashRouter.post("/search", auth("admin"), bkashControllers.search);
+bkashRouter.post("/refund", auth("admin"), bkashControllers.refund);
 
 export default bkashRouter;

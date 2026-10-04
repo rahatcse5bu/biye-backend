@@ -1,11 +1,11 @@
 // payment.service.ts
-import { ClientSession } from "mongoose";
+import { ClientSession, isValidObjectId } from "mongoose";
 import { IPayment } from "./payments.interface";
 import Payment from "./payment.model";
 
 export const PaymentService = {
   getAllPayments: async (): Promise<IPayment[]> => {
-    const payments = await Payment.find();
+    const payments = await Payment.find().sort({ createdAt: -1, _id: -1 });
     return payments.map((payment) => payment.toObject());
   },
 
@@ -25,6 +25,14 @@ export const PaymentService = {
   createPayment: async (paymentData: IPayment): Promise<IPayment> => {
     const createdPayment = await Payment.create(paymentData);
     return createdPayment;
+  },
+
+  updatePaymentById: async (
+    id: string,
+    updatedFields: Partial<IPayment>,
+  ): Promise<IPayment | null> => {
+    if (!isValidObjectId(id)) return null;
+    return Payment.findByIdAndUpdate(id, updatedFields, { new: true }).lean();
   },
 
   updatePayment: async (

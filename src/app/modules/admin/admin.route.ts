@@ -18,6 +18,7 @@ router.delete('/users/:id', AdminController.deleteUser);
 
 // Biodata Management  
 router.get('/biodatas', AdminController.getAllBiodatas);
+router.get('/biodatas/pending-count', AdminController.getPendingBiodataCount);
 router.patch('/biodatas/:id/status', AdminController.updateBiodataStatus);
 
 // Payment Management
@@ -25,6 +26,7 @@ router.get('/payments', AdminController.getAllPayments);
 router.get('/payments/stats', AdminController.getPaymentStats);
 router.get('/payments/:id', AdminController.getPaymentById);
 router.patch('/payments/:id/status', AdminController.updatePaymentStatus);
+router.post('/payments/:id/refund', AdminController.refundPayment);
 
 // Refund Management
 router.get('/refunds', AdminController.getAllRefunds);
