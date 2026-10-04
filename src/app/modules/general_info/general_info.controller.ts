@@ -10,6 +10,7 @@ import Favorite from "../favourites/favourites.model";
 import UnFavorite from "../unfavorites/unfavorites.model";
 import ApiError from "../../middlewares/ApiError";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
+import { NotificationService } from "../notifications/notification.service";
 
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const {
@@ -45,7 +46,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     religion,
     religious_type,
     // English alias filters (for API/agent use — avoids Bengali in query params)
-    bio_gender,   // 'male' | 'female'  →  maps to bio_type Bengali value
+    bio_gender, // 'male' | 'female'  →  maps to bio_type Bengali value
     marital_status_en, // 'unmarried'|'married'|'divorced'|'widow'|'widower'
     // Expected partner filters
     exp_zilla,
@@ -75,9 +76,10 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     bride: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
   };
   const bioGenderAlias = firstQueryValue(bio_gender)?.toLowerCase();
-  const resolvedBioTypes = bioGenderAlias && BIO_GENDER_MAP[bioGenderAlias]
-    ? BIO_GENDER_MAP[bioGenderAlias]
-    : toStringArray(bio_type);
+  const resolvedBioTypes =
+    bioGenderAlias && BIO_GENDER_MAP[bioGenderAlias]
+      ? BIO_GENDER_MAP[bioGenderAlias]
+      : toStringArray(bio_type);
 
   // Resolve marital_status from English alias if provided
   const MARITAL_EN_MAP: Record<string, string> = {
@@ -90,15 +92,18 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     widower: "বিপত্নীক",
   };
   const maritalStatusAlias = firstQueryValue(marital_status_en)?.toLowerCase();
-  const resolvedMaritalStatuses = maritalStatusAlias && MARITAL_EN_MAP[maritalStatusAlias]
-    ? [MARITAL_EN_MAP[maritalStatusAlias]]
-    : toStringArray(marital_status);
+  const resolvedMaritalStatuses =
+    maritalStatusAlias && MARITAL_EN_MAP[maritalStatusAlias]
+      ? [MARITAL_EN_MAP[maritalStatusAlias]]
+      : toStringArray(marital_status);
 
   // These expressions define the canonical values returned by the public API.
   // They are installed before filtering in both the count and data pipelines.
   const canonicalPublicFields = {
     bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
-    marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+    marital_status: {
+      $ifNull: ["$approved_data.marital_status", "$marital_status"],
+    },
     gender: { $ifNull: ["$approved_data.gender", "$gender"] },
     date_of_birth: {
       $convert: {
@@ -150,10 +155,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       $expr: {
         $eq: [
           {
-            $ifNull: [
-              "$approved_data.religious_type",
-              "$religious_type",
-            ],
+            $ifNull: ["$approved_data.religious_type", "$religious_type"],
           },
           religiousTypeValue,
         ],
@@ -185,7 +187,11 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     shiftedDate.setDate(1);
     shiftedDate.setFullYear(targetYear);
     shiftedDate.setMonth(targetMonth);
-    const finalDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const finalDayOfTargetMonth = new Date(
+      targetYear,
+      targetMonth + 1,
+      0,
+    ).getDate();
     shiftedDate.setDate(Math.min(targetDay, finalDayOfTargetMonth));
     return shiftedDate;
   };
@@ -203,7 +209,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     if (maxAgeNumber !== undefined) {
       const oldestIncludedBirthDate = calendarDateYearsAgo(
         startOfToday,
-        maxAgeNumber + 1
+        maxAgeNumber + 1,
       );
       oldestIncludedBirthDate.setDate(oldestIncludedBirthDate.getDate() + 1);
       ageConditions.$gte = oldestIncludedBirthDate;
@@ -211,7 +217,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     if (minAgeNumber !== undefined) {
       const youngestIncludedBirthDate = calendarDateYearsAgo(
         startOfToday,
-        minAgeNumber
+        minAgeNumber,
       );
       youngestIncludedBirthDate.setHours(23, 59, 59, 999);
       ageConditions.$lte = youngestIncludedBirthDate;
@@ -285,7 +291,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   if (permanentAddressValue) {
     const escapedPermanentAddress = permanentAddressValue.replace(
       /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
+      "\\$&",
     );
     const addressSearch = { $regex: escapedPermanentAddress, $options: "i" };
     andConditions.push({
@@ -327,10 +333,12 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     "isFeatured",
   ]);
   const requestedSortField = firstQueryValue(sortBy);
-  const sortField = requestedSortField && allowedSortFields.has(requestedSortField)
-    ? requestedSortField
-    : "createdAt";
-  const sortDirection = firstQueryValue(sortOrder)?.toLowerCase() === "asc" ? 1 : -1;
+  const sortField =
+    requestedSortField && allowedSortFields.has(requestedSortField)
+      ? requestedSortField
+      : "createdAt";
+  const sortDirection =
+    firstQueryValue(sortOrder)?.toLowerCase() === "asc" ? 1 : -1;
   const sortSpec: Record<string, 1 | -1> = { [sortField]: sortDirection };
   if (sortField !== "_id") {
     sortSpec._id = sortDirection;
@@ -415,7 +423,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   }
 
   const expectedEconomicConditionValues = toStringArray(
-    exp_economical_condition
+    exp_economical_condition,
   );
   if (expectedEconomicConditionValues.length > 0) {
     expectedPartnerMatches["expectedPartner.economical_condition"] = {
@@ -423,9 +431,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     };
   }
 
-  const expectedEducationValues = toStringArray(
-    exp_educational_qualifications
-  );
+  const expectedEducationValues = toStringArray(exp_educational_qualifications);
   if (expectedEducationValues.length > 0) {
     expectedPartnerMatches["expectedPartner.educational_qualifications"] = {
       $in: expectedEducationValues,
@@ -447,32 +453,67 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   // Canonical public fields are set before every match that references them.
   const publicFilterStages: any[] = [
     {
-      $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "userDetails",
+      },
     },
     { $addFields: { userDetails: { $first: "$userDetails" } } },
     { $match: { userDetails: { $ne: null } } },
     {
-      $lookup: { from: "addresses", localField: "user", foreignField: "user", as: "address" },
+      $lookup: {
+        from: "addresses",
+        localField: "user",
+        foreignField: "user",
+        as: "address",
+      },
     },
     { $addFields: { address: { $first: "$address" } } },
     {
-      $lookup: { from: "educationalqualifications", localField: "user", foreignField: "user", as: "education" },
+      $lookup: {
+        from: "educationalqualifications",
+        localField: "user",
+        foreignField: "user",
+        as: "education",
+      },
     },
     { $addFields: { education: { $first: "$education" } } },
     {
-      $lookup: { from: "occupations", localField: "user", foreignField: "user", as: "occupation" },
+      $lookup: {
+        from: "occupations",
+        localField: "user",
+        foreignField: "user",
+        as: "occupation",
+      },
     },
     { $addFields: { occupation: { $first: "$occupation" } } },
     {
-      $lookup: { from: "personalinfos", localField: "user", foreignField: "user", as: "personalInfo" },
+      $lookup: {
+        from: "personalinfos",
+        localField: "user",
+        foreignField: "user",
+        as: "personalInfo",
+      },
     },
     { $addFields: { personalInfo: { $first: "$personalInfo" } } },
     {
-      $lookup: { from: "familystatuses", localField: "user", foreignField: "user", as: "familyStatus" },
+      $lookup: {
+        from: "familystatuses",
+        localField: "user",
+        foreignField: "user",
+        as: "familyStatus",
+      },
     },
     { $addFields: { familyStatus: { $first: "$familyStatus" } } },
     {
-      $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
+      $lookup: {
+        from: "expectedpartners",
+        localField: "user",
+        foreignField: "user",
+        as: "expectedPartner",
+      },
     },
     { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
     { $set: canonicalPublicFields },
@@ -516,12 +557,23 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
         height: 1,
         gender: 1,
         weight: { $ifNull: ["$approved_data.weight", "$weight"] },
-        blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
+        blood_group: {
+          $ifNull: ["$approved_data.blood_group", "$blood_group"],
+        },
         screen_color: 1,
-        nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
+        nationality: {
+          $ifNull: ["$approved_data.nationality", "$nationality"],
+        },
         marital_status: 1,
-        religion: { $ifNull: ["$approved_data.religion", { $ifNull: ["$religion", "islam"] }] },
-        religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+        religion: {
+          $ifNull: [
+            "$approved_data.religion",
+            { $ifNull: ["$religion", "islam"] },
+          ],
+        },
+        religious_type: {
+          $ifNull: ["$approved_data.religious_type", "$religious_type"],
+        },
         photos: { $ifNull: ["$approved_data.photos", "$photos"] },
         views_count: 1,
         purchases_count: 1,
@@ -660,7 +712,7 @@ const getGeneralInfoByAdmin = catchAsync(
       limit: limitNumber,
       size: generalInfos.length,
     });
-  }
+  },
 );
 
 const getFeaturedGeneralInfo = catchAsync(
@@ -711,16 +763,28 @@ const getFeaturedGeneralInfo = catchAsync(
           user_id: "$userDetails.user_id",
           user: "$userDetails._id",
           bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
-          date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
+          date_of_birth: {
+            $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"],
+          },
           height: { $ifNull: ["$approved_data.height", "$height"] },
           gender: { $ifNull: ["$approved_data.gender", "$gender"] },
           weight: { $ifNull: ["$approved_data.weight", "$weight"] },
-          blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
-          screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
-          nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
-          marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+          blood_group: {
+            $ifNull: ["$approved_data.blood_group", "$blood_group"],
+          },
+          screen_color: {
+            $ifNull: ["$approved_data.screen_color", "$screen_color"],
+          },
+          nationality: {
+            $ifNull: ["$approved_data.nationality", "$nationality"],
+          },
+          marital_status: {
+            $ifNull: ["$approved_data.marital_status", "$marital_status"],
+          },
           religion: { $ifNull: ["$approved_data.religion", "$religion"] },
-          religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+          religious_type: {
+            $ifNull: ["$approved_data.religious_type", "$religious_type"],
+          },
           photos: { $ifNull: ["$approved_data.photos", "$photos"] },
           views_count: 1,
           purchases_count: 1,
@@ -744,7 +808,7 @@ const getFeaturedGeneralInfo = catchAsync(
       limit: limitNumber,
       size: generalInfos.length,
     });
-  }
+  },
 );
 
 const getGeneralInfoByUserId = catchAsync(
@@ -763,7 +827,8 @@ const getGeneralInfoByUserId = catchAsync(
     // Public view: serve approved_data snapshot if available
     let publicData = generalInfo.toObject();
     if (publicData.approved_data) {
-      const { approved_data, pending_changes, admin_note, ...meta } = publicData;
+      const { approved_data, pending_changes, admin_note, ...meta } =
+        publicData;
       publicData = {
         ...meta,
         ...approved_data,
@@ -776,7 +841,7 @@ const getGeneralInfoByUserId = catchAsync(
       success: true,
       data: publicData,
     });
-  }
+  },
 );
 const getGeneralInfoDashboardByUser = catchAsync(
   async (req: Request, res: Response) => {
@@ -817,7 +882,7 @@ const getGeneralInfoDashboardByUser = catchAsync(
       success: true,
       data: responseData,
     });
-  }
+  },
 );
 const getGeneralInfoByToken = catchAsync(
   async (req: Request, res: Response) => {
@@ -833,12 +898,15 @@ const getGeneralInfoByToken = catchAsync(
 
     // Merge pending_changes over top-level fields so the user sees their own latest edits
     let responseData: any = generalInfo.toObject();
-    if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+    if (
+      responseData.pending_changes &&
+      typeof responseData.pending_changes === "object"
+    ) {
       responseData = { ...responseData, ...responseData.pending_changes };
     }
     // Ensure religion defaults to 'islam' if not set
     if (!responseData.religion) {
-      responseData.religion = 'islam';
+      responseData.religion = "islam";
     }
 
     res.status(200).json({
@@ -846,7 +914,7 @@ const getGeneralInfoByToken = catchAsync(
       success: true,
       data: responseData,
     });
-  }
+  },
 );
 
 const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
@@ -863,15 +931,20 @@ const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 
   // Admin view: merge pending_changes so admin sees the latest user edits
   let responseData: any = generalInfo.toObject();
-  if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+  if (
+    responseData.pending_changes &&
+    typeof responseData.pending_changes === "object"
+  ) {
     responseData = { ...responseData, ...responseData.pending_changes };
   }
   // Ensure religion defaults to 'islam' if not set
   if (!responseData.religion) {
-    responseData.religion = 'islam';
+    responseData.religion = "islam";
   }
 
-  res.status(200).json(sendSuccess("General info retrieved", responseData, 200));
+  res
+    .status(200)
+    .json(sendSuccess("General info retrieved", responseData, 200));
 });
 
 const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
@@ -903,7 +976,7 @@ const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 
     const user: any = await UserInfoService.getUserInfoByIdWithSession(
       req.user._id,
-      { session }
+      { session },
     );
 
     if (!user) {
@@ -919,7 +992,7 @@ const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     // Update the fields edited_timeline_index and last_edited_timeline_index of user_info table
     user.edited_timeline_index = Math.max(
       user.edited_timeline_index,
-      user_form
+      user_form,
     );
     user.last_edited_timeline_index = user_form;
     await user.save({ session });
@@ -1040,60 +1113,65 @@ const deleteGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Admin approves pending biodata changes
-const approveBiodataChanges = catchAsync(async (req: Request, res: Response) => {
-  const biodataId = req.params.id;
-  const adminId = req.user?._id;
+const approveBiodataChanges = catchAsync(
+  async (req: Request, res: Response) => {
+    const biodataId = req.params.id;
+    const adminId = req.user?._id;
 
-  if (!adminId) {
-    return res.status(401).json({
-      success: false,
-      message: "You are not authorized",
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: "You are not authorized",
+      });
+    }
+
+    const generalInfo = await GeneralInfo.findById(biodataId);
+    if (!generalInfo) {
+      return res.status(404).json({
+        success: false,
+        message: "Biodata not found",
+      });
+    }
+
+    if (
+      generalInfo.biodata_status !== "pending" ||
+      !generalInfo.pending_changes
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending changes to approve",
+      });
+    }
+
+    // Merge pending_changes into approved_data
+    generalInfo.approved_data = {
+      ...generalInfo.approved_data,
+      ...generalInfo.pending_changes,
+    };
+
+    // Increment version and update approval metadata
+    generalInfo.version = (generalInfo.version || 1) + 1;
+    generalInfo.biodata_status = "approved";
+    generalInfo.pending_changes = null;
+    generalInfo.admin_note = "";
+    generalInfo.last_approved_at = new Date();
+    generalInfo.last_approved_by = adminId;
+
+    await generalInfo.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Biodata version ${generalInfo.version} approved and published`,
+      data: generalInfo,
     });
-  }
-
-  const generalInfo = await GeneralInfo.findById(biodataId);
-  if (!generalInfo) {
-    return res.status(404).json({
-      success: false,
-      message: "Biodata not found",
-    });
-  }
-
-  if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
-    return res.status(400).json({
-      success: false,
-      message: "No pending changes to approve",
-    });
-  }
-
-  // Merge pending_changes into approved_data
-  generalInfo.approved_data = {
-    ...generalInfo.approved_data,
-    ...generalInfo.pending_changes,
-  };
-
-  // Increment version and update approval metadata
-  generalInfo.version = (generalInfo.version || 1) + 1;
-  generalInfo.biodata_status = 'approved';
-  generalInfo.pending_changes = null;
-  generalInfo.admin_note = '';
-  generalInfo.last_approved_at = new Date();
-  generalInfo.last_approved_by = adminId;
-
-  await generalInfo.save();
-
-  res.status(200).json({
-    success: true,
-    message: `Biodata version ${generalInfo.version} approved and published`,
-    data: generalInfo,
-  });
-});
+  },
+);
 
 // Admin rejects pending biodata changes
 const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
   const biodataId = req.params.id;
   const adminId = req.user?._id;
-  const { reason = '' } = req.body;
+  const { reason = "" } = req.body;
 
   if (!adminId) {
     return res.status(401).json({
@@ -1110,7 +1188,10 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
+  if (
+    generalInfo.biodata_status !== "pending" ||
+    !generalInfo.pending_changes
+  ) {
     return res.status(400).json({
       success: false,
       message: "No pending changes to reject",
@@ -1119,7 +1200,7 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
 
   // Discard pending changes and revert to approved version
   generalInfo.pending_changes = null;
-  generalInfo.biodata_status = 'rejected';
+  generalInfo.biodata_status = "rejected";
   generalInfo.admin_note = reason;
   generalInfo.last_approved_at = new Date();
   generalInfo.last_approved_by = adminId;
@@ -1128,7 +1209,8 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    message: "Biodata changes rejected. Previous approved version remains live.",
+    message:
+      "Biodata changes rejected. Previous approved version remains live.",
     data: generalInfo,
   });
 });
@@ -1142,7 +1224,9 @@ const submitForReview = catchAsync(async (req: Request, res: Response) => {
 
   const generalInfo = await GeneralInfo.findOne({ user: userId });
   if (!generalInfo) {
-    return res.status(404).json({ success: false, message: "Biodata not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Biodata not found" });
   }
 
   if (generalInfo.pending_changes) {

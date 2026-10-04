@@ -19,6 +19,7 @@ export default {
   email_user: process.env.EMAIL_USER,
   groq_api_key: process.env.GROQ_API_KEY,
   google_client_id: process.env.GOOGLE_CLIENT_ID,
+  ably_api_key: process.env.ABLY_API_KEY,
   cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   cloudinary_api_key: process.env.CLOUDINARY_API_KEY,
   cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,

@@ -51,6 +51,7 @@ const ai_biodata_route_1 = __importDefault(require("./app/modules/ai_biodata/ai_
 const photocard_route_1 = __importDefault(require("./app/modules/photocard/photocard.route"));
 const photocard_template_route_1 = require("./app/modules/photocard_template/photocard_template.route");
 const upload_route_1 = __importDefault(require("./app/modules/upload/upload.route"));
+const notification_route_1 = __importDefault(require("./app/modules/notifications/notification.route"));
 const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
 const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -148,6 +149,7 @@ app.use("/api/v1/ai-biodata", ai_biodata_route_1.default);
 app.use("/api/v1/photocard", photocard_route_1.default);
 app.use("/api/v1/photocard-templates", photocard_template_route_1.PhotocardTemplateRoutes);
 app.use("/api/v1/uploads", upload_route_1.default);
+app.use("/api/v1/notifications", notification_route_1.default);
 app.use("/api/v1/unverified-biodatas", unverified_biodata_route_1.default);
 app.use("/api/v1/unverified-contact-purchase", unverified_contact_purchase_route_1.default);
 app.use(globalErrorHandler_1.default);

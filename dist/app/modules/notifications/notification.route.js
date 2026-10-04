@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../../middlewares/auth");
+const notification_controller_1 = require("./notification.controller");
+const router = (0, express_1.Router)();
+router.use((0, auth_1.auth)("user", "admin"));
+router.get("/ably-token", notification_controller_1.NotificationController.ablyToken);
+router.get("/", notification_controller_1.NotificationController.list);
+router.get("/unread-count", notification_controller_1.NotificationController.unreadCount);
+router.patch("/:id/read", notification_controller_1.NotificationController.markRead);
+router.patch("/read-all", notification_controller_1.NotificationController.markAllRead);
+exports.default = router;

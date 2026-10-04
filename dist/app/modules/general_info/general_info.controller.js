@@ -85,7 +85,9 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // They are installed before filtering in both the count and data pipelines.
     const canonicalPublicFields = {
         bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
-        marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+        marital_status: {
+            $ifNull: ["$approved_data.marital_status", "$marital_status"],
+        },
         gender: { $ifNull: ["$approved_data.gender", "$gender"] },
         date_of_birth: {
             $convert: {
@@ -133,10 +135,7 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $expr: {
                 $eq: [
                     {
-                        $ifNull: [
-                            "$approved_data.religious_type",
-                            "$religious_type",
-                        ],
+                        $ifNull: ["$approved_data.religious_type", "$religious_type"],
                     },
                     religiousTypeValue,
                 ],
@@ -379,32 +378,67 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // Canonical public fields are set before every match that references them.
     const publicFilterStages = [
         {
-            $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails",
+            },
         },
         { $addFields: { userDetails: { $first: "$userDetails" } } },
         { $match: { userDetails: { $ne: null } } },
         {
-            $lookup: { from: "addresses", localField: "user", foreignField: "user", as: "address" },
+            $lookup: {
+                from: "addresses",
+                localField: "user",
+                foreignField: "user",
+                as: "address",
+            },
         },
         { $addFields: { address: { $first: "$address" } } },
         {
-            $lookup: { from: "educationalqualifications", localField: "user", foreignField: "user", as: "education" },
+            $lookup: {
+                from: "educationalqualifications",
+                localField: "user",
+                foreignField: "user",
+                as: "education",
+            },
         },
         { $addFields: { education: { $first: "$education" } } },
         {
-            $lookup: { from: "occupations", localField: "user", foreignField: "user", as: "occupation" },
+            $lookup: {
+                from: "occupations",
+                localField: "user",
+                foreignField: "user",
+                as: "occupation",
+            },
         },
         { $addFields: { occupation: { $first: "$occupation" } } },
         {
-            $lookup: { from: "personalinfos", localField: "user", foreignField: "user", as: "personalInfo" },
+            $lookup: {
+                from: "personalinfos",
+                localField: "user",
+                foreignField: "user",
+                as: "personalInfo",
+            },
         },
         { $addFields: { personalInfo: { $first: "$personalInfo" } } },
         {
-            $lookup: { from: "familystatuses", localField: "user", foreignField: "user", as: "familyStatus" },
+            $lookup: {
+                from: "familystatuses",
+                localField: "user",
+                foreignField: "user",
+                as: "familyStatus",
+            },
         },
         { $addFields: { familyStatus: { $first: "$familyStatus" } } },
         {
-            $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
+            $lookup: {
+                from: "expectedpartners",
+                localField: "user",
+                foreignField: "user",
+                as: "expectedPartner",
+            },
         },
         { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
         { $set: canonicalPublicFields },
@@ -445,12 +479,23 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 height: 1,
                 gender: 1,
                 weight: { $ifNull: ["$approved_data.weight", "$weight"] },
-                blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
+                blood_group: {
+                    $ifNull: ["$approved_data.blood_group", "$blood_group"],
+                },
                 screen_color: 1,
-                nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
+                nationality: {
+                    $ifNull: ["$approved_data.nationality", "$nationality"],
+                },
                 marital_status: 1,
-                religion: { $ifNull: ["$approved_data.religion", { $ifNull: ["$religion", "islam"] }] },
-                religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+                religion: {
+                    $ifNull: [
+                        "$approved_data.religion",
+                        { $ifNull: ["$religion", "islam"] },
+                    ],
+                },
+                religious_type: {
+                    $ifNull: ["$approved_data.religious_type", "$religious_type"],
+                },
                 photos: { $ifNull: ["$approved_data.photos", "$photos"] },
                 views_count: 1,
                 purchases_count: 1,
@@ -608,16 +653,28 @@ const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter
                 user_id: "$userDetails.user_id",
                 user: "$userDetails._id",
                 bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
-                date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
+                date_of_birth: {
+                    $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"],
+                },
                 height: { $ifNull: ["$approved_data.height", "$height"] },
                 gender: { $ifNull: ["$approved_data.gender", "$gender"] },
                 weight: { $ifNull: ["$approved_data.weight", "$weight"] },
-                blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
-                screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
-                nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
-                marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+                blood_group: {
+                    $ifNull: ["$approved_data.blood_group", "$blood_group"],
+                },
+                screen_color: {
+                    $ifNull: ["$approved_data.screen_color", "$screen_color"],
+                },
+                nationality: {
+                    $ifNull: ["$approved_data.nationality", "$nationality"],
+                },
+                marital_status: {
+                    $ifNull: ["$approved_data.marital_status", "$marital_status"],
+                },
                 religion: { $ifNull: ["$approved_data.religion", "$religion"] },
-                religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
+                religious_type: {
+                    $ifNull: ["$approved_data.religious_type", "$religious_type"],
+                },
                 photos: { $ifNull: ["$approved_data.photos", "$photos"] },
                 views_count: 1,
                 purchases_count: 1,
@@ -710,12 +767,13 @@ const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(
     }
     // Merge pending_changes over top-level fields so the user sees their own latest edits
     let responseData = generalInfo.toObject();
-    if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+    if (responseData.pending_changes &&
+        typeof responseData.pending_changes === "object") {
         responseData = Object.assign(Object.assign({}, responseData), responseData.pending_changes);
     }
     // Ensure religion defaults to 'islam' if not set
     if (!responseData.religion) {
-        responseData.religion = 'islam';
+        responseData.religion = "islam";
     }
     res.status(200).json({
         message: "General info retrieved successfully",
@@ -734,14 +792,17 @@ const getSingleGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(v
     }
     // Admin view: merge pending_changes so admin sees the latest user edits
     let responseData = generalInfo.toObject();
-    if (responseData.pending_changes && typeof responseData.pending_changes === 'object') {
+    if (responseData.pending_changes &&
+        typeof responseData.pending_changes === "object") {
         responseData = Object.assign(Object.assign({}, responseData), responseData.pending_changes);
     }
     // Ensure religion defaults to 'islam' if not set
     if (!responseData.religion) {
-        responseData.religion = 'islam';
+        responseData.religion = "islam";
     }
-    res.status(200).json((0, SendSuccess_1.sendSuccess)("General info retrieved", responseData, 200));
+    res
+        .status(200)
+        .json((0, SendSuccess_1.sendSuccess)("General info retrieved", responseData, 200));
 }));
 const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _g;
@@ -894,7 +955,8 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
             message: "Biodata not found",
         });
     }
-    if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
+    if (generalInfo.biodata_status !== "pending" ||
+        !generalInfo.pending_changes) {
         return res.status(400).json({
             success: false,
             message: "No pending changes to approve",
@@ -904,9 +966,9 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
     generalInfo.approved_data = Object.assign(Object.assign({}, generalInfo.approved_data), generalInfo.pending_changes);
     // Increment version and update approval metadata
     generalInfo.version = (generalInfo.version || 1) + 1;
-    generalInfo.biodata_status = 'approved';
+    generalInfo.biodata_status = "approved";
     generalInfo.pending_changes = null;
-    generalInfo.admin_note = '';
+    generalInfo.admin_note = "";
     generalInfo.last_approved_at = new Date();
     generalInfo.last_approved_by = adminId;
     yield generalInfo.save();
@@ -921,7 +983,7 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
     var _l;
     const biodataId = req.params.id;
     const adminId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
-    const { reason = '' } = req.body;
+    const { reason = "" } = req.body;
     if (!adminId) {
         return res.status(401).json({
             success: false,
@@ -935,7 +997,8 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
             message: "Biodata not found",
         });
     }
-    if (generalInfo.biodata_status !== 'pending' || !generalInfo.pending_changes) {
+    if (generalInfo.biodata_status !== "pending" ||
+        !generalInfo.pending_changes) {
         return res.status(400).json({
             success: false,
             message: "No pending changes to reject",
@@ -943,7 +1006,7 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
     }
     // Discard pending changes and revert to approved version
     generalInfo.pending_changes = null;
-    generalInfo.biodata_status = 'rejected';
+    generalInfo.biodata_status = "rejected";
     generalInfo.admin_note = reason;
     generalInfo.last_approved_at = new Date();
     generalInfo.last_approved_by = adminId;
@@ -963,7 +1026,9 @@ const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
     }
     const generalInfo = yield general_info_model_1.default.findOne({ user: userId });
     if (!generalInfo) {
-        return res.status(404).json({ success: false, message: "Biodata not found" });
+        return res
+            .status(404)
+            .json({ success: false, message: "Biodata not found" });
     }
     if (generalInfo.pending_changes) {
         generalInfo.approved_data = Object.assign(Object.assign({}, (generalInfo.approved_data || {})), generalInfo.pending_changes);
