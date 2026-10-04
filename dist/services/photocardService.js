@@ -1,21 +1,50 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+var __awaiter =
+  (this && this.__awaiter) ||
+  function (thisArg, _arguments, P, generator) {
+    function adopt(value) {
+      return value instanceof P
+        ? value
+        : new P(function (resolve) {
+            resolve(value);
+          });
+    }
     return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      function fulfilled(value) {
+        try {
+          step(generator.next(value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function rejected(value) {
+        try {
+          step(generator["throw"](value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function step(result) {
+        result.done
+          ? resolve(result.value)
+          : adopt(result.value).then(fulfilled, rejected);
+      }
+      step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-};
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generatePhotocardWithTemplate = exports.generatePhotocard = exports.generatePhotocardSVG = exports.extractPhotocardContent = void 0;
+exports.generatePhotocardWithTemplate =
+  exports.generatePhotocard =
+  exports.generatePhotocardSVG =
+  exports.extractPhotocardContent =
+    void 0;
 const groqService_1 = require("./groqService");
 /**
  * Extract the most attractive and compelling aspects of a biodata using Groq
  * Returns highlighted text suitable for Facebook promotion
  */
-const extractPhotocardContent = (biodata) => __awaiter(void 0, void 0, void 0, function* () {
+const extractPhotocardContent = (biodata) =>
+  __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     // Build a comprehensive biodata description for analysis
     const biodataDescription = `
@@ -35,15 +64,20 @@ Division: ${biodata.division || "Not specified"}
 
 Extra Information:
 ${biodata.extra_fields
-        .map((field) => `- ${field.label}: ${typeof field.value === "string"
-        ? field.value
-        : JSON.stringify(field.value)}`)
-        .join("\n")}
+  .map(
+    (field) =>
+      `- ${field.label}: ${
+        typeof field.value === "string"
+          ? field.value
+          : JSON.stringify(field.value)
+      }`,
+  )
+  .join("\n")}
 `;
     const messages = [
-        {
-            role: "system",
-            content: `You are an expert matrimony marketing specialist who creates compelling promotional content for biodata profiles. 
+      {
+        role: "system",
+        content: `You are an expert matrimony marketing specialist who creates compelling promotional content for biodata profiles. 
 Your task is to extract the most attractive and valuable aspects of a biodata profile to create engaging promotional material.
 
 Return ONLY a valid JSON object (no markdown, no extra text) with exactly this structure:
@@ -65,68 +99,87 @@ Focus on:
 - What makes this profile unique and appealing
 
 Be creative, positive, and compelling!`,
-        },
-        {
-            role: "user",
-            content: `Extract comprehensive promotional content from this biodata profile:\n\n${biodataDescription}`,
-        },
+      },
+      {
+        role: "user",
+        content: `Extract comprehensive promotional content from this biodata profile:\n\n${biodataDescription}`,
+      },
     ];
     try {
-        const response = yield (0, groqService_1.callGroqAPI)(messages, "meta-llama/llama-4-scout-17b-16e-instruct", 0.7, 768);
-        let content = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "{}";
-        // Remove markdown code blocks if present
-        content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-        // Parse the JSON response
-        const photocardData = JSON.parse(content);
-        // Validate and provide defaults
-        return {
-            mainHighlight: photocardData.mainHighlight || "সুন্দর জীবন খুঁজছি",
-            subHighlight: photocardData.subHighlight || "নিষ্ঠাবান ও শিক্ষিত",
-            profileText: photocardData.profileText ||
-                "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
-            emoji: photocardData.emoji || "💕",
-            strength1: photocardData.strength1 || "সৎ স্বভাব",
-            strength2: photocardData.strength2 || "পরিবার প্রিয়",
-            valueProposal: photocardData.valueProposal || "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
-        };
+      const response = yield (0, groqService_1.callGroqAPI)(
+        messages,
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        0.7,
+        768,
+      );
+      let content =
+        ((_b =
+          (_a = response.choices[0]) === null || _a === void 0
+            ? void 0
+            : _a.message) === null || _b === void 0
+          ? void 0
+          : _b.content) || "{}";
+      // Remove markdown code blocks if present
+      content = content
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
+        .trim();
+      // Parse the JSON response
+      const photocardData = JSON.parse(content);
+      // Validate and provide defaults
+      return {
+        mainHighlight: photocardData.mainHighlight || "সুন্দর জীবন খুঁজছি",
+        subHighlight: photocardData.subHighlight || "নিষ্ঠাবান ও শিক্ষিত",
+        profileText:
+          photocardData.profileText ||
+          "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
+        emoji: photocardData.emoji || "💕",
+        strength1: photocardData.strength1 || "সৎ স্বভাব",
+        strength2: photocardData.strength2 || "পরিবার প্রিয়",
+        valueProposal:
+          photocardData.valueProposal || "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
+      };
+    } catch (error) {
+      console.error("[extractPhotocardContent] Error:", error);
+      // Return default content if extraction fails
+      return {
+        mainHighlight: "সুন্দর জীবন খুঁজছি",
+        subHighlight: "নিষ্ঠাবান ও শিক্ষিত",
+        profileText:
+          "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
+        emoji: "💕",
+        strength1: "সৎ স্বভাব",
+        strength2: "পরিবার প্রিয়",
+        valueProposal: "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
+      };
     }
-    catch (error) {
-        console.error("[extractPhotocardContent] Error:", error);
-        // Return default content if extraction fails
-        return {
-            mainHighlight: "সুন্দর জীবন খুঁজছি",
-            subHighlight: "নিষ্ঠাবান ও শিক্ষিত",
-            profileText: "একজন যোগ্য জীবনসঙ্গী খুঁজছি যার সাথে সুখী জীবন গড়তে পারব",
-            emoji: "💕",
-            strength1: "সৎ স্বভাব",
-            strength2: "পরিবার প্রিয়",
-            valueProposal: "বিশ্বাস ও ভালোবাসা ভিত্তিক সম্পর্ক",
-        };
-    }
-});
+  });
 exports.extractPhotocardContent = extractPhotocardContent;
 /**
  * Generate an SVG photocard for Facebook promotion
  * Includes biodata information in an attractive format
  */
 const generatePhotocardSVG = (biodata, photocardContent, uid) => {
-    var _a;
-    const WIDTH = 1080; // Facebook post standard width
-    const HEIGHT = 1500; // Increased height for more content
-    const PADDING = 40;
-    // Get initials for avatar
-    const contactName = biodata.contact_name || "User";
-    const initials = contactName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    // Gender-based colors
-    const isDemand = ((_a = biodata.bio_type) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes("চাই")) || false;
-    const primaryColor = biodata.gender === "নারী" ? "#E84B8A" : "#2E86AB";
-    const accentColor = isDemand ? "#FF6B6B" : "#06D6A0";
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+  var _a;
+  const WIDTH = 1080; // Facebook post standard width
+  const HEIGHT = 1500; // Increased height for more content
+  const PADDING = 40;
+  // Get initials for avatar
+  const contactName = biodata.contact_name || "User";
+  const initials = contactName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  // Gender-based colors
+  const isDemand =
+    ((_a = biodata.bio_type) === null || _a === void 0
+      ? void 0
+      : _a.toLowerCase().includes("চাই")) || false;
+  const primaryColor = biodata.gender === "নারী" ? "#E84B8A" : "#2E86AB";
+  const accentColor = isDemand ? "#FF6B6B" : "#06D6A0";
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
@@ -218,9 +271,11 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
   <!-- Info section -->
   <!-- Age -->
   <text x="${PADDING + 40}" y="1000" class="bn-bold" font-size="28" fill="${primaryColor}">বয়স</text>
-  <text x="${PADDING + 40}" y="1035" class="bn-text" font-size="24" fill="#333333">${biodata.date_of_birth
-        ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
-        : "—"} বছর</text>
+  <text x="${PADDING + 40}" y="1035" class="bn-text" font-size="24" fill="#333333">${
+    biodata.date_of_birth
+      ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
+      : "—"
+  } বছর</text>
     
   <!-- Height -->
   <text x="${PADDING + 40}" y="1080" class="bn-bold" font-size="28" fill="${primaryColor}">উচ্চতা</text>
@@ -249,7 +304,7 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
   
   <rect x="${PADDING + 40}" y="1320" width="${WIDTH - 2 * PADDING - 80}" height="50" fill="${primaryColor}" rx="8"/>
   <text x="${WIDTH / 2}" y="1360" font-family="'Courier New', monospace" font-size="20" fill="white" text-anchor="middle" font-weight="bold">
-    https://www.biye.info/biodata/unverified/${uid}
+    https://www.bibaho.org/biodata/unverified/${uid}
   </text>
 
   <!-- Bottom branding -->
@@ -257,83 +312,98 @@ const generatePhotocardSVG = (biodata, photocardContent, uid) => {
     Made with ❤️ by বিয়ে.ইনফো
   </text>
 </svg>`;
-    return svg;
+  return svg;
 };
 exports.generatePhotocardSVG = generatePhotocardSVG;
 /**
  * Generate complete photocard with both LLM extraction and SVG rendering
  */
-const generatePhotocard = (biodata, uid) => __awaiter(void 0, void 0, void 0, function* () {
+const generatePhotocard = (biodata, uid) =>
+  __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Extract attractive content using Groq
-        const photocardContent = yield (0, exports.extractPhotocardContent)(biodata);
-        // Generate SVG
-        const svg = (0, exports.generatePhotocardSVG)(biodata, photocardContent, uid);
-        return svg;
+      // Extract attractive content using Groq
+      const photocardContent = yield (0, exports.extractPhotocardContent)(
+        biodata,
+      );
+      // Generate SVG
+      const svg = (0, exports.generatePhotocardSVG)(
+        biodata,
+        photocardContent,
+        uid,
+      );
+      return svg;
+    } catch (error) {
+      console.error("[generatePhotocard] Error:", error);
+      throw error;
     }
-    catch (error) {
-        console.error("[generatePhotocard] Error:", error);
-        throw error;
-    }
-});
+  });
 exports.generatePhotocard = generatePhotocard;
 /**
  * Generate photocard using a template
  * If template is provided, use it with placeholder rendering
  * Otherwise fall back to hard-coded SVG generation
  */
-const generatePhotocardWithTemplate = (biodata, uid, template) => __awaiter(void 0, void 0, void 0, function* () {
+const generatePhotocardWithTemplate = (biodata, uid, template) =>
+  __awaiter(void 0, void 0, void 0, function* () {
     var _c, _d;
     try {
-        // If no template provided, use the original method
-        if (!template || !template.svgCode) {
-            return (0, exports.generatePhotocard)(biodata, uid);
-        }
-        // Extract content for template placeholders
-        const photocardContent = yield (0, exports.extractPhotocardContent)(biodata);
-        const age = biodata.date_of_birth
-            ? new Date().getFullYear() - new Date(biodata.date_of_birth).getFullYear()
-            : "—";
-        // Build data object for template rendering
-        const templateData = {
-            headline: photocardContent.mainHighlight,
-            name: biodata.contact_name || "User",
-            age: age,
-            height: biodata.height ? `${biodata.height} সেমি` : "—",
-            weight: biodata.weight ? `${biodata.weight} কেজি` : "—",
-            religion: biodata.religion,
-            location: biodata.zilla || "—",
-            complexion: biodata.screen_color,
-            profession: ((_d = (_c = biodata.extra_fields) === null || _c === void 0 ? void 0 : _c.find((f) => f.label.toLowerCase().includes("পেশা"))) === null || _d === void 0 ? void 0 : _d.value) || "—",
-            quote: photocardContent.profileText,
-            url: `https://www.biye.info/biodata/unverified/${uid}`,
-            gender: biodata.gender,
-            bio_type: biodata.bio_type,
-            strength1: photocardContent.strength1,
-            strength2: photocardContent.strength2,
-            valueProposal: photocardContent.valueProposal,
-            emoji: photocardContent.emoji,
-            mainHighlight: photocardContent.mainHighlight,
-            subHighlight: photocardContent.subHighlight,
-            profileText: photocardContent.profileText,
-        };
-        // Render template with data
-        let svg = template.svgCode;
-        // Replace all placeholders
-        for (const [key, value] of Object.entries(templateData)) {
-            if (value === undefined || value === null)
-                continue;
-            const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
-            svg = svg.replace(regex, String(value));
-        }
-        // Remove any unreplaced placeholders
-        svg = svg.replace(/\{[^}]+\}/g, "—");
-        return svg;
-    }
-    catch (error) {
-        console.error("[generatePhotocardWithTemplate] Error:", error);
-        // Fall back to standard generation
+      // If no template provided, use the original method
+      if (!template || !template.svgCode) {
         return (0, exports.generatePhotocard)(biodata, uid);
+      }
+      // Extract content for template placeholders
+      const photocardContent = yield (0, exports.extractPhotocardContent)(
+        biodata,
+      );
+      const age = biodata.date_of_birth
+        ? new Date().getFullYear() -
+          new Date(biodata.date_of_birth).getFullYear()
+        : "—";
+      // Build data object for template rendering
+      const templateData = {
+        headline: photocardContent.mainHighlight,
+        name: biodata.contact_name || "User",
+        age: age,
+        height: biodata.height ? `${biodata.height} সেমি` : "—",
+        weight: biodata.weight ? `${biodata.weight} কেজি` : "—",
+        religion: biodata.religion,
+        location: biodata.zilla || "—",
+        complexion: biodata.screen_color,
+        profession:
+          ((_d =
+            (_c = biodata.extra_fields) === null || _c === void 0
+              ? void 0
+              : _c.find((f) => f.label.toLowerCase().includes("পেশা"))) ===
+            null || _d === void 0
+            ? void 0
+            : _d.value) || "—",
+        quote: photocardContent.profileText,
+        url: `https://www.bibaho.org/biodata/unverified/${uid}`,
+        gender: biodata.gender,
+        bio_type: biodata.bio_type,
+        strength1: photocardContent.strength1,
+        strength2: photocardContent.strength2,
+        valueProposal: photocardContent.valueProposal,
+        emoji: photocardContent.emoji,
+        mainHighlight: photocardContent.mainHighlight,
+        subHighlight: photocardContent.subHighlight,
+        profileText: photocardContent.profileText,
+      };
+      // Render template with data
+      let svg = template.svgCode;
+      // Replace all placeholders
+      for (const [key, value] of Object.entries(templateData)) {
+        if (value === undefined || value === null) continue;
+        const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
+        svg = svg.replace(regex, String(value));
+      }
+      // Remove any unreplaced placeholders
+      svg = svg.replace(/\{[^}]+\}/g, "—");
+      return svg;
+    } catch (error) {
+      console.error("[generatePhotocardWithTemplate] Error:", error);
+      // Fall back to standard generation
+      return (0, exports.generatePhotocard)(biodata, uid);
     }
-});
+  });
 exports.generatePhotocardWithTemplate = generatePhotocardWithTemplate;

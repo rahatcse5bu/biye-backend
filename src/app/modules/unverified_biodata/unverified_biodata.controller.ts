@@ -9,44 +9,51 @@ import httpStatus from "http-status";
 import sendEmail from "../../../shared/SendEmail";
 import axios from "axios";
 
-const createUnverifiedBiodata = catchAsync(async (req: Request, res: Response) => {
-  const adminId = req.user?._id;
-  if (!adminId) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
+const createUnverifiedBiodata = catchAsync(
+  async (req: Request, res: Response) => {
+    const adminId = req.user?._id;
+    if (!adminId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
-  // Validate extra_fields if provided
-  const validation = validateExtraFields(req.body.extra_fields);
-  if (!validation.isValid) {
-    console.error("[createUnverifiedBiodata] Validation errors:", validation.errors);
-    return res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      message: "Validation failed",
-      errors: validation.errors,
-    });
-  }
+    // Validate extra_fields if provided
+    const validation = validateExtraFields(req.body.extra_fields);
+    if (!validation.isValid) {
+      console.error(
+        "[createUnverifiedBiodata] Validation errors:",
+        validation.errors,
+      );
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: "Validation failed",
+        errors: validation.errors,
+      });
+    }
 
-  // Clean up empty strings for optional fields
-  const cleanedData = {
-    ...req.body,
-    created_by: adminId,
-    // Convert empty strings to null for optional fields
-    date_of_birth: req.body.date_of_birth ? new Date(req.body.date_of_birth) : null,
-    zilla: req.body.zilla || null,
-    upzilla: req.body.upzilla || null,
-    division: req.body.division || null,
-    contact_phone: req.body.contact_phone || null,
-  };
+    // Clean up empty strings for optional fields
+    const cleanedData = {
+      ...req.body,
+      created_by: adminId,
+      // Convert empty strings to null for optional fields
+      date_of_birth: req.body.date_of_birth
+        ? new Date(req.body.date_of_birth)
+        : null,
+      zilla: req.body.zilla || null,
+      upzilla: req.body.upzilla || null,
+      division: req.body.division || null,
+      contact_phone: req.body.contact_phone || null,
+    };
 
-  try {
-    const biodata = await UnverifiedBiodata.create(cleanedData);
+    try {
+      const biodata = await UnverifiedBiodata.create(cleanedData);
 
-    // Send welcome email to the user with their biodata link
-    if (biodata.contact_email) {
-      try {
-        const biodataLink = `https://www.biye.info/biodata/unverified/${biodata._id}`;
-        const emailSubject = "Welcome to বিয়ে.ইনফো - Your Biodata Profile Created";
-        const emailBody = `
+      // Send welcome email to the user with their biodata link
+      if (biodata.contact_email) {
+        try {
+          const biodataLink = `https://www.bibaho.org/biodata/unverified/${biodata._id}`;
+          const emailSubject =
+            "Welcome to বিয়ে.ইনফো - Your Biodata Profile Created";
+          const emailBody = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -104,7 +111,7 @@ const createUnverifiedBiodata = catchAsync(async (req: Request, res: Response) =
             </p>
 
             <h3 style="color: #1a2e1a;">প্রশ্ন থাকলে?</h3>
-            <p>আমাদের সাথে যোগাযোগ করুন info@biye.info এ অথবা আমাদের ওয়েবসাইট visit করুন।</p>
+            <p>আমাদের সাথে যোগাযোগ করুন info@bibaho.org এ অথবা আমাদের ওয়েবসাইট visit করুন।</p>
 
             <div class="footer">
                 <p>সর্বদা আমাদের সাথে থাকার জন্য ধন্যবাদ। বিয়ে.ইনফো টিম</p>
@@ -116,378 +123,399 @@ const createUnverifiedBiodata = catchAsync(async (req: Request, res: Response) =
 </html>
         `;
 
-        // Send email asynchronously (don't wait for it)
-        sendEmail(
-          biodata.contact_email,
-          emailSubject,
-          emailBody
-        ).catch((emailError: any) => {
-          console.warn("[createUnverifiedBiodata] Email sending failed:", emailError.message);
-          // Don't fail the API response if email fails
-        });
-      } catch (emailError: any) {
-        console.warn("[createUnverifiedBiodata] Email preparation failed:", emailError.message);
-        // Continue with response even if email fails
+          // Send email asynchronously (don't wait for it)
+          sendEmail(biodata.contact_email, emailSubject, emailBody).catch(
+            (emailError: any) => {
+              console.warn(
+                "[createUnverifiedBiodata] Email sending failed:",
+                emailError.message,
+              );
+              // Don't fail the API response if email fails
+            },
+          );
+        } catch (emailError: any) {
+          console.warn(
+            "[createUnverifiedBiodata] Email preparation failed:",
+            emailError.message,
+          );
+          // Continue with response even if email fails
+        }
       }
-    }
 
-    res.status(201).json({
-      success: true,
-      message: "Unverified biodata created successfully",
-      data: biodata,
-    });
-  } catch (dbError: any) {
-    console.error("[createUnverifiedBiodata] Database error:", dbError.message);
-
-    // Handle validation errors from MongoDB schema
-    if (dbError.name === "ValidationError") {
-      const errors = Object.entries(dbError.errors).map(
-        ([key, err]: [string, any]) => `${key}: ${err.message}`
-      );
-      return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
-        success: false,
-        message: "Database validation failed",
-        errors,
+      res.status(201).json({
+        success: true,
+        message: "Unverified biodata created successfully",
+        data: biodata,
       });
-    }
-
-    throw dbError;
-  }
-});
-
-const getAllUnverifiedBiodatas = catchAsync(async (req: Request, res: Response) => {
-  const {
-    page = 1,
-    limit = 12,
-    bio_type,
-    bio_gender,
-    gender,
-    marital_status,
-    marital_status_en,
-    religion,
-    religious_type,
-    zilla,
-    division,
-    upazila,
-    upzilla,
-    minAge,
-    maxAge,
-    minHeight,
-    maxHeight,
-    complexion,
-    sortOrder = "desc",
-  } = req.query;
-
-  const getQueryValue = (value: unknown): string | undefined => {
-    if (typeof value === "string") return value.trim();
-    if (Array.isArray(value)) {
-      const firstString = value.find((item) => typeof item === "string");
-      return typeof firstString === "string" ? firstString.trim() : undefined;
-    }
-    return undefined;
-  };
-
-  const getCsvValues = (value: unknown): string[] => {
-    const queryValues = Array.isArray(value) ? value : [value];
-    const csvValues: string[] = [];
-
-    queryValues.forEach((queryValue) => {
-      if (typeof queryValue === "string") {
-        csvValues.push(
-          ...queryValue
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean)
-        );
-      }
-    });
-
-    return Array.from(new Set(csvValues));
-  };
-
-  const getNonNegativeNumber = (
-    value: unknown,
-    integerOnly = false
-  ): number | undefined => {
-    const queryValue = getQueryValue(value);
-    if (!queryValue) return undefined;
-
-    const parsedValue = Number(queryValue);
-    if (
-      !Number.isFinite(parsedValue) ||
-      parsedValue < 0 ||
-      (integerOnly && !Number.isInteger(parsedValue))
-    ) {
-      return undefined;
-    }
-
-    return parsedValue;
-  };
-
-  const pageNumber = Number(getQueryValue(page) ?? page);
-  const limitNumber = Number(getQueryValue(limit) ?? limit);
-
-  if (!Number.isInteger(pageNumber) || pageNumber < 1) {
-    return res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      message: "page must be an integer greater than or equal to 1",
-    });
-  }
-
-  if (
-    !Number.isInteger(limitNumber) ||
-    limitNumber < 1 ||
-    limitNumber > 100
-  ) {
-    return res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      message: "limit must be an integer between 1 and 100",
-    });
-  }
-
-  const filter: any = { is_active: true };
-
-  const BIO_TYPE_VARIANTS: Record<string, string[]> = {
-    male: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
-    groom: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
-    female: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
-    bride: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
-    "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
-    "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
-    "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
-    "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
-  };
-  const bioGenderValue = getQueryValue(bio_gender)?.toLowerCase();
-  const bioTypeValue = getQueryValue(bio_type);
-  const resolvedBioTypes = bioGenderValue
-    ? BIO_TYPE_VARIANTS[bioGenderValue] ??
-      (bioTypeValue ? BIO_TYPE_VARIANTS[bioTypeValue] ?? [bioTypeValue] : [])
-    : bioTypeValue
-      ? BIO_TYPE_VARIANTS[bioTypeValue] ?? [bioTypeValue]
-      : [];
-  if (resolvedBioTypes.length > 0) {
-    filter.bio_type = { $in: resolvedBioTypes };
-  }
-
-  const genderValue = getQueryValue(gender);
-  if (genderValue) filter.gender = genderValue;
-
-  const MARITAL_STATUS_MAP: Record<string, string> = {
-    unmarried: "অবিবাহিত",
-    single: "অবিবাহিত",
-    married: "বিবাহিত",
-    divorced: "ডিভোর্সড",
-    widow: "বিধবা",
-    widowed: "বিধবা",
-    widower: "বিপত্নীক",
-  };
-  const maritalStatusAlias = getQueryValue(marital_status_en)?.toLowerCase();
-  const maritalStatusValue = getQueryValue(marital_status);
-  const resolvedMaritalStatus = maritalStatusAlias
-    ? MARITAL_STATUS_MAP[maritalStatusAlias] ?? maritalStatusValue
-    : maritalStatusValue;
-  if (resolvedMaritalStatus) filter.marital_status = resolvedMaritalStatus;
-
-  const religionValue = getQueryValue(religion);
-  if (religionValue) filter.religion = religionValue;
-
-  const religiousTypeValue = getQueryValue(religious_type);
-  if (religiousTypeValue) filter.religious_type = religiousTypeValue;
-
-  const zillaValues = getCsvValues(zilla);
-  if (zillaValues.length > 0) filter.zilla = { $in: zillaValues };
-
-  const divisionValues = getCsvValues(division);
-  if (
-    divisionValues.length > 0 &&
-    !divisionValues.some((value) => value.toLowerCase() === "all")
-  ) {
-    filter.division = { $in: divisionValues };
-  }
-
-  const upazilaValues = Array.from(
-    new Set([...getCsvValues(upazila), ...getCsvValues(upzilla)])
-  );
-  if (upazilaValues.length > 0) {
-    filter.upzilla = { $in: upazilaValues };
-  }
-
-  const minimumAge = getNonNegativeNumber(minAge, true);
-  const maximumAge = getNonNegativeNumber(maxAge, true);
-  if (minimumAge !== undefined || maximumAge !== undefined) {
-    const now = new Date();
-    const currentYear = now.getUTCFullYear();
-    const currentMonth = now.getUTCMonth();
-    const currentDay = now.getUTCDate();
-    const getBirthdayBoundary = (yearsAgo: number, endOfDay = false) => {
-      const targetYear = currentYear - yearsAgo;
-      const lastDayOfTargetMonth = new Date(
-        Date.UTC(targetYear, currentMonth + 1, 0)
-      ).getUTCDate();
-      const targetDay = Math.min(currentDay, lastDayOfTargetMonth);
-
-      return new Date(
-        Date.UTC(
-          targetYear,
-          currentMonth,
-          targetDay,
-          endOfDay ? 23 : 0,
-          endOfDay ? 59 : 0,
-          endOfDay ? 59 : 0,
-          endOfDay ? 999 : 0
-        )
+    } catch (dbError: any) {
+      console.error(
+        "[createUnverifiedBiodata] Database error:",
+        dbError.message,
       );
+
+      // Handle validation errors from MongoDB schema
+      if (dbError.name === "ValidationError") {
+        const errors = Object.entries(dbError.errors).map(
+          ([key, err]: [string, any]) => `${key}: ${err.message}`,
+        );
+        return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
+          success: false,
+          message: "Database validation failed",
+          errors,
+        });
+      }
+
+      throw dbError;
+    }
+  },
+);
+
+const getAllUnverifiedBiodatas = catchAsync(
+  async (req: Request, res: Response) => {
+    const {
+      page = 1,
+      limit = 12,
+      bio_type,
+      bio_gender,
+      gender,
+      marital_status,
+      marital_status_en,
+      religion,
+      religious_type,
+      zilla,
+      division,
+      upazila,
+      upzilla,
+      minAge,
+      maxAge,
+      minHeight,
+      maxHeight,
+      complexion,
+      sortOrder = "desc",
+    } = req.query;
+
+    const getQueryValue = (value: unknown): string | undefined => {
+      if (typeof value === "string") return value.trim();
+      if (Array.isArray(value)) {
+        const firstString = value.find((item) => typeof item === "string");
+        return typeof firstString === "string" ? firstString.trim() : undefined;
+      }
+      return undefined;
     };
 
-    const dateOfBirthConditions: any = { $ne: null };
-    if (minimumAge !== undefined) {
-      dateOfBirthConditions.$lte = getBirthdayBoundary(minimumAge, true);
-    }
-    if (maximumAge !== undefined) {
-      const earliestDateOfBirth = getBirthdayBoundary(maximumAge + 1);
-      earliestDateOfBirth.setUTCDate(earliestDateOfBirth.getUTCDate() + 1);
-      dateOfBirthConditions.$gte = earliestDateOfBirth;
-    }
-    filter.date_of_birth = dateOfBirthConditions;
-  }
+    const getCsvValues = (value: unknown): string[] => {
+      const queryValues = Array.isArray(value) ? value : [value];
+      const csvValues: string[] = [];
 
-  const minimumHeight = getNonNegativeNumber(minHeight);
-  const maximumHeight = getNonNegativeNumber(maxHeight);
-  if (minimumHeight !== undefined || maximumHeight !== undefined) {
-    const feetConditions: any = {};
-    const centimeterConditions: any = {};
+      queryValues.forEach((queryValue) => {
+        if (typeof queryValue === "string") {
+          csvValues.push(
+            ...queryValue
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+          );
+        }
+      });
 
-    if (minimumHeight !== undefined) {
-      feetConditions.$gte = minimumHeight;
-      centimeterConditions.$gte = minimumHeight * 30.48;
-    }
-    if (maximumHeight !== undefined) {
-      feetConditions.$lte = maximumHeight;
-      centimeterConditions.$lte = maximumHeight * 30.48;
-    }
+      return Array.from(new Set(csvValues));
+    };
 
-    // Verified biodatas store feet while imported unverified records commonly
-    // store centimeters. Accept both representations for the shared UI range.
-    filter.$or = [
-      { height: feetConditions },
-      { height: centimeterConditions },
-    ];
-  }
+    const getNonNegativeNumber = (
+      value: unknown,
+      integerOnly = false,
+    ): number | undefined => {
+      const queryValue = getQueryValue(value);
+      if (!queryValue) return undefined;
 
-  const complexionValues = getCsvValues(complexion);
-  if (complexionValues.length > 0) {
-    filter.screen_color = { $in: complexionValues };
-  }
+      const parsedValue = Number(queryValue);
+      if (
+        !Number.isFinite(parsedValue) ||
+        parsedValue < 0 ||
+        (integerOnly && !Number.isInteger(parsedValue))
+      ) {
+        return undefined;
+      }
 
-  const skip = (pageNumber - 1) * limitNumber;
-  const sortDirection = getQueryValue(sortOrder)?.toLowerCase() === "asc" ? 1 : -1;
-  const sort: any = { createdAt: sortDirection, _id: sortDirection };
+      return parsedValue;
+    };
 
-  const [biodatas, total] = await Promise.all([
-    UnverifiedBiodata.find(filter)
-      .select("-contact_name -contact_phone -contact_email")
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNumber)
-      .lean(),
-    UnverifiedBiodata.countDocuments(filter),
-  ]);
+    const pageNumber = Number(getQueryValue(page) ?? page);
+    const limitNumber = Number(getQueryValue(limit) ?? limit);
 
-  res.status(200).json({
-    success: true,
-    data: biodatas,
-    meta: {
-      total,
-      page: pageNumber,
-      limit: limitNumber,
-      totalPages: Math.ceil(total / limitNumber),
-    },
-  });
-});
-
-const getAllUnverifiedBiodatasByAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { page = 1, limit = 20, search } = req.query;
-  const filter: any = {};
-
-  if (search) {
-    filter.$or = [
-      { contact_name: { $regex: search, $options: "i" } },
-      { zilla: { $regex: search, $options: "i" } },
-    ];
-  }
-
-  const skip = (Number(page) - 1) * Number(limit);
-
-  const [biodatas, total] = await Promise.all([
-    UnverifiedBiodata.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit))
-      .lean(),
-    UnverifiedBiodata.countDocuments(filter),
-  ]);
-
-  res.status(200).json({
-    success: true,
-    data: biodatas,
-    totalPages: Math.ceil(total / Number(limit)),
-    currentPage: Number(page),
-    totalItems: total,
-  });
-});
-
-const getUnverifiedBiodataById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const biodata = await UnverifiedBiodata.findById(id)
-    .select("-contact_name -contact_phone -contact_email")
-    .lean();
-
-  if (!biodata) {
-    return res.status(404).json({ success: false, message: "Not found" });
-  }
-
-  // Increment views
-  await UnverifiedBiodata.findByIdAndUpdate(id, { $inc: { views_count: 1 } });
-
-  res.status(200).json({ success: true, data: biodata });
-});
-
-const updateUnverifiedBiodata = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  // Validate extra_fields if provided
-  if (req.body.extra_fields) {
-    const validation = validateExtraFields(req.body.extra_fields);
-    if (!validation.isValid) {
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
       return res.status(httpStatus.BAD_REQUEST).json({
         success: false,
-        message: "Validation failed",
-        errors: validation.errors,
+        message: "page must be an integer greater than or equal to 1",
       });
     }
-  }
 
-  const updated = await UnverifiedBiodata.findByIdAndUpdate(id, req.body, {
-    new: true,
-    runValidators: true,
-  });
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1 ||
+      limitNumber > 100
+    ) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: "limit must be an integer between 1 and 100",
+      });
+    }
 
-  if (!updated) {
-    return res.status(404).json({ success: false, message: "Not found" });
-  }
+    const filter: any = { is_active: true };
 
-  res.status(200).json({
-    success: true,
-    message: "Updated successfully",
-    data: updated,
-  });
-});
+    const BIO_TYPE_VARIANTS: Record<string, string[]> = {
+      male: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+      groom: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+      female: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+      bride: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+      "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+      "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+      "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+      "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+    };
+    const bioGenderValue = getQueryValue(bio_gender)?.toLowerCase();
+    const bioTypeValue = getQueryValue(bio_type);
+    const resolvedBioTypes = bioGenderValue
+      ? (BIO_TYPE_VARIANTS[bioGenderValue] ??
+        (bioTypeValue
+          ? (BIO_TYPE_VARIANTS[bioTypeValue] ?? [bioTypeValue])
+          : []))
+      : bioTypeValue
+        ? (BIO_TYPE_VARIANTS[bioTypeValue] ?? [bioTypeValue])
+        : [];
+    if (resolvedBioTypes.length > 0) {
+      filter.bio_type = { $in: resolvedBioTypes };
+    }
 
-const deleteUnverifiedBiodata = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  await UnverifiedBiodata.findByIdAndDelete(id);
-  res.status(200).json({ success: true, message: "Deleted successfully" });
-});
+    const genderValue = getQueryValue(gender);
+    if (genderValue) filter.gender = genderValue;
+
+    const MARITAL_STATUS_MAP: Record<string, string> = {
+      unmarried: "অবিবাহিত",
+      single: "অবিবাহিত",
+      married: "বিবাহিত",
+      divorced: "ডিভোর্সড",
+      widow: "বিধবা",
+      widowed: "বিধবা",
+      widower: "বিপত্নীক",
+    };
+    const maritalStatusAlias = getQueryValue(marital_status_en)?.toLowerCase();
+    const maritalStatusValue = getQueryValue(marital_status);
+    const resolvedMaritalStatus = maritalStatusAlias
+      ? (MARITAL_STATUS_MAP[maritalStatusAlias] ?? maritalStatusValue)
+      : maritalStatusValue;
+    if (resolvedMaritalStatus) filter.marital_status = resolvedMaritalStatus;
+
+    const religionValue = getQueryValue(religion);
+    if (religionValue) filter.religion = religionValue;
+
+    const religiousTypeValue = getQueryValue(religious_type);
+    if (religiousTypeValue) filter.religious_type = religiousTypeValue;
+
+    const zillaValues = getCsvValues(zilla);
+    if (zillaValues.length > 0) filter.zilla = { $in: zillaValues };
+
+    const divisionValues = getCsvValues(division);
+    if (
+      divisionValues.length > 0 &&
+      !divisionValues.some((value) => value.toLowerCase() === "all")
+    ) {
+      filter.division = { $in: divisionValues };
+    }
+
+    const upazilaValues = Array.from(
+      new Set([...getCsvValues(upazila), ...getCsvValues(upzilla)]),
+    );
+    if (upazilaValues.length > 0) {
+      filter.upzilla = { $in: upazilaValues };
+    }
+
+    const minimumAge = getNonNegativeNumber(minAge, true);
+    const maximumAge = getNonNegativeNumber(maxAge, true);
+    if (minimumAge !== undefined || maximumAge !== undefined) {
+      const now = new Date();
+      const currentYear = now.getUTCFullYear();
+      const currentMonth = now.getUTCMonth();
+      const currentDay = now.getUTCDate();
+      const getBirthdayBoundary = (yearsAgo: number, endOfDay = false) => {
+        const targetYear = currentYear - yearsAgo;
+        const lastDayOfTargetMonth = new Date(
+          Date.UTC(targetYear, currentMonth + 1, 0),
+        ).getUTCDate();
+        const targetDay = Math.min(currentDay, lastDayOfTargetMonth);
+
+        return new Date(
+          Date.UTC(
+            targetYear,
+            currentMonth,
+            targetDay,
+            endOfDay ? 23 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 999 : 0,
+          ),
+        );
+      };
+
+      const dateOfBirthConditions: any = { $ne: null };
+      if (minimumAge !== undefined) {
+        dateOfBirthConditions.$lte = getBirthdayBoundary(minimumAge, true);
+      }
+      if (maximumAge !== undefined) {
+        const earliestDateOfBirth = getBirthdayBoundary(maximumAge + 1);
+        earliestDateOfBirth.setUTCDate(earliestDateOfBirth.getUTCDate() + 1);
+        dateOfBirthConditions.$gte = earliestDateOfBirth;
+      }
+      filter.date_of_birth = dateOfBirthConditions;
+    }
+
+    const minimumHeight = getNonNegativeNumber(minHeight);
+    const maximumHeight = getNonNegativeNumber(maxHeight);
+    if (minimumHeight !== undefined || maximumHeight !== undefined) {
+      const feetConditions: any = {};
+      const centimeterConditions: any = {};
+
+      if (minimumHeight !== undefined) {
+        feetConditions.$gte = minimumHeight;
+        centimeterConditions.$gte = minimumHeight * 30.48;
+      }
+      if (maximumHeight !== undefined) {
+        feetConditions.$lte = maximumHeight;
+        centimeterConditions.$lte = maximumHeight * 30.48;
+      }
+
+      // Verified biodatas store feet while imported unverified records commonly
+      // store centimeters. Accept both representations for the shared UI range.
+      filter.$or = [
+        { height: feetConditions },
+        { height: centimeterConditions },
+      ];
+    }
+
+    const complexionValues = getCsvValues(complexion);
+    if (complexionValues.length > 0) {
+      filter.screen_color = { $in: complexionValues };
+    }
+
+    const skip = (pageNumber - 1) * limitNumber;
+    const sortDirection =
+      getQueryValue(sortOrder)?.toLowerCase() === "asc" ? 1 : -1;
+    const sort: any = { createdAt: sortDirection, _id: sortDirection };
+
+    const [biodatas, total] = await Promise.all([
+      UnverifiedBiodata.find(filter)
+        .select("-contact_name -contact_phone -contact_email")
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNumber)
+        .lean(),
+      UnverifiedBiodata.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: biodatas,
+      meta: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    });
+  },
+);
+
+const getAllUnverifiedBiodatasByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { page = 1, limit = 20, search } = req.query;
+    const filter: any = {};
+
+    if (search) {
+      filter.$or = [
+        { contact_name: { $regex: search, $options: "i" } },
+        { zilla: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [biodatas, total] = await Promise.all([
+      UnverifiedBiodata.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      UnverifiedBiodata.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: biodatas,
+      totalPages: Math.ceil(total / Number(limit)),
+      currentPage: Number(page),
+      totalItems: total,
+    });
+  },
+);
+
+const getUnverifiedBiodataById = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const biodata = await UnverifiedBiodata.findById(id)
+      .select("-contact_name -contact_phone -contact_email")
+      .lean();
+
+    if (!biodata) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    // Increment views
+    await UnverifiedBiodata.findByIdAndUpdate(id, { $inc: { views_count: 1 } });
+
+    res.status(200).json({ success: true, data: biodata });
+  },
+);
+
+const updateUnverifiedBiodata = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    // Validate extra_fields if provided
+    if (req.body.extra_fields) {
+      const validation = validateExtraFields(req.body.extra_fields);
+      if (!validation.isValid) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          success: false,
+          message: "Validation failed",
+          errors: validation.errors,
+        });
+      }
+    }
+
+    const updated = await UnverifiedBiodata.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Updated successfully",
+      data: updated,
+    });
+  },
+);
+
+const deleteUnverifiedBiodata = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await UnverifiedBiodata.findByIdAndDelete(id);
+    res.status(200).json({ success: true, message: "Deleted successfully" });
+  },
+);
 
 const purchaseUnverifiedBiodataContact = catchAsync(
   async (req: Request, res: Response) => {
@@ -508,9 +536,8 @@ const purchaseUnverifiedBiodataContact = catchAsync(
 
     try {
       // Check user has enough points
-      const userInfo: any = await UserInfoModel.findById(userId).session(
-        session
-      );
+      const userInfo: any =
+        await UserInfoModel.findById(userId).session(session);
 
       if (!userInfo) {
         await session.abortTransaction();
@@ -523,9 +550,8 @@ const purchaseUnverifiedBiodataContact = catchAsync(
       }
 
       // Check if unverified biodata exists
-      const biodata: any = await UnverifiedBiodata.findById(id).session(
-        session
-      );
+      const biodata: any =
+        await UnverifiedBiodata.findById(id).session(session);
 
       if (!biodata) {
         await session.abortTransaction();
@@ -542,7 +568,7 @@ const purchaseUnverifiedBiodataContact = catchAsync(
         await UnverifiedContactPurchaseService.getUnverifiedContactPurchaseByUserAndBiodata(
           userId,
           id,
-          session
+          session,
         );
 
       if (existingPurchase) {
@@ -581,7 +607,7 @@ const purchaseUnverifiedBiodataContact = catchAsync(
       const [createdPurchase] =
         await UnverifiedContactPurchaseService.createUnverifiedContactPurchase(
           purchaseData,
-          { session }
+          { session },
         );
 
       // Update user points
@@ -593,7 +619,7 @@ const purchaseUnverifiedBiodataContact = catchAsync(
       await UnverifiedBiodata.findByIdAndUpdate(
         id,
         { $inc: { purchases_count: 1 } },
-        { session }
+        { session },
       );
 
       // Send confirmation email to buyer
@@ -637,7 +663,11 @@ const purchaseUnverifiedBiodataContact = catchAsync(
         </html>
       `;
 
-      await sendEmail(userInfo.email, "Contact Information Purchase Confirmation", buyerHtml);
+      await sendEmail(
+        userInfo.email,
+        "Contact Information Purchase Confirmation",
+        buyerHtml,
+      );
 
       // Commit the transaction
       await session.commitTransaction();
@@ -662,33 +692,35 @@ const purchaseUnverifiedBiodataContact = catchAsync(
         error: error.message,
       });
     }
-  }
+  },
 );
 
-const parseCustomFieldsWithLLM = catchAsync(async (req: Request, res: Response) => {
-  const { biodata_text } = req.body;
+const parseCustomFieldsWithLLM = catchAsync(
+  async (req: Request, res: Response) => {
+    const { biodata_text } = req.body;
 
-  if (!biodata_text || typeof biodata_text !== "string") {
-    return res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      message: "biodata_text is required and must be a string",
-    });
-  }
+    if (!biodata_text || typeof biodata_text !== "string") {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: "biodata_text is required and must be a string",
+      });
+    }
 
-  try {
-    // Truncate very long text to avoid exceeding token limits
-    const maxChars = 2000;
-    const truncatedText = biodata_text.length > maxChars
-      ? biodata_text.substring(0, maxChars) + "..."
-      : biodata_text;
+    try {
+      // Truncate very long text to avoid exceeding token limits
+      const maxChars = 2000;
+      const truncatedText =
+        biodata_text.length > maxChars
+          ? biodata_text.substring(0, maxChars) + "..."
+          : biodata_text;
 
-    const { callGroqAPI } = require("../../../services/groqService");
+      const { callGroqAPI } = require("../../../services/groqService");
 
-    const response = await callGroqAPI(
-      [
-        {
-          role: "system",
-          content: `You are a biodata data extraction specialist. Extract ONLY custom/additional fields from biodata text.
+      const response = await callGroqAPI(
+        [
+          {
+            role: "system",
+            content: `You are a biodata data extraction specialist. Extract ONLY custom/additional fields from biodata text.
 
 IGNORE standard fields: name, phone, email, gender, DOB, height, weight, blood group, religion, marital status, address, nationality, complexion.
 
@@ -698,101 +730,107 @@ For each field, determine type: "text"|"numeric"|"email"|"phone"|"select"|"boole
 
 Return a JSON array: [{"label":"Field name","value":"Sample value","fieldType":"text","options":[]}]
 Only return JSON array, no other text or markdown.`,
-        },
-        {
-          role: "user",
-          content: `Extract custom fields from: ${truncatedText}`,
-        },
-      ],
-      "meta-llama/llama-4-scout-17b-16e-instruct",
-      0.3,
-      800
-    );
+          },
+          {
+            role: "user",
+            content: `Extract custom fields from: ${truncatedText}`,
+          },
+        ],
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        0.3,
+        800,
+      );
 
-    // Safely access response content
-    if (!response || !response.choices || !response.choices[0]) {
-      console.warn("Invalid Groq response structure");
-      return res.status(200).json({
-        success: true,
-        data: [],
-        message: "Could not parse fields from response",
-      });
-    }
+      // Safely access response content
+      if (!response || !response.choices || !response.choices[0]) {
+        console.warn("Invalid Groq response structure");
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: "Could not parse fields from response",
+        });
+      }
 
-    const content = response.choices[0].message?.content;
-    if (!content) {
-      console.warn("No content in Groq response");
-      return res.status(200).json({
-        success: true,
-        data: [],
-        message: "No content received from LLM",
-      });
-    }
+      const content = response.choices[0].message?.content;
+      if (!content) {
+        console.warn("No content in Groq response");
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: "No content received from LLM",
+        });
+      }
 
-    // Remove markdown code blocks if present
-    const cleanedContent = content
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+      // Remove markdown code blocks if present
+      const cleanedContent = content
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
 
-    const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
+      const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
 
-    if (!jsonMatch) {
-      console.warn("No JSON array found in response:", cleanedContent.substring(0, 200));
-      return res.status(200).json({
-        success: true,
-        data: [],
-        message: "No custom fields found",
-      });
-    }
+      if (!jsonMatch) {
+        console.warn(
+          "No JSON array found in response:",
+          cleanedContent.substring(0, 200),
+        );
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: "No custom fields found",
+        });
+      }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch (jsonError) {
-      console.error("JSON parse error:", jsonError);
-      return res.status(200).json({
-        success: true,
-        data: [],
-        message: "Could not parse JSON from response",
-      });
-    }
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch (jsonError) {
+        console.error("JSON parse error:", jsonError);
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: "Could not parse JSON from response",
+        });
+      }
 
-    // Ensure parsed is an array
-    if (!Array.isArray(parsed)) {
-      console.warn("Parsed response is not an array");
-      return res.status(200).json({
-        success: true,
-        data: [],
-        message: "Invalid response format",
-      });
-    }
+      // Ensure parsed is an array
+      if (!Array.isArray(parsed)) {
+        console.warn("Parsed response is not an array");
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: "Invalid response format",
+        });
+      }
 
-    const fields = parsed
-      .filter(
+      const fields = parsed.filter(
         (f: any) =>
           f &&
           f.label &&
           f.value !== undefined &&
           f.value !== null &&
-          f.fieldType
+          f.fieldType,
       );
 
-    res.status(200).json({
-      success: true,
-      data: fields,
-      message: `Extracted ${fields.length} custom field(s)`,
-    });
-  } catch (error: any) {
-    const detail = error.response?.data?.error?.message || error.message || "Unknown error";
-    console.error("LLM parsing error:", detail);
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: "Failed to parse fields with LLM",
-      error: detail,
-    });
-  }
-});
+      res.status(200).json({
+        success: true,
+        data: fields,
+        message: `Extracted ${fields.length} custom field(s)`,
+      });
+    } catch (error: any) {
+      const detail =
+        error.response?.data?.error?.message ||
+        error.message ||
+        "Unknown error";
+      console.error("LLM parsing error:", detail);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to parse fields with LLM",
+        error: detail,
+      });
+    }
+  },
+);
 
 export const UnverifiedBiodataController = {
   createUnverifiedBiodata,
