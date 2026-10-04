@@ -87,28 +87,48 @@ const afterPay = async (req: Request, res: Response) => {
     if (response?.statusCode && response.statusCode === "0000") {
       const singleUser = await UserInfoModel.findOne({ email });
       let saveInDb = false;
+      let points = 0;
       if (singleUser) {
-        // add payment to DB;
         // TODO: admin pricing only for the points page; contact top-ups keep the fixed 1.2x.
         const paidAmount = Number(response?.amount);
-        const points =
+        points =
           purpose === "buy_package"
             ? await PointsPackageService.pointsForAmount(paidAmount)
             : paidAmount * 1.2;
-        await Payment.create({
-          email,
-          points,
-          amount: response?.amount,
-          transaction_id: response?.trxID,
-          payment_id: paymentID,
-          status: response?.transactionStatus,
-          trnx_time:
-            response?.paymentCreateTime || response?.paymentExecuteTime,
-          purpose,
-        });
-        // updated points of the user
-        singleUser.points = singleUser.points + points;
-        await singleUser.save();
+        // TODO: insert-once by paymentID so a page refresh or repeat call never credits twice.
+        const existing: any = await Payment.findOneAndUpdate(
+          { payment_id: paymentID },
+          {
+            $setOnInsert: {
+              email,
+              points,
+              amount: response?.amount,
+              transaction_id: response?.trxID,
+              payment_id: paymentID,
+              status: response?.transactionStatus,
+              trnx_time:
+                response?.paymentCreateTime || response?.paymentExecuteTime,
+              purpose,
+            },
+          },
+          { upsert: true, new: false },
+        ).lean();
+        if (existing) {
+          return res.json({
+            success: true,
+            alreadyRecorded: true,
+            trxID: existing.transaction_id,
+            paymentId: paymentID,
+            amount: existing.amount,
+            points: existing.points,
+            status: existing.status,
+            payment_create_time: existing.trnx_time,
+          });
+        }
+        await UserInfoModel.updateOne(
+          { _id: singleUser._id },
+          { $inc: { points } },
+        );
         saveInDb = true;
         NotificationService.notify({
           recipient: singleUser._id,
@@ -204,6 +224,7 @@ const afterPay = async (req: Request, res: Response) => {
         saveInDb,
         paymentId: paymentID,
         amount: response?.amount,
+        points,
         status: response?.transactionStatus,
         payment_create_time:
           response?.paymentCreateTime || response?.paymentExecuteTime,
