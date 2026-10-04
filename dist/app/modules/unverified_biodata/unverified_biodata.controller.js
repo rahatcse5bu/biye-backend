@@ -149,26 +149,173 @@ const createUnverifiedBiodata = (0, catchAsync_1.default)((req, res) => __awaite
     }
 }));
 const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { page = 1, limit = 12, bio_type, gender, marital_status, religion, zilla, sortOrder = "desc", } = req.query;
+    var _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    const { page = 1, limit = 12, bio_type, bio_gender, gender, marital_status, marital_status_en, religion, religious_type, zilla, division, upazila, upzilla, minAge, maxAge, minHeight, maxHeight, complexion, sortOrder = "desc", } = req.query;
+    const getQueryValue = (value) => {
+        if (typeof value === "string")
+            return value.trim();
+        if (Array.isArray(value)) {
+            const firstString = value.find((item) => typeof item === "string");
+            return typeof firstString === "string" ? firstString.trim() : undefined;
+        }
+        return undefined;
+    };
+    const getCsvValues = (value) => {
+        const queryValues = Array.isArray(value) ? value : [value];
+        const csvValues = [];
+        queryValues.forEach((queryValue) => {
+            if (typeof queryValue === "string") {
+                csvValues.push(...queryValue
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean));
+            }
+        });
+        return Array.from(new Set(csvValues));
+    };
+    const getNonNegativeNumber = (value, integerOnly = false) => {
+        const queryValue = getQueryValue(value);
+        if (!queryValue)
+            return undefined;
+        const parsedValue = Number(queryValue);
+        if (!Number.isFinite(parsedValue) ||
+            parsedValue < 0 ||
+            (integerOnly && !Number.isInteger(parsedValue))) {
+            return undefined;
+        }
+        return parsedValue;
+    };
+    const pageNumber = Number((_b = getQueryValue(page)) !== null && _b !== void 0 ? _b : page);
+    const limitNumber = Number((_c = getQueryValue(limit)) !== null && _c !== void 0 ? _c : limit);
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+        return res.status(http_status_1.default.BAD_REQUEST).json({
+            success: false,
+            message: "page must be an integer greater than or equal to 1",
+        });
+    }
+    if (!Number.isInteger(limitNumber) ||
+        limitNumber < 1 ||
+        limitNumber > 100) {
+        return res.status(http_status_1.default.BAD_REQUEST).json({
+            success: false,
+            message: "limit must be an integer between 1 and 100",
+        });
+    }
     const filter = { is_active: true };
-    if (bio_type)
-        filter.bio_type = bio_type;
-    if (gender)
-        filter.gender = gender;
-    if (marital_status)
-        filter.marital_status = marital_status;
-    if (religion)
-        filter.religion = religion;
-    if (zilla)
-        filter.zilla = zilla;
-    const skip = (Number(page) - 1) * Number(limit);
-    const sort = { createdAt: sortOrder === "asc" ? 1 : -1 };
+    const BIO_TYPE_VARIANTS = {
+        male: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        groom: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        female: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+        bride: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+        "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        "পাত্রের বায়োডাটা": ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+        "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+    };
+    const bioGenderValue = (_d = getQueryValue(bio_gender)) === null || _d === void 0 ? void 0 : _d.toLowerCase();
+    const bioTypeValue = getQueryValue(bio_type);
+    const resolvedBioTypes = bioGenderValue
+        ? (_e = BIO_TYPE_VARIANTS[bioGenderValue]) !== null && _e !== void 0 ? _e : (bioTypeValue ? (_f = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _f !== void 0 ? _f : [bioTypeValue] : [])
+        : bioTypeValue
+            ? (_g = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _g !== void 0 ? _g : [bioTypeValue]
+            : [];
+    if (resolvedBioTypes.length > 0) {
+        filter.bio_type = { $in: resolvedBioTypes };
+    }
+    const genderValue = getQueryValue(gender);
+    if (genderValue)
+        filter.gender = genderValue;
+    const MARITAL_STATUS_MAP = {
+        unmarried: "অবিবাহিত",
+        single: "অবিবাহিত",
+        married: "বিবাহিত",
+        divorced: "ডিভোর্সড",
+        widow: "বিধবা",
+        widowed: "বিধবা",
+        widower: "বিপত্নীক",
+    };
+    const maritalStatusAlias = (_h = getQueryValue(marital_status_en)) === null || _h === void 0 ? void 0 : _h.toLowerCase();
+    const maritalStatusValue = getQueryValue(marital_status);
+    const resolvedMaritalStatus = maritalStatusAlias
+        ? (_j = MARITAL_STATUS_MAP[maritalStatusAlias]) !== null && _j !== void 0 ? _j : maritalStatusValue
+        : maritalStatusValue;
+    if (resolvedMaritalStatus)
+        filter.marital_status = resolvedMaritalStatus;
+    const religionValue = getQueryValue(religion);
+    if (religionValue)
+        filter.religion = religionValue;
+    const religiousTypeValue = getQueryValue(religious_type);
+    if (religiousTypeValue)
+        filter.religious_type = religiousTypeValue;
+    const zillaValues = getCsvValues(zilla);
+    if (zillaValues.length > 0)
+        filter.zilla = { $in: zillaValues };
+    const divisionValues = getCsvValues(division);
+    if (divisionValues.length > 0 &&
+        !divisionValues.some((value) => value.toLowerCase() === "all")) {
+        filter.division = { $in: divisionValues };
+    }
+    const upazilaValues = Array.from(new Set([...getCsvValues(upazila), ...getCsvValues(upzilla)]));
+    if (upazilaValues.length > 0) {
+        filter.upzilla = { $in: upazilaValues };
+    }
+    const minimumAge = getNonNegativeNumber(minAge, true);
+    const maximumAge = getNonNegativeNumber(maxAge, true);
+    if (minimumAge !== undefined || maximumAge !== undefined) {
+        const now = new Date();
+        const currentYear = now.getUTCFullYear();
+        const currentMonth = now.getUTCMonth();
+        const currentDay = now.getUTCDate();
+        const getBirthdayBoundary = (yearsAgo, endOfDay = false) => {
+            const targetYear = currentYear - yearsAgo;
+            const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, currentMonth + 1, 0)).getUTCDate();
+            const targetDay = Math.min(currentDay, lastDayOfTargetMonth);
+            return new Date(Date.UTC(targetYear, currentMonth, targetDay, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0));
+        };
+        const dateOfBirthConditions = { $ne: null };
+        if (minimumAge !== undefined) {
+            dateOfBirthConditions.$lte = getBirthdayBoundary(minimumAge, true);
+        }
+        if (maximumAge !== undefined) {
+            const earliestDateOfBirth = getBirthdayBoundary(maximumAge + 1);
+            earliestDateOfBirth.setUTCDate(earliestDateOfBirth.getUTCDate() + 1);
+            dateOfBirthConditions.$gte = earliestDateOfBirth;
+        }
+        filter.date_of_birth = dateOfBirthConditions;
+    }
+    const minimumHeight = getNonNegativeNumber(minHeight);
+    const maximumHeight = getNonNegativeNumber(maxHeight);
+    if (minimumHeight !== undefined || maximumHeight !== undefined) {
+        const feetConditions = {};
+        const centimeterConditions = {};
+        if (minimumHeight !== undefined) {
+            feetConditions.$gte = minimumHeight;
+            centimeterConditions.$gte = minimumHeight * 30.48;
+        }
+        if (maximumHeight !== undefined) {
+            feetConditions.$lte = maximumHeight;
+            centimeterConditions.$lte = maximumHeight * 30.48;
+        }
+        // Verified biodatas store feet while imported unverified records commonly
+        // store centimeters. Accept both representations for the shared UI range.
+        filter.$or = [
+            { height: feetConditions },
+            { height: centimeterConditions },
+        ];
+    }
+    const complexionValues = getCsvValues(complexion);
+    if (complexionValues.length > 0) {
+        filter.screen_color = { $in: complexionValues };
+    }
+    const skip = (pageNumber - 1) * limitNumber;
+    const sortDirection = ((_k = getQueryValue(sortOrder)) === null || _k === void 0 ? void 0 : _k.toLowerCase()) === "asc" ? 1 : -1;
+    const sort = { createdAt: sortDirection, _id: sortDirection };
     const [biodatas, total] = yield Promise.all([
         unverified_biodata_model_1.default.find(filter)
             .select("-contact_name -contact_phone -contact_email")
             .sort(sort)
             .skip(skip)
-            .limit(Number(limit))
+            .limit(limitNumber)
             .lean(),
         unverified_biodata_model_1.default.countDocuments(filter),
     ]);
@@ -177,9 +324,9 @@ const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __await
         data: biodatas,
         meta: {
             total,
-            page: Number(page),
-            limit: Number(limit),
-            totalPages: Math.ceil(total / Number(limit)),
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages: Math.ceil(total / limitNumber),
         },
     });
 }));
@@ -253,8 +400,8 @@ const deleteUnverifiedBiodata = (0, catchAsync_1.default)((req, res) => __awaite
     res.status(200).json({ success: true, message: "Deleted successfully" });
 }));
 const purchaseUnverifiedBiodataContact = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    var _l;
+    const userId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
     if (!userId) {
         return res.status(http_status_1.default.UNAUTHORIZED).json({
             statusCode: http_status_1.default.UNAUTHORIZED,
@@ -394,7 +541,7 @@ const purchaseUnverifiedBiodataContact = (0, catchAsync_1.default)((req, res) =>
     }
 }));
 const parseCustomFieldsWithLLM = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d, _e, _f;
+    var _m, _o, _p, _q;
     const { biodata_text } = req.body;
     if (!biodata_text || typeof biodata_text !== "string") {
         return res.status(http_status_1.default.BAD_REQUEST).json({
@@ -437,7 +584,7 @@ Only return JSON array, no other text or markdown.`,
                 message: "Could not parse fields from response",
             });
         }
-        const content = (_c = response.choices[0].message) === null || _c === void 0 ? void 0 : _c.content;
+        const content = (_m = response.choices[0].message) === null || _m === void 0 ? void 0 : _m.content;
         if (!content) {
             console.warn("No content in Groq response");
             return res.status(200).json({
@@ -494,7 +641,7 @@ Only return JSON array, no other text or markdown.`,
         });
     }
     catch (error) {
-        const detail = ((_f = (_e = (_d = error.response) === null || _d === void 0 ? void 0 : _d.data) === null || _e === void 0 ? void 0 : _e.error) === null || _f === void 0 ? void 0 : _f.message) || error.message || "Unknown error";
+        const detail = ((_q = (_p = (_o = error.response) === null || _o === void 0 ? void 0 : _o.data) === null || _p === void 0 ? void 0 : _p.error) === null || _q === void 0 ? void 0 : _q.message) || error.message || "Unknown error";
         console.error("LLM parsing error:", detail);
         res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
             success: false,

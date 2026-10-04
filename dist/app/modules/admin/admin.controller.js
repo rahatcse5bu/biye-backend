@@ -23,7 +23,6 @@ const personal_info_model_1 = __importDefault(require("../personal_info/personal
 const family_status_model_1 = __importDefault(require("../family_status/family_status.model"));
 const occupation_model_1 = __importDefault(require("../occupation/occupation.model"));
 const marital_info_model_1 = __importDefault(require("../marital_info/marital_info.model"));
-const contact_model_1 = __importDefault(require("../contact/contact.model"));
 const payments_service_1 = require("../payments/payments.service");
 exports.AdminController = {
     // Dashboard Statistics
@@ -43,9 +42,11 @@ exports.AdminController = {
         const totalPayments = yield payments_service_1.PaymentService.getAllPayments();
         const completedPayments = totalPayments.filter((p) => p.status === 'Completed');
         const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        // Mock additional statistics
-        const totalBiodatas = totalUsers; // Assuming each user has one biodata
-        const verifiedBiodatas = Math.floor(totalUsers * 0.7);
+        const [totalBiodatas, verifiedBiodatas, pendingBiodatas] = yield Promise.all([
+            general_info_model_1.default.countDocuments(),
+            general_info_model_1.default.countDocuments({ biodata_status: 'approved' }),
+            general_info_model_1.default.countDocuments({ biodata_status: 'pending' }),
+        ]);
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Dashboard statistics retrieved successfully",
@@ -61,7 +62,7 @@ exports.AdminController = {
                 biodatas: {
                     total: totalBiodatas,
                     verified: verifiedBiodatas,
-                    pending: totalBiodatas - verifiedBiodatas
+                    pending: pendingBiodatas
                 },
                 payments: {
                     total: totalPayments.length,
@@ -201,74 +202,93 @@ exports.AdminController = {
             message: "User deleted successfully"
         });
     })),
-    // Get biodatas with filters
+    // Get biodatas with filters — aggregation pipeline joining GeneralInfo + UserInfo + Address
     getAllBiodatas: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { page = 1, limit = 10, search = '', status = '' } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
-        // Build filter for users
-        const userFilter = {};
-        if (search) {
-            userFilter.$or = [
-                { user_name: { $regex: search, $options: 'i' } },
-                { user_id: { $regex: search, $options: 'i' } },
-            ];
+        const { page = 1, limit = 20, search = '', bio_type = '', status = '' } = req.query;
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+        // Pre-filter: find matching user IDs if search targets user_id number
+        let matchingUserIds = null;
+        const searchStr = search.trim();
+        if (searchStr) {
+            const numericId = parseInt(searchStr);
+            if (!isNaN(numericId)) {
+                const matchedUser = yield user_info_model_1.UserInfoModel.findOne({ user_id: numericId }).select('_id').lean();
+                if (matchedUser)
+                    matchingUserIds = [matchedUser._id];
+                else
+                    matchingUserIds = [];
+            }
+            else {
+                const matchedUsers = yield user_info_model_1.UserInfoModel.find({
+                    $or: [
+                        { user_name: { $regex: searchStr, $options: 'i' } },
+                        { email: { $regex: searchStr, $options: 'i' } },
+                    ],
+                }).select('_id').lean();
+                matchingUserIds = matchedUsers.map((u) => u._id);
+            }
         }
-        if (status && status !== 'all') {
-            userFilter.user_status = status;
-        }
-        const users = yield user_info_model_1.UserInfoModel.find(userFilter)
-            .select('_id user_id user_name email user_status createdAt')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNum)
-            .lean();
-        // Get biodata info for each user
-        const biodatas = yield Promise.all(users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
-            const generalInfo = yield general_info_model_1.default.findOne({ user: user._id }).select('date_of_birth marital_status').lean();
-            const personalInfo = yield personal_info_model_1.default.findOne({ user: user._id }).select('').lean();
-            const educationInfo = yield educational_qualification_model_1.default.findOne({ user: user._id }).select('education_medium').lean();
-            const occupation = yield occupation_model_1.default.findOne({ user: user._id }).select('').lean();
-            const address = yield address_model_1.default.findOne({ user: user._id }).select('present_division present_zilla').lean();
-            const contact = yield contact_model_1.default.findOne({ user: user._id }).select('full_name').lean();
-            // Calculate age from date_of_birth
-            const age = (generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo.date_of_birth)
-                ? Math.floor((Date.now() - new Date(generalInfo.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-                : 0;
-            return {
-                _id: user._id,
-                user: user._id,
-                generalInfo_id: (_a = generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo._id) !== null && _a !== void 0 ? _a : null,
-                user_id: user.user_id,
-                user_status: user.user_status,
-                name: (contact === null || contact === void 0 ? void 0 : contact.full_name) || user.email.split('@')[0],
-                email: user.email,
-                age: age,
-                location: address ? `${address.present_zilla || 'Unknown'}, ${address.present_division || 'Unknown'}` : 'Not specified',
-                marital_status: (generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo.marital_status) || 'Not specified',
-                education: (educationInfo === null || educationInfo === void 0 ? void 0 : educationInfo.education_medium) || 'Not specified',
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt
-            };
-        })));
-        const total = yield user_info_model_1.UserInfoModel.countDocuments(userFilter);
-        const totalPages = Math.ceil(total / limitNum);
+        const matchConditions = {};
+        if (matchingUserIds !== null)
+            matchConditions.user = { $in: matchingUserIds };
+        if (bio_type && bio_type !== 'all')
+            matchConditions.bio_type = bio_type;
+        const countPipeline = [
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+            { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
+            { $match: { userDoc: { $ne: null } } },
+            ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+            ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+            { $count: 'totalCount' },
+        ];
+        const countResult = yield general_info_model_1.default.aggregate(countPipeline);
+        const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
+        const dataPipeline = [
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+            { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
+            { $match: { userDoc: { $ne: null } } },
+            { $lookup: { from: 'addresses', localField: 'user', foreignField: 'user', as: 'addressDoc' } },
+            { $addFields: { addressDoc: { $first: '$addressDoc' } } },
+            ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+            ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+            { $sort: { createdAt: -1, _id: -1 } },
+            { $skip: limitNum * (pageNum - 1) },
+            { $limit: limitNum },
+            {
+                $project: {
+                    _id: '$userDoc._id',
+                    user: '$userDoc._id',
+                    generalInfo_id: '$_id',
+                    user_id: '$userDoc.user_id',
+                    user_status: '$userDoc.user_status',
+                    bio_type: 1, date_of_birth: 1, height: 1, gender: 1, weight: 1,
+                    blood_group: 1, screen_color: 1, nationality: 1, marital_status: 1,
+                    religion: 1, religious_type: 1, request_practicing_status: 1, photos: 1,
+                    views_count: 1, likes_count: 1, dislikes_count: 1, purchases_count: 1,
+                    isFeatured: 1, isMarriageDone: 1,
+                    zilla: '$addressDoc.zilla', upzilla: '$addressDoc.upzilla',
+                    biodata_status: 1, version: 1, approved_data: 1, pending_changes: 1,
+                    admin_note: 1, last_approved_at: 1, last_approved_by: 1,
+                    createdAt: 1, updatedAt: 1,
+                },
+            },
+        ];
+        const biodatas = yield general_info_model_1.default.aggregate(dataPipeline);
         res.status(http_status_1.default.OK).json({
             success: true,
-            message: "Biodatas retrieved successfully",
+            message: 'Biodatas retrieved successfully',
             data: {
                 biodatas,
                 pagination: {
                     currentPage: pageNum,
-                    totalPages,
-                    totalItems: total,
+                    totalPages: Math.ceil(totalCount / limitNum),
+                    totalItems: totalCount,
                     itemsPerPage: limitNum,
-                    hasNext: pageNum < totalPages,
-                    hasPrev: pageNum > 1
-                }
-            }
+                    hasNext: pageNum < Math.ceil(totalCount / limitNum),
+                    hasPrev: pageNum > 1,
+                },
+            },
         });
     })),
     // Update biodata status

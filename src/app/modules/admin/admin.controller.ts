@@ -33,9 +33,11 @@ export const AdminController = {
     const completedPayments = totalPayments.filter((p: any) => p.status === 'Completed');
     const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
 
-    // Mock additional statistics
-    const totalBiodatas = totalUsers; // Assuming each user has one biodata
-    const verifiedBiodatas = Math.floor(totalUsers * 0.7);
+    const [totalBiodatas, verifiedBiodatas, pendingBiodatas] = await Promise.all([
+      GeneralInfo.countDocuments(),
+      GeneralInfo.countDocuments({ biodata_status: 'approved' }),
+      GeneralInfo.countDocuments({ biodata_status: 'pending' }),
+    ]);
     
     res.status(httpStatus.OK).json({
       success: true,
@@ -52,7 +54,7 @@ export const AdminController = {
         biodatas: {
           total: totalBiodatas,
           verified: verifiedBiodatas,
-          pending: totalBiodatas - verifiedBiodatas
+          pending: pendingBiodatas
         },
         payments: {
           total: totalPayments.length,

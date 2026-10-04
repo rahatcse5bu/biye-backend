@@ -35,7 +35,7 @@ const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", sortOrder = "desc", 
     // New filter parameters
     gender, minAge, maxAge, minHeight, maxHeight, complexion, // screen_color
@@ -47,42 +47,72 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     marital_status_en, // 'unmarried'|'married'|'divorced'|'widow'|'widower'
     // Expected partner filters
     exp_zilla, exp_marital_status, exp_occupation, exp_economical_condition, exp_educational_qualifications, } = req.query;
-    // Resolve bio_type from English alias if provided
-    const BIO_GENDER_MAP = {
-        male: 'পাত্রের বায়োডাটা',
-        groom: 'পাত্রের বায়োডাটা',
-        female: 'পাত্রীর বায়োডাটা',
-        bride: 'পাত্রীর বায়োডাটা',
+    const toStringArray = (value) => {
+        const values = Array.isArray(value) ? value : [value];
+        return values
+            .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
+            .map((item) => item.trim())
+            .filter(Boolean);
     };
-    const resolvedBioType = bio_gender
-        ? (_a = BIO_GENDER_MAP[String(bio_gender).toLowerCase()]) !== null && _a !== void 0 ? _a : bio_type
-        : bio_type;
+    const firstQueryValue = (value) => toStringArray(value)[0];
+    // Resolve bio_type from English aliases. Both common Unicode spellings are
+    // accepted because legacy records contain both বায়োডাটা and বায়োডাটা.
+    const BIO_GENDER_MAP = {
+        male: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        groom: ["পাত্রের বায়োডাটা", "পাত্রের বায়োডাটা"],
+        female: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+        bride: ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
+    };
+    const bioGenderAlias = (_a = firstQueryValue(bio_gender)) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+    const resolvedBioTypes = bioGenderAlias && BIO_GENDER_MAP[bioGenderAlias]
+        ? BIO_GENDER_MAP[bioGenderAlias]
+        : toStringArray(bio_type);
     // Resolve marital_status from English alias if provided
     const MARITAL_EN_MAP = {
-        unmarried: 'অবিবাহিত',
-        single: 'অবিবাহিত',
-        married: 'বিবাহিত',
-        divorced: 'ডিভোর্সড',
-        widow: 'বিধবা',
-        widowed: 'বিধবা',
-        widower: 'বিপত্নীক',
+        unmarried: "অবিবাহিত",
+        single: "অবিবাহিত",
+        married: "বিবাহিত",
+        divorced: "ডিভোর্সড",
+        widow: "বিধবা",
+        widowed: "বিধবা",
+        widower: "বিপত্নীক",
     };
-    const resolvedMaritalStatus = marital_status_en
-        ? (_b = MARITAL_EN_MAP[String(marital_status_en).toLowerCase()]) !== null && _b !== void 0 ? _b : marital_status
-        : marital_status;
+    const maritalStatusAlias = (_b = firstQueryValue(marital_status_en)) === null || _b === void 0 ? void 0 : _b.toLowerCase();
+    const resolvedMaritalStatuses = maritalStatusAlias && MARITAL_EN_MAP[maritalStatusAlias]
+        ? [MARITAL_EN_MAP[maritalStatusAlias]]
+        : toStringArray(marital_status);
+    // These expressions define the canonical values returned by the public API.
+    // They are installed before filtering in both the count and data pipelines.
+    const canonicalPublicFields = {
+        bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
+        marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+        gender: { $ifNull: ["$approved_data.gender", "$gender"] },
+        date_of_birth: {
+            $convert: {
+                input: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
+                to: "date",
+                onError: null,
+                onNull: null,
+            },
+        },
+        height: { $ifNull: ["$approved_data.height", "$height"] },
+        screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
+    };
     const andConditions = [
         {
             "userDetails.user_status": user_status,
         },
     ];
-    // Gender filter
-    if (gender) {
-        andConditions.push({ gender });
+    // Gender filter (against the approved-first canonical public value)
+    const genderValues = toStringArray(gender);
+    if (genderValues.length > 0) {
+        andConditions.push({ gender: { $in: genderValues } });
     }
     // Filter by the same approved-first values that are returned publicly.
     // Pending top-level edits must not place a biodata in a different religion
     // filter before an admin approves those changes.
-    if (religion) {
+    const religionValue = firstQueryValue(religion);
+    if (religionValue) {
         andConditions.push({
             $expr: {
                 $eq: [
@@ -92,12 +122,13 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                             { $ifNull: ["$religion", "islam"] },
                         ],
                     },
-                    religion,
+                    religionValue,
                 ],
             },
         });
     }
-    if (religious_type) {
+    const religiousTypeValue = firstQueryValue(religious_type);
+    if (religiousTypeValue) {
         andConditions.push({
             $expr: {
                 $eq: [
@@ -107,148 +138,159 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                             "$religious_type",
                         ],
                     },
-                    religious_type,
+                    religiousTypeValue,
                 ],
             },
         });
     }
-    // Age filter (calculated from date_of_birth)
-    if (minAge || maxAge) {
+    const parseFiniteNumber = (value) => {
+        const rawValue = firstQueryValue(value);
+        if (rawValue === undefined)
+            return undefined;
+        const parsedValue = Number(rawValue);
+        return Number.isFinite(parsedValue) ? parsedValue : undefined;
+    };
+    const parseAge = (value) => {
+        const parsedValue = parseFiniteNumber(value);
+        return parsedValue !== undefined && parsedValue >= 0
+            ? Math.floor(parsedValue)
+            : undefined;
+    };
+    // Return the same calendar day N years ago, clamping leap day to the final
+    // day of February when the target year is not a leap year.
+    const calendarDateYearsAgo = (date, years) => {
+        const targetYear = date.getFullYear() - years;
+        const targetMonth = date.getMonth();
+        const targetDay = date.getDate();
+        const shiftedDate = new Date(date);
+        shiftedDate.setDate(1);
+        shiftedDate.setFullYear(targetYear);
+        shiftedDate.setMonth(targetMonth);
+        const finalDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        shiftedDate.setDate(Math.min(targetDay, finalDayOfTargetMonth));
+        return shiftedDate;
+    };
+    // Age filter against the approved-first canonical date_of_birth. The oldest
+    // accepted maxAge DOB is the day after the (maxAge + 1) anniversary, so
+    // everyone who is exactly maxAge today remains included.
+    const minAgeNumber = parseAge(minAge);
+    const maxAgeNumber = parseAge(maxAge);
+    if (minAgeNumber !== undefined || maxAgeNumber !== undefined) {
         const ageConditions = {};
-        if (maxAge) {
-            const minDate = new Date();
-            minDate.setFullYear(minDate.getFullYear() - Number(maxAge));
-            ageConditions.$gte = minDate;
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        if (maxAgeNumber !== undefined) {
+            const oldestIncludedBirthDate = calendarDateYearsAgo(startOfToday, maxAgeNumber + 1);
+            oldestIncludedBirthDate.setDate(oldestIncludedBirthDate.getDate() + 1);
+            ageConditions.$gte = oldestIncludedBirthDate;
         }
-        if (minAge) {
-            const maxDate = new Date();
-            maxDate.setFullYear(maxDate.getFullYear() - Number(minAge));
-            ageConditions.$lte = maxDate;
+        if (minAgeNumber !== undefined) {
+            const youngestIncludedBirthDate = calendarDateYearsAgo(startOfToday, minAgeNumber);
+            youngestIncludedBirthDate.setHours(23, 59, 59, 999);
+            ageConditions.$lte = youngestIncludedBirthDate;
         }
-        if (Object.keys(ageConditions).length > 0) {
-            andConditions.push({ date_of_birth: ageConditions });
-        }
+        andConditions.push({ date_of_birth: ageConditions });
     }
-    // Height filter
-    if (minHeight || maxHeight) {
+    // Height filter against the approved-first canonical public value
+    const minHeightNumber = parseFiniteNumber(minHeight);
+    const maxHeightNumber = parseFiniteNumber(maxHeight);
+    if (minHeightNumber !== undefined || maxHeightNumber !== undefined) {
         const heightConditions = {};
-        if (minHeight)
-            heightConditions.$gte = Number(minHeight);
-        if (maxHeight)
-            heightConditions.$lte = Number(maxHeight);
-        if (Object.keys(heightConditions).length > 0) {
-            andConditions.push({ height: heightConditions });
-        }
+        if (minHeightNumber !== undefined)
+            heightConditions.$gte = minHeightNumber;
+        if (maxHeightNumber !== undefined)
+            heightConditions.$lte = maxHeightNumber;
+        andConditions.push({ height: heightConditions });
     }
-    // Complexion filter (screen_color)
-    if (complexion) {
-        if (typeof complexion === "string") {
-            andConditions.push({
-                screen_color: { $in: complexion.split(",") },
-            });
-        }
-        else if (Array.isArray(complexion)) {
-            andConditions.push({
-                screen_color: { $in: complexion },
-            });
-        }
+    // Complexion filter against the approved-first canonical screen_color
+    const complexionValues = toStringArray(complexion);
+    if (complexionValues.length > 0) {
+        andConditions.push({ screen_color: { $in: complexionValues } });
     }
     // Permanent Address Filters: Division, Zilla, Upazila
-    // Handle division filter (skip if "all")
-    if (division && division !== "all") {
-        if (typeof division === "string") {
-            andConditions.push({
-                "address.division": { $in: division.split(",") },
-            });
-        }
-        else if (Array.isArray(division)) {
-            andConditions.push({
-                "address.division": { $in: division },
-            });
-        }
+    const divisionValues = toStringArray(division);
+    if (divisionValues.length > 0 &&
+        !divisionValues.some((value) => value.toLowerCase() === "all")) {
+        andConditions.push({ "address.division": { $in: divisionValues } });
     }
-    // Handle zilla (district) filter - independent of division
-    if (zilla) {
-        if (typeof zilla === "string") {
-            andConditions.push({
-                "address.zilla": { $in: zilla.split(",") },
-            });
-        }
-        else if (Array.isArray(zilla)) {
-            andConditions.push({
-                "address.zilla": { $in: zilla },
-            });
-        }
+    const zillaValues = toStringArray(zilla);
+    if (zillaValues.length > 0) {
+        andConditions.push({ "address.zilla": { $in: zillaValues } });
     }
-    // Handle upazila filter
-    if (upazila) {
-        if (typeof upazila === "string") {
-            andConditions.push({
-                "address.upzilla": { $in: upazila.split(",") },
-            });
-        }
-        else if (Array.isArray(upazila)) {
-            andConditions.push({
-                "address.upzilla": { $in: upazila },
-            });
-        }
+    const upazilaValues = toStringArray(upazila);
+    if (upazilaValues.length > 0) {
+        andConditions.push({ "address.upzilla": { $in: upazilaValues } });
     }
     // Current/Present Address Filters
-    // Handle current division filter
-    if (current_division && current_division !== "all") {
-        if (typeof current_division === "string") {
-            andConditions.push({
-                "address.present_division": { $in: current_division.split(",") },
-            });
-        }
-        else if (Array.isArray(current_division)) {
-            andConditions.push({
-                "address.present_division": { $in: current_division },
-            });
-        }
+    const currentDivisionValues = toStringArray(current_division);
+    if (currentDivisionValues.length > 0 &&
+        !currentDivisionValues.some((value) => value.toLowerCase() === "all")) {
+        andConditions.push({
+            "address.present_division": { $in: currentDivisionValues },
+        });
     }
-    // Handle current zilla filter
-    if (current_zilla) {
-        if (typeof current_zilla === "string") {
-            andConditions.push({
-                "address.present_zilla": { $in: current_zilla.split(",") },
-            });
-        }
-        else if (Array.isArray(current_zilla)) {
-            andConditions.push({
-                "address.present_zilla": { $in: current_zilla },
-            });
-        }
+    const currentZillaValues = toStringArray(current_zilla);
+    if (currentZillaValues.length > 0) {
+        andConditions.push({
+            "address.present_zilla": { $in: currentZillaValues },
+        });
     }
-    // Handle current upzilla filter
-    if (current_upzilla) {
-        if (typeof current_upzilla === "string") {
-            andConditions.push({
-                "address.present_upzilla": { $in: current_upzilla.split(",") },
-            });
-        }
-        else if (Array.isArray(current_upzilla)) {
-            andConditions.push({
-                "address.present_upzilla": { $in: current_upzilla },
-            });
-        }
+    const currentUpzillaValues = toStringArray(current_upzilla);
+    if (currentUpzillaValues.length > 0) {
+        andConditions.push({
+            "address.present_upzilla": { $in: currentUpzillaValues },
+        });
     }
-    // Permanent address filter (searching in address fields) - for text search
-    if (permanent_address) {
+    // Permanent address text search. Treat input as literal text so regex control
+    // characters cannot alter the query or trigger pathological expressions.
+    const permanentAddressValue = (_c = firstQueryValue(permanent_address)) === null || _c === void 0 ? void 0 : _c.trim();
+    if (permanentAddressValue) {
+        const escapedPermanentAddress = permanentAddressValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const addressSearch = { $regex: escapedPermanentAddress, $options: "i" };
         andConditions.push({
             $or: [
-                { "address.zilla": { $regex: permanent_address, $options: "i" } },
-                { "address.upzilla": { $regex: permanent_address, $options: "i" } },
-                { "address.post_office": { $regex: permanent_address, $options: "i" } },
+                { "address.permanent_address": addressSearch },
+                { "address.permanent_area": addressSearch },
+                { "address.zilla": addressSearch },
+                { "address.upzilla": addressSearch },
+                { "address.division": addressSearch },
+                { "address.city": addressSearch },
             ],
         });
     }
-    // Parse limit and page to numbers
-    const limitNumber = Number(limit);
-    const pageNumber = Number(page);
-    // Parse sort parameters
-    const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
-    const sortDirection = sortOrder === "asc" ? 1 : -1;
+    const parseInteger = (value, fallback) => {
+        const parsedValue = parseFiniteNumber(value);
+        return parsedValue === undefined ? fallback : Math.trunc(parsedValue);
+    };
+    // Clamp pagination to valid, bounded integer values.
+    const pageNumber = Math.max(1, parseInteger(page, 1));
+    const limitNumber = Math.min(100, Math.max(1, parseInteger(limit, 10)));
+    // Only permit fields that exist at sort time and are useful in the public
+    // response. Always include _id as a deterministic tie-breaker.
+    const allowedSortFields = new Set([
+        "_id",
+        "createdAt",
+        "bio_type",
+        "marital_status",
+        "gender",
+        "date_of_birth",
+        "height",
+        "screen_color",
+        "views_count",
+        "purchases_count",
+        "likes_count",
+        "dislikes_count",
+        "isFeatured",
+    ]);
+    const requestedSortField = firstQueryValue(sortBy);
+    const sortField = requestedSortField && allowedSortFields.has(requestedSortField)
+        ? requestedSortField
+        : "createdAt";
+    const sortDirection = ((_d = firstQueryValue(sortOrder)) === null || _d === void 0 ? void 0 : _d.toLowerCase()) === "asc" ? 1 : -1;
+    const sortSpec = { [sortField]: sortDirection };
+    if (sortField !== "_id") {
+        sortSpec._id = sortDirection;
+    }
     // Parse isFeatured to boolean
     if (isFeatured) {
         const isFeaturedBool = isFeatured === "true";
@@ -259,71 +301,83 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     // Additional filter conditions for joined collections
     const additionalMatches = {};
     // Education medium filter
-    if (education_medium) {
-        if (typeof education_medium === "string") {
-            additionalMatches["education.education_medium"] = { $in: education_medium.split(",") };
-        }
-        else if (Array.isArray(education_medium)) {
-            additionalMatches["education.education_medium"] = { $in: education_medium };
-        }
+    const educationMediumValues = toStringArray(education_medium);
+    if (educationMediumValues.length > 0) {
+        additionalMatches["education.education_medium"] = {
+            $in: educationMediumValues,
+        };
     }
     // Deeni education filter
-    if (deeni_edu) {
-        const deeniEduArray = typeof deeni_edu === "string" ? deeni_edu.split(",") : deeni_edu;
-        additionalMatches["education.deeni_edu"] = { $in: deeniEduArray };
+    const deeniEducationValues = toStringArray(deeni_edu);
+    if (deeniEducationValues.length > 0) {
+        additionalMatches["education.deeni_edu"] = {
+            $in: deeniEducationValues,
+        };
     }
     // Occupation filter
-    if (occupation) {
-        const occupationArray = typeof occupation === "string" ? occupation.split(",") : occupation;
-        additionalMatches["occupation.occupation"] = { $in: occupationArray };
+    const occupationValues = toStringArray(occupation);
+    if (occupationValues.length > 0) {
+        additionalMatches["occupation.occupation"] = { $in: occupationValues };
     }
     // Fiqh filter
-    if (fiqh) {
-        if (typeof fiqh === "string") {
-            additionalMatches["personalInfo.fiqh"] = { $in: fiqh.split(",") };
-        }
-        else if (Array.isArray(fiqh)) {
-            additionalMatches["personalInfo.fiqh"] = { $in: fiqh };
-        }
+    const fiqhValues = toStringArray(fiqh);
+    if (fiqhValues.length > 0) {
+        additionalMatches["personalInfo.fiqh"] = { $in: fiqhValues };
     }
     // Economic status filter
-    if (economic_status) {
-        if (typeof economic_status === "string") {
-            additionalMatches["familyStatus.eco_condition_type"] = { $in: economic_status.split(",") };
-        }
-        else if (Array.isArray(economic_status)) {
-            additionalMatches["familyStatus.eco_condition_type"] = { $in: economic_status };
-        }
+    const economicStatusValues = toStringArray(economic_status);
+    if (economicStatusValues.length > 0) {
+        additionalMatches["familyStatus.eco_condition_type"] = {
+            $in: economicStatusValues,
+        };
     }
     // Categories filter
-    if (categories) {
-        const categoriesArray = typeof categories === "string" ? categories.split(",") : categories;
-        additionalMatches["personalInfo.my_categories"] = { $in: categoriesArray };
+    const categoryValues = toStringArray(categories);
+    if (categoryValues.length > 0) {
+        additionalMatches["personalInfo.my_categories"] = {
+            $in: categoryValues,
+        };
     }
     // Expected partner filters (filter by what the biodata owner expects in their partner)
     const expectedPartnerMatches = {};
-    if (exp_zilla) {
-        const arr = typeof exp_zilla === "string" ? exp_zilla.split(",") : exp_zilla;
-        expectedPartnerMatches["expectedPartner.zilla"] = { $in: arr };
+    const expectedZillaValues = toStringArray(exp_zilla);
+    if (expectedZillaValues.length > 0) {
+        expectedPartnerMatches["expectedPartner.zilla"] = {
+            $in: expectedZillaValues,
+        };
     }
-    if (exp_marital_status) {
-        const arr = typeof exp_marital_status === "string" ? exp_marital_status.split(",") : exp_marital_status;
-        expectedPartnerMatches["expectedPartner.marital_status"] = { $in: arr };
+    const expectedMaritalStatusValues = toStringArray(exp_marital_status);
+    if (expectedMaritalStatusValues.length > 0) {
+        expectedPartnerMatches["expectedPartner.marital_status"] = {
+            $in: expectedMaritalStatusValues,
+        };
     }
-    if (exp_occupation) {
-        const arr = typeof exp_occupation === "string" ? exp_occupation.split(",") : exp_occupation;
-        expectedPartnerMatches["expectedPartner.occupation"] = { $in: arr };
+    const expectedOccupationValues = toStringArray(exp_occupation);
+    if (expectedOccupationValues.length > 0) {
+        expectedPartnerMatches["expectedPartner.occupation"] = {
+            $in: expectedOccupationValues,
+        };
     }
-    if (exp_economical_condition) {
-        const arr = typeof exp_economical_condition === "string" ? exp_economical_condition.split(",") : exp_economical_condition;
-        expectedPartnerMatches["expectedPartner.economical_condition"] = { $in: arr };
+    const expectedEconomicConditionValues = toStringArray(exp_economical_condition);
+    if (expectedEconomicConditionValues.length > 0) {
+        expectedPartnerMatches["expectedPartner.economical_condition"] = {
+            $in: expectedEconomicConditionValues,
+        };
     }
-    if (exp_educational_qualifications) {
-        const arr = typeof exp_educational_qualifications === "string" ? exp_educational_qualifications.split(",") : exp_educational_qualifications;
-        expectedPartnerMatches["expectedPartner.educational_qualifications"] = { $in: arr };
+    const expectedEducationValues = toStringArray(exp_educational_qualifications);
+    if (expectedEducationValues.length > 0) {
+        expectedPartnerMatches["expectedPartner.educational_qualifications"] = {
+            $in: expectedEducationValues,
+        };
     }
-    // Construct aggregation pipeline for counting total size
-    const countPipeline = [
+    const publicValueMatches = Object.assign(Object.assign(Object.assign(Object.assign({}, (resolvedBioTypes.length > 0 && {
+        bio_type: { $in: resolvedBioTypes },
+    })), (resolvedMaritalStatuses.length > 0 && {
+        marital_status: { $in: resolvedMaritalStatuses },
+    })), additionalMatches), expectedPartnerMatches);
+    // Count and data retrieval share these exact stages to prevent filter drift.
+    // Canonical public fields are set before every match that references them.
+    const publicFilterStages = [
         {
             $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
         },
@@ -353,69 +407,26 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
             $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
         },
         { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
+        { $set: canonicalPublicFields },
         {
             $match: {
                 $and: andConditions,
             },
         },
-        ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
-            ? [
-                {
-                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (resolvedBioType && { bio_type: resolvedBioType })), (resolvedMaritalStatus && { marital_status: resolvedMaritalStatus })), additionalMatches), expectedPartnerMatches),
-                },
-            ]
+        ...(Object.keys(publicValueMatches).length > 0
+            ? [{ $match: publicValueMatches }]
             : []),
-        {
-            $count: "totalCount",
-        },
+    ];
+    const countPipeline = [
+        ...publicFilterStages,
+        { $count: "totalCount" },
     ];
     // Get the total count
     const totalResult = yield general_info_model_1.default.aggregate(countPipeline);
     const totalCount = totalResult.length > 0 ? totalResult[0].totalCount : 0;
-    // Construct aggregation pipeline for actual data retrieval
     const dataPipeline = [
-        {
-            $lookup: { from: "users", localField: "user", foreignField: "_id", as: "userDetails" },
-        },
-        { $addFields: { userDetails: { $first: "$userDetails" } } },
-        { $match: { userDetails: { $ne: null } } },
-        {
-            $lookup: { from: "addresses", localField: "user", foreignField: "user", as: "address" },
-        },
-        { $addFields: { address: { $first: "$address" } } },
-        {
-            $lookup: { from: "educationalqualifications", localField: "user", foreignField: "user", as: "education" },
-        },
-        { $addFields: { education: { $first: "$education" } } },
-        {
-            $lookup: { from: "occupations", localField: "user", foreignField: "user", as: "occupation" },
-        },
-        { $addFields: { occupation: { $first: "$occupation" } } },
-        {
-            $lookup: { from: "personalinfos", localField: "user", foreignField: "user", as: "personalInfo" },
-        },
-        { $addFields: { personalInfo: { $first: "$personalInfo" } } },
-        {
-            $lookup: { from: "familystatuses", localField: "user", foreignField: "user", as: "familyStatus" },
-        },
-        { $addFields: { familyStatus: { $first: "$familyStatus" } } },
-        {
-            $lookup: { from: "expectedpartners", localField: "user", foreignField: "user", as: "expectedPartner" },
-        },
-        { $addFields: { expectedPartner: { $first: "$expectedPartner" } } },
-        {
-            $match: {
-                $and: andConditions,
-            },
-        },
-        ...(resolvedBioType || resolvedMaritalStatus || Object.keys(additionalMatches).length > 0 || Object.keys(expectedPartnerMatches).length > 0
-            ? [
-                {
-                    $match: Object.assign(Object.assign(Object.assign(Object.assign({}, (resolvedBioType && { bio_type: resolvedBioType })), (resolvedMaritalStatus && { marital_status: resolvedMaritalStatus })), additionalMatches), expectedPartnerMatches),
-                },
-            ]
-            : []),
-        { $sort: { [sortField]: sortDirection } },
+        ...publicFilterStages,
+        { $sort: sortSpec },
         { $skip: limitNumber * (pageNumber - 1) },
         { $limit: limitNumber },
         {
@@ -429,24 +440,25 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
                 present_upzilla: "$address.present_upzilla",
                 present_zilla: "$address.present_zilla",
                 present_division: "$address.present_division",
-                bio_type: { $ifNull: ["$approved_data.bio_type", "$bio_type"] },
-                date_of_birth: { $ifNull: ["$approved_data.date_of_birth", "$date_of_birth"] },
-                height: { $ifNull: ["$approved_data.height", "$height"] },
-                gender: { $ifNull: ["$approved_data.gender", "$gender"] },
+                bio_type: 1,
+                date_of_birth: 1,
+                height: 1,
+                gender: 1,
                 weight: { $ifNull: ["$approved_data.weight", "$weight"] },
                 blood_group: { $ifNull: ["$approved_data.blood_group", "$blood_group"] },
-                screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
+                screen_color: 1,
                 nationality: { $ifNull: ["$approved_data.nationality", "$nationality"] },
-                marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
+                marital_status: 1,
                 religion: { $ifNull: ["$approved_data.religion", { $ifNull: ["$religion", "islam"] }] },
                 religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
-                photos: { $ifNull: ["$pending_changes.photos", { $ifNull: ["$approved_data.photos", "$photos"] }] },
+                photos: { $ifNull: ["$approved_data.photos", "$photos"] },
                 views_count: 1,
                 purchases_count: 1,
                 isFbPosted: 1,
                 isFeatured: 1,
                 dislikes_count: 1,
                 likes_count: 1,
+                createdAt: 1,
             },
         },
     ];
@@ -606,7 +618,7 @@ const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter
                 marital_status: { $ifNull: ["$approved_data.marital_status", "$marital_status"] },
                 religion: { $ifNull: ["$approved_data.religion", "$religion"] },
                 religious_type: { $ifNull: ["$approved_data.religious_type", "$religious_type"] },
-                photos: { $ifNull: ["$pending_changes.photos", { $ifNull: ["$approved_data.photos", "$photos"] }] },
+                photos: { $ifNull: ["$approved_data.photos", "$photos"] },
                 views_count: 1,
                 purchases_count: 1,
                 isFbPosted: 1,
@@ -629,6 +641,7 @@ const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter
     });
 }));
 const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _e;
     const userId = req.params.id;
     const generalInfo = yield general_info_model_1.default.findOne({ user_id: userId });
     if (!generalInfo) {
@@ -641,7 +654,7 @@ const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter
     let publicData = generalInfo.toObject();
     if (publicData.approved_data) {
         const { approved_data, pending_changes, admin_note } = publicData, meta = __rest(publicData, ["approved_data", "pending_changes", "admin_note"]);
-        publicData = Object.assign(Object.assign({}, meta), approved_data);
+        publicData = Object.assign(Object.assign(Object.assign({}, meta), approved_data), { photos: (_e = approved_data.photos) !== null && _e !== void 0 ? _e : meta.photos });
     }
     res.status(200).json({
         message: "General info retrieved successfully",
@@ -686,9 +699,9 @@ const getGeneralInfoDashboardByUser = (0, catchAsync_1.default)((req, res) => __
     });
 }));
 const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c;
+    var _f;
     // console.log(req.user);
-    const generalInfo = yield general_info_model_1.default.findOne({ user: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id });
+    const generalInfo = yield general_info_model_1.default.findOne({ user: (_f = req.user) === null || _f === void 0 ? void 0 : _f._id });
     if (!generalInfo) {
         return res.status(404).json({
             message: "General info not found",
@@ -731,9 +744,9 @@ const getSingleGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(v
     res.status(200).json((0, SendSuccess_1.sendSuccess)("General info retrieved", responseData, 200));
 }));
 const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
-    const _e = req.body, { user_form } = _e, data = __rest(_e, ["user_form"]);
-    if (!((_d = req.user) === null || _d === void 0 ? void 0 : _d._id)) {
+    var _g;
+    const _h = req.body, { user_form } = _h, data = __rest(_h, ["user_form"]);
+    if (!((_g = req.user) === null || _g === void 0 ? void 0 : _g._id)) {
         return res.status(401).send({
             statusCode: http_status_1.default.UNAUTHORIZED,
             message: "You are not authorized",
@@ -780,9 +793,9 @@ const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
     }
 }));
 const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _f;
+    var _j;
     const data = req.body;
-    const userId = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+    const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
     if (!userId) {
         return res.status(401).json({
             success: false,
@@ -865,9 +878,9 @@ const deleteGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
 }));
 // Admin approves pending biodata changes
 const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _g;
+    var _k;
     const biodataId = req.params.id;
-    const adminId = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+    const adminId = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
     if (!adminId) {
         return res.status(401).json({
             success: false,
@@ -905,9 +918,9 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
 }));
 // Admin rejects pending biodata changes
 const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h;
+    var _l;
     const biodataId = req.params.id;
-    const adminId = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+    const adminId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
     const { reason = '' } = req.body;
     if (!adminId) {
         return res.status(401).json({
@@ -943,8 +956,8 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
 }));
 // Preserve the existing endpoint while publishing any legacy pending changes immediately.
 const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _j;
-    const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+    var _m;
+    const userId = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
