@@ -525,7 +525,6 @@ export const AdminController = {
       const result = await processRefund({
         paymentID: payment.payment_id,
         trxID: payment.transaction_id,
-        amount: payment.amount,
         reason: req.body?.reason,
       });
       res.status(httpStatus.OK).json({

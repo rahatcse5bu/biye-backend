@@ -18,7 +18,9 @@ export const PaymentService = {
     return payment;
   },
   getPaymentByEmail: async (email: string) => {
-    const payment = await Payment.find({ email }).lean();
+    const payment = await Payment.find({ email })
+      .sort({ createdAt: -1, _id: -1 })
+      .lean();
     return payment;
   },
 

@@ -3,6 +3,8 @@ import grantToken from "../../../helpers/grantToken";
 import refundTransaction from "../../../helpers/refundTransaction";
 import Payment from "../payments/payment.model";
 import { UserInfoModel } from "../user_info/user_info.model";
+import RefundRequest from "../refund_request/refund_request.model";
+import { NotificationService } from "../notifications/notification.service";
 
 export class RefundError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -20,7 +22,7 @@ type RefundInput = {
 const isRefunded = (result: any) =>
   Boolean(result?.refundTrxID) && result?.transactionStatus === "Completed";
 
-// TODO: full refunds only; marks the payment Refunded and takes back its points.
+// TODO: refunds the full amount, or a pending user request's amount; marks the payment Refunded and takes back its points.
 export const processRefund = async (input: RefundInput) => {
   const paymentID = typeof input.paymentID === "string" ? input.paymentID.trim() : "";
   const trxID = typeof input.trxID === "string" ? input.trxID.trim() : "";
@@ -36,14 +38,22 @@ export const processRefund = async (input: RefundInput) => {
     throw new RefundError(409, "This payment is already refunded");
   }
 
-  const amount = Number(input.amount ?? payment?.amount);
+  // TODO: a pending user request already holds the points and fixes the refund amount.
+  const request: any = payment
+    ? await RefundRequest.findOne({ payment: payment._id, status: "requested" }).lean()
+    : null;
+  const expectedAmount = request ? request.refund_amount : payment?.amount;
+
+  const amount = Number(input.amount ?? expectedAmount);
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new RefundError(400, "A valid refund amount is required");
   }
-  if (payment && Number(payment.amount) !== amount) {
+  if (payment && Number(expectedAmount) !== amount) {
     throw new RefundError(
       400,
-      `Partial refunds are not supported. Refund amount must be ৳${payment.amount}`,
+      request
+        ? `This payment has a pending refund request. Refund amount must be ৳${expectedAmount}`
+        : `Partial refunds are not supported. Refund amount must be ৳${expectedAmount}`,
     );
   }
 
@@ -73,6 +83,7 @@ export const processRefund = async (input: RefundInput) => {
   }
 
   let pointsRemoved = 0;
+  let pointsBalance: number | null = null;
   // TODO: atomic claim so a double click can't deduct points twice.
   const claimed = payment
     ? await Payment.findOneAndUpdate(
@@ -84,13 +95,37 @@ export const processRefund = async (input: RefundInput) => {
         },
       )
     : null;
-  if (claimed) {
-    const user = await UserInfoModel.findOne({ email: payment.email });
+  const settledRequest = claimed && request
+    ? await RefundRequest.findOneAndUpdate(
+        { _id: request._id, status: "requested" },
+        { status: "refunded", refund_trx_id: result.refundTrxID, processed_at: new Date() },
+      )
+    : null;
+  if (settledRequest) {
+    pointsRemoved = request.points_held;
+    pointsBalance =
+      ((await UserInfoModel.findOne({ email: payment.email }).select("points").lean()) as any)
+        ?.points ?? null;
+    NotificationService.notify({
+      recipient: String(request.user),
+      audience: "user",
+      type: "refund",
+      title: "রিফান্ড সম্পন্ন",
+      message: `আপনার ৳${amount} রিফান্ড বিকাশে পাঠানো হয়েছে (Refund TrxID: ${result.refundTrxID})।`,
+      link: "/user/account/payment-and-refund",
+    });
+  } else if (claimed) {
+    // TODO: removes all purchased points; balance may go negative if some were already spent.
+    const user = await UserInfoModel.findOneAndUpdate(
+      { email: payment.email },
+      { $inc: { points: -(payment.points || 0) } },
+      { new: true },
+    )
+      .select("points")
+      .lean();
     if (user) {
-      // TODO: never below zero; points already spent can't be taken back.
-      pointsRemoved = Math.min(user.points || 0, payment.points || 0);
-      user.points = (user.points || 0) - pointsRemoved;
-      await user.save();
+      pointsRemoved = payment.points || 0;
+      pointsBalance = user.points ?? null;
     }
   }
 
@@ -101,5 +136,6 @@ export const processRefund = async (input: RefundInput) => {
     transactionStatus: result.transactionStatus,
     paymentUpdated: Boolean(claimed),
     pointsRemoved,
+    pointsBalance,
   };
 };

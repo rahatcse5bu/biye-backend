@@ -39,6 +39,7 @@ import { PhotocardTemplateRoutes } from "./app/modules/photocard_template/photoc
 import UploadRouter from "./app/modules/upload/upload.route";
 import NotificationRouter from "./app/modules/notifications/notification.route";
 import PointsPackageRouter from "./app/modules/points_package/points_package.route";
+import RefundRequestRouter from "./app/modules/refund_request/refund_request.route";
 import sendEmail from "./shared/SendEmail";
 import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -167,6 +168,7 @@ app.use("/api/v1/photocard-templates", PhotocardTemplateRoutes);
 app.use("/api/v1/uploads", UploadRouter);
 app.use("/api/v1/notifications", NotificationRouter);
 app.use("/api/v1/points-packages", PointsPackageRouter);
+app.use("/api/v1/refund-requests", RefundRequestRouter);
 app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
 app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);
