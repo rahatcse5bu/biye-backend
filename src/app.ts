@@ -60,7 +60,7 @@ if (config.node_env === "development") {
 //   })
 // );
 
-const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org"];
+const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org","https://biye-admin-three.vercel.app"];
 if (config.node_env === "development") {
   allowedOrigins.push(
     "http://localhost:3000",
