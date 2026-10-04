@@ -11,6 +11,7 @@ import Occupation from "../occupation/occupation.model";
 import MaritalInfo from "../marital_info/marital_info.model";
 import Contact from "../contact/contact.model";
 import { PaymentService } from "../payments/payments.service";
+import { NotificationService } from "../notifications/notification.service";
 
 export const AdminController = {
   // Dashboard Statistics
@@ -355,6 +356,22 @@ export const AdminController = {
         message: "User not found"
       });
     }
+
+    const statusLabels: Record<string, string> = {
+      active: 'সক্রিয়',
+      inactive: 'নিষ্ক্রিয়',
+      banned: 'নিষিদ্ধ',
+      pending: 'পর্যালোচনাধীন',
+      blocked: 'ব্লক',
+    };
+    NotificationService.notify({
+      recipient: user._id,
+      audience: 'user',
+      type: 'moderation',
+      title: 'বায়োডাটার স্ট্যাটাস পরিবর্তন',
+      message: `আপনার বায়োডাটা এখন ${statusLabels[status]}।${reason ? ` কারণ: ${reason}` : ''}`,
+      link: '/user/account/dashboard',
+    });
 
     res.status(httpStatus.OK).json({
       success: true,

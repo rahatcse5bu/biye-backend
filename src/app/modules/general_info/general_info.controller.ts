@@ -1000,6 +1000,14 @@ const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
+    NotificationService.notify({
+      audience: "admin",
+      type: "biodata",
+      title: "নতুন বায়োডাটা",
+      message: `${user.email || "একজন ব্যবহারকারী"} একটি নতুন বায়োডাটা তৈরি করেছেন।`,
+      link: "/biodatas",
+    });
+
     res.status(201).json({
       success: true,
       message: "General info created and user_info updated successfully",
@@ -1159,6 +1167,15 @@ const approveBiodataChanges = catchAsync(
 
     await generalInfo.save();
 
+    NotificationService.notify({
+      recipient: String(generalInfo.user),
+      audience: "user",
+      type: "moderation",
+      title: "বায়োডাটা অনুমোদিত",
+      message: "আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত ও প্রকাশিত হয়েছে।",
+      link: "/user/account/dashboard",
+    });
+
     res.status(200).json({
       success: true,
       message: `Biodata version ${generalInfo.version} approved and published`,
@@ -1206,6 +1223,17 @@ const rejectBiodataChanges = catchAsync(async (req: Request, res: Response) => {
   generalInfo.last_approved_by = adminId;
 
   await generalInfo.save();
+
+  NotificationService.notify({
+    recipient: String(generalInfo.user),
+    audience: "user",
+    type: "moderation",
+    title: "বায়োডাটার পরিবর্তন বাতিল",
+    message: reason
+      ? `আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। কারণ: ${reason}`
+      : "আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। আগের সংস্করণটি প্রকাশিত আছে।",
+    link: "/user/account/edit-biodata",
+  });
 
   res.status(200).json({
     success: true,

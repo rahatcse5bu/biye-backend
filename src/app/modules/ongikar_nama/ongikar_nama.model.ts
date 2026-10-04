@@ -9,6 +9,7 @@ const OngikarNamaSchema: Schema = new Schema(
     is_family_know: { type: String, required: true },
     isTrueData: { type: String, required: true },
     isAgree: { type: String, required: true },
+    request_practicing_status: { type: String, required: false },
   },
   {
     timestamps: true,

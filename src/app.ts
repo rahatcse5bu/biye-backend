@@ -60,10 +60,15 @@ if (config.node_env === "development") {
 //   })
 // );
 
-const allowedOrigins = [
-  "https://www.bibaho.org",
-  "https://bibaho.org",
-];
+const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org"];
+if (config.node_env === "development") {
+  allowedOrigins.push(
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+  );
+}
 
 app.use(
   cors({

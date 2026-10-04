@@ -6,4 +6,5 @@ export interface IOngikarNama extends Document {
   is_family_know: string;
   isTrueData: string;
   isAgree: string;
+  request_practicing_status?: string;
 }

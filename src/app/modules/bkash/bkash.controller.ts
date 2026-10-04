@@ -10,6 +10,7 @@ import { UserInfoModel } from "../user_info/user_info.model";
 import { late } from "zod";
 import Payment from "../payments/payment.model";
 import sendEmail from "../../../shared/SendEmail";
+import { NotificationService } from "../notifications/notification.service";
 
 // Function to call the bKash execute payment API
 async function BkashExecutePaymentAPICall(paymentID: string) {
@@ -103,6 +104,21 @@ const afterPay = async (req: Request, res: Response) => {
         singleUser.points = singleUser.points + points;
         await singleUser.save();
         saveInDb = true;
+        NotificationService.notify({
+          recipient: singleUser._id,
+          audience: "user",
+          type: "payment",
+          title: "পেমেন্ট সফল",
+          message: `৳${response?.amount} পেমেন্ট সম্পন্ন হয়েছে। আপনার অ্যাকাউন্টে ${points} পয়েন্ট যোগ হয়েছে।`,
+          link: "/user/account/dashboard",
+        });
+        NotificationService.notify({
+          audience: "admin",
+          type: "payment",
+          title: "নতুন পেমেন্ট",
+          message: `${email} ৳${response?.amount} পেমেন্ট করেছেন (TrxID: ${response?.trxID})।`,
+          link: "/payments",
+        });
         const year = new Date().getFullYear();
         const html = `<!DOCTYPE html>
                         <html>

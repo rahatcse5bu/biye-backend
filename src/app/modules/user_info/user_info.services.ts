@@ -8,6 +8,7 @@ import ApiError from "../../middlewares/ApiError";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoModel } from "./user_info.model";
 import GeneralInfo from "../general_info/general_info.model";
+import { NotificationService } from "../notifications/notification.service";
 
 const googleClient = new OAuth2Client();
 const scryptAsync = promisify(scrypt);
@@ -60,6 +61,16 @@ const addAppToken = (user: IUserInfo): Record<string, any> => ({
   ...sanitizeUser(user),
   token: createAppToken(user),
 });
+
+const sendWelcomeNotification = (user: { _id?: unknown; username?: string }) =>
+  NotificationService.notify({
+    recipient: String(user._id),
+    audience: "user",
+    type: "system",
+    title: "বিয়েতে স্বাগতম!",
+    message: `${user.username ? `${user.username}, ` : ""}আপনার অ্যাকাউন্ট তৈরি হয়েছে। এখনই আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করুন।`,
+    link: "/biodata-submit",
+  });
 
 const hashPassword = async (password: string): Promise<string> => {
   const salt = randomBytes(16).toString("hex");
@@ -143,6 +154,7 @@ export const UserInfoService = {
       ...userInfo,
       user_id,
     });
+    sendWelcomeNotification(user);
     return sanitizeUser(user) as IUserInfo;
   },
   googleAuth: async (authInfo: {
@@ -203,6 +215,7 @@ export const UserInfoService = {
             : undefined,
         picture: payload.picture,
       });
+      sendWelcomeNotification(user);
     } else {
       if (user.google_id && user.google_id !== payload.sub) {
         throw new ApiError(409, "Email is linked to another Google account");
@@ -262,6 +275,7 @@ export const UserInfoService = {
         username,
         gender,
       });
+      sendWelcomeNotification(user);
       return addAppToken(user);
     } catch (error: any) {
       if (error?.code === 11000) {

@@ -43,17 +43,25 @@ export const NotificationService = {
     return notification;
   },
 
+  // TODO: fire-and-forget so a notification failure never breaks the main request.
+  notify: (input: CreateNotificationInput) => {
+    NotificationService.create(input).catch((error) =>
+      console.error("Notification create failed:", error),
+    );
+  },
+
   publish: async (notification: CreateNotificationInput | INotification) => {
     if (!ably) return;
 
     try {
       await ably.channels.get(getChannelName(notification)).publish("notification", {
-        id: String((notification as INotification)._id || ""),
+        _id: String((notification as INotification)._id || ""),
         audience: notification.audience,
         type: notification.type,
         title: notification.title,
         message: notification.message,
         link: notification.link,
+        isRead: false,
         createdAt: "createdAt" in notification ? notification.createdAt : new Date(),
       });
     } catch (error) {
