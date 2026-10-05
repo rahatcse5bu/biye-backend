@@ -23,16 +23,22 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_EMAIL_SETTINGS = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-// Step 2: Create the Mongoose Schema and Model
-const OngikarNamaSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    is_family_know: { type: String, required: true },
-    isTrueData: { type: String, required: true },
-    isAgree: { type: String, required: true },
-    request_practicing_status: { type: String, required: false },
-}, {
-    timestamps: true,
-});
-const OngikarNama = mongoose_1.default.model("OngikarNama", OngikarNamaSchema);
-exports.default = OngikarNama;
+exports.DEFAULT_EMAIL_SETTINGS = {
+    logo_url: "https://res.cloudinary.com/dfcyydhfn/image/upload/v1791121207/logo_vmmj9g.png",
+    support_email: "bibahosupport@gmail.com",
+    social_links: [],
+};
+// TODO: single document (key "default") with the branding every email uses.
+const EmailSettingsSchema = new mongoose_1.Schema({
+    key: { type: String, default: "default", unique: true },
+    logo_url: { type: String, default: exports.DEFAULT_EMAIL_SETTINGS.logo_url },
+    support_email: { type: String, default: exports.DEFAULT_EMAIL_SETTINGS.support_email },
+    social_links: {
+        type: [{ _id: false, label: { type: String, required: true }, url: { type: String, required: true } }],
+        default: [],
+    },
+}, { timestamps: true });
+const EmailSettings = mongoose_1.default.model("EmailSettings", EmailSettingsSchema);
+exports.default = EmailSettings;

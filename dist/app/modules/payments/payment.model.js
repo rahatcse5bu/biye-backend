@@ -44,6 +44,8 @@ const paymentSchema = new mongoose_1.Schema({
         default: 0,
     },
     trnx_time: { type: String, required: false },
+    refund_trx_id: { type: String, required: false },
+    refunded_at: { type: Date, required: false },
 }, {
     timestamps: true,
 });

@@ -9,6 +9,7 @@ exports.UserInfoFields = [
     "gender",
 ];
 exports.adminEmails = [
+    "bibahosupport@gmail.com",
     "anis.cse5.bu@gmail.com",
     "rahat.cse5.bu@gmail.com",
 ];

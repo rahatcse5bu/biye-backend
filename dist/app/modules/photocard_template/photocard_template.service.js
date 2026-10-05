@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.disableTemplate = exports.getActiveTemplatesByBioType = exports.getAllActiveTemplates = exports.upsertTemplate = exports.extractPlaceholders = exports.renderTemplateSVG = exports.getTemplateForBioType = void 0;
+const escapeXml_1 = require("../../../shared/escapeXml");
 const photocard_template_model_1 = require("../photocard_template/photocard_template.model");
 /**
  * Get the most recent active template for a given bio type
@@ -37,7 +38,7 @@ const renderTemplateSVG = (svgCode, data) => {
             continue;
         // Match placeholders like {key}, {key:format}, etc
         const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
-        rendered = rendered.replace(regex, String(value));
+        rendered = rendered.replace(regex, () => (0, escapeXml_1.escapeXml)(value));
     }
     // Remove any unreplaced placeholders
     rendered = rendered.replace(/\{[^}]+\}/g, "");

@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../../middlewares/auth");
+const points_package_controller_1 = require("./points_package.controller");
+const router = (0, express_1.Router)();
+router.get("/", points_package_controller_1.PointsPackageController.listActive);
+router.get("/admin", (0, auth_1.auth)("admin"), points_package_controller_1.PointsPackageController.listAll);
+router.get("/custom-settings", points_package_controller_1.PointsPackageController.getCustomSettings);
+router.patch("/custom-settings", (0, auth_1.auth)("admin"), points_package_controller_1.PointsPackageController.updateCustomSettings);
+router.post("/", (0, auth_1.auth)("admin"), points_package_controller_1.PointsPackageController.create);
+router.patch("/:id", (0, auth_1.auth)("admin"), points_package_controller_1.PointsPackageController.update);
+router.delete("/:id", (0, auth_1.auth)("admin"), points_package_controller_1.PointsPackageController.remove);
+exports.default = router;

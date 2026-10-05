@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const generateEmailTemplate = (subject, body, website = "https://pnc-nikah.com/") => {
+const generateEmailTemplate = (subject, body, website = "https://www.bibaho.org/") => {
     const currentYear = new Date().getFullYear();
     return `
     <!DOCTYPE html>
@@ -59,7 +59,7 @@ const generateEmailTemplate = (subject, body, website = "https://pnc-nikah.com/"
                 <p>${body}</p>
             </div>
             <div class="footer">
-                <p>&copy; ${currentYear} PNC-Nikah. All rights reserved.</p>
+                <p>&copy; ${currentYear} Bibaho. All rights reserved.</p>
                 <p><a href="${website}" target="_blank">${website}</a></p>
             </div>
         </div>

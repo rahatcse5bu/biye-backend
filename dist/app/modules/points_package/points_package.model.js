@@ -24,15 +24,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Step 2: Create the Mongoose Schema and Model
-const OngikarNamaSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    is_family_know: { type: String, required: true },
-    isTrueData: { type: String, required: true },
-    isAgree: { type: String, required: true },
-    request_practicing_status: { type: String, required: false },
-}, {
-    timestamps: true,
-});
-const OngikarNama = mongoose_1.default.model("OngikarNama", OngikarNamaSchema);
-exports.default = OngikarNama;
+const PointsPackageSchema = new mongoose_1.Schema({
+    name: { type: String, required: true, trim: true },
+    // TODO: unique so a bKash amount maps to exactly one package.
+    price: { type: Number, required: true, min: 1, unique: true },
+    points: { type: Number, required: true, min: 0 },
+    features: { type: [String], default: [] },
+    is_active: { type: Boolean, default: true },
+    sort_order: { type: Number, default: 0 },
+}, { timestamps: true });
+const PointsPackage = mongoose_1.default.model("PointsPackage", PointsPackageSchema);
+exports.default = PointsPackage;

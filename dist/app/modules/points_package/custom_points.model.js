@@ -24,15 +24,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Step 2: Create the Mongoose Schema and Model
-const OngikarNamaSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    is_family_know: { type: String, required: true },
-    isTrueData: { type: String, required: true },
-    isAgree: { type: String, required: true },
-    request_practicing_status: { type: String, required: false },
-}, {
-    timestamps: true,
-});
-const OngikarNama = mongoose_1.default.model("OngikarNama", OngikarNamaSchema);
-exports.default = OngikarNama;
+// TODO: single document (key "default") holding the custom-amount purchase rules.
+const CustomPointsSettingsSchema = new mongoose_1.Schema({
+    key: { type: String, default: "default", unique: true },
+    enabled: { type: Boolean, default: true },
+    points_per_taka: { type: Number, default: 1.2, min: 0 },
+    min_amount: { type: Number, default: 10, min: 1 },
+    max_amount: { type: Number, default: 10000, min: 1 },
+}, { timestamps: true });
+const CustomPointsSettings = mongoose_1.default.model("CustomPointsSettings", CustomPointsSettingsSchema);
+exports.default = CustomPointsSettings;

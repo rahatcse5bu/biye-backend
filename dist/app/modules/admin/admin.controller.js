@@ -24,6 +24,9 @@ const family_status_model_1 = __importDefault(require("../family_status/family_s
 const occupation_model_1 = __importDefault(require("../occupation/occupation.model"));
 const marital_info_model_1 = __importDefault(require("../marital_info/marital_info.model"));
 const payments_service_1 = require("../payments/payments.service");
+const notification_service_1 = require("../notifications/notification.service");
+const bibahoMail_1 = require("../../../shared/bibahoMail");
+const bkash_refund_1 = require("../bkash/bkash.refund");
 exports.AdminController = {
     // Dashboard Statistics
     getDashboardStats: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -292,6 +295,19 @@ exports.AdminController = {
         });
     })),
     // Update biodata status
+    // TODO: same join + user_status filter as getAllBiodatas, so the badge matches the Pending list.
+    getPendingBiodataCount: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const [result] = yield general_info_model_1.default.aggregate([
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+            { $match: { 'userDoc.user_status': 'pending' } },
+            { $count: 'count' },
+        ]);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Pending biodata count retrieved successfully",
+            data: { count: (result === null || result === void 0 ? void 0 : result.count) || 0 }
+        });
+    })),
     updateBiodataStatus: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { id } = req.params;
         const { status, reason } = req.body;
@@ -316,6 +332,28 @@ exports.AdminController = {
                 message: "User not found"
             });
         }
+        const statusLabels = {
+            active: 'সক্রিয়',
+            inactive: 'নিষ্ক্রিয়',
+            banned: 'নিষিদ্ধ',
+            pending: 'পর্যালোচনাধীন',
+            blocked: 'ব্লক',
+        };
+        notification_service_1.NotificationService.notify({
+            recipient: user._id,
+            audience: 'user',
+            type: 'moderation',
+            title: 'বায়োডাটার স্ট্যাটাস পরিবর্তন',
+            message: `আপনার বায়োডাটা এখন ${statusLabels[status]}।${reason ? ` কারণ: ${reason}` : ''}`,
+            link: '/user/account/dashboard',
+        });
+        (0, bibahoMail_1.mailUser)(user.email, 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে', {
+            title: 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে',
+            tone: status === 'active' ? 'success' : 'warning',
+            paragraphs: [`Bibaho অ্যাডমিন আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন। আপনার বায়োডাটা এখন <strong>${statusLabels[status]}</strong>।`],
+            details: [{ label: 'কারণ', value: reason }],
+            action: { label: 'ড্যাশবোর্ড দেখুন', path: '/user/account/dashboard' },
+        });
         res.status(http_status_1.default.OK).json({
             success: true,
             message: `Biodata status updated to ${status} successfully`,
@@ -405,7 +443,7 @@ exports.AdminController = {
         }
         try {
             // You would need to implement this method in your payment service
-            const updatedPayment = yield payments_service_1.PaymentService.updatePayment(id, {
+            const updatedPayment = yield payments_service_1.PaymentService.updatePaymentById(id, {
                 status
             });
             if (!updatedPayment) {
@@ -425,6 +463,33 @@ exports.AdminController = {
                 success: false,
                 message: "Error updating payment status"
             });
+        }
+    })),
+    refundPayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const payment = yield payments_service_1.PaymentService.getPaymentById(req.params.id).catch(() => null);
+        if (!payment) {
+            return res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "Payment not found"
+            });
+        }
+        try {
+            const result = yield (0, bkash_refund_1.processRefund)({
+                paymentID: payment.payment_id,
+                trxID: payment.transaction_id,
+                reason: (_a = req.body) === null || _a === void 0 ? void 0 : _a.reason,
+            });
+            res.status(http_status_1.default.OK).json({
+                success: true,
+                message: "Payment refunded successfully",
+                data: result
+            });
+        }
+        catch (error) {
+            if (!(error instanceof bkash_refund_1.RefundError))
+                throw error;
+            res.status(error.statusCode).json({ success: false, message: error.message });
         }
     })),
     getPaymentStats: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

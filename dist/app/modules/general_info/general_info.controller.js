@@ -34,6 +34,8 @@ const favourites_model_1 = __importDefault(require("../favourites/favourites.mod
 const unfavorites_model_1 = __importDefault(require("../unfavorites/unfavorites.model"));
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
+const notification_service_1 = require("../notifications/notification.service");
+const bibahoMail_1 = require("../../../shared/bibahoMail");
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", sortOrder = "desc", 
@@ -724,27 +726,17 @@ const getGeneralInfoDashboardByUser = (0, catchAsync_1.default)((req, res) => __
         throw new ApiError_1.default(400, "You are not authorized");
     }
     const user = req.user._id;
-    const generalInfo = yield general_info_model_1.default.findOne({ user: user })
-        .select("likes_count views_count")
-        .lean();
-    const favorite = yield favourites_model_1.default.countDocuments({
-        user,
-    }).lean();
-    const unFavorite = yield unfavorites_model_1.default.countDocuments({
-        user,
-    }).lean();
-    const contactPurchase = yield contact_purchase_data_model_1.default.countDocuments({
-        user,
-    }).lean();
-    if (!generalInfo) {
-        return res.status(404).json({
-            message: "General info not found",
-            success: false,
-        });
-    }
+    const [generalInfo, favorite, unFavorite, contactPurchase] = yield Promise.all([
+        general_info_model_1.default.findOne({ user: user }).select("likes_count views_count").lean(),
+        favourites_model_1.default.countDocuments({ user }),
+        unfavorites_model_1.default.countDocuments({ user }),
+        contact_purchase_data_model_1.default.countDocuments({ user }),
+    ]);
+    // TODO: users without a biodata still get their own counts; likes/views are just 0.
     const responseData = {
-        likes_count: generalInfo.likes_count,
-        views_count: generalInfo.views_count,
+        has_biodata: Boolean(generalInfo),
+        likes_count: (generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo.likes_count) || 0,
+        views_count: (generalInfo === null || generalInfo === void 0 ? void 0 : generalInfo.views_count) || 0,
         favorite_count: favorite,
         unFavorite_count: unFavorite,
         contact_purchase_count: contactPurchase,
@@ -842,6 +834,13 @@ const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
         yield user.save({ session });
         yield session.commitTransaction();
         session.endSession();
+        notification_service_1.NotificationService.notify({
+            audience: "admin",
+            type: "biodata",
+            title: "নতুন বায়োডাটা",
+            message: `${user.email || "একজন ব্যবহারকারী"} একটি নতুন বায়োডাটা তৈরি করেছেন।`,
+            link: "/biodatas",
+        });
         res.status(201).json({
             success: true,
             message: "General info created and user_info updated successfully",
@@ -972,6 +971,21 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
     generalInfo.last_approved_at = new Date();
     generalInfo.last_approved_by = adminId;
     yield generalInfo.save();
+    notification_service_1.NotificationService.notify({
+        recipient: String(generalInfo.user),
+        audience: "user",
+        type: "moderation",
+        title: "বায়োডাটা অনুমোদিত",
+        message: "আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত ও প্রকাশিত হয়েছে।",
+        link: "/user/account/dashboard",
+    });
+    (0, bibahoMail_1.mailUserById)(generalInfo.user, "আপনার বায়োডাটা অনুমোদিত হয়েছে", {
+        title: "আপনার বায়োডাটা অনুমোদিত হয়েছে",
+        tone: "success",
+        paragraphs: ["অভিনন্দন! আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত হয়েছে এবং এখন সবার কাছে প্রকাশিত।"],
+        details: [{ label: "সংস্করণ", value: generalInfo.version }],
+        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+    });
     res.status(200).json({
         success: true,
         message: `Biodata version ${generalInfo.version} approved and published`,
@@ -1011,6 +1025,26 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
     generalInfo.last_approved_at = new Date();
     generalInfo.last_approved_by = adminId;
     yield generalInfo.save();
+    notification_service_1.NotificationService.notify({
+        recipient: String(generalInfo.user),
+        audience: "user",
+        type: "moderation",
+        title: "বায়োডাটার পরিবর্তন বাতিল",
+        message: reason
+            ? `আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। কারণ: ${reason}`
+            : "আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। আগের সংস্করণটি প্রকাশিত আছে।",
+        link: "/user/account/edit-biodata",
+    });
+    (0, bibahoMail_1.mailUserById)(generalInfo.user, "বায়োডাটার পরিবর্তন বাতিল হয়েছে", {
+        title: "বায়োডাটার পরিবর্তন বাতিল হয়েছে",
+        tone: "warning",
+        paragraphs: [
+            "আপনার বায়োডাটার সাম্প্রতিক পরিবর্তনগুলো অনুমোদিত হয়নি। আগের অনুমোদিত সংস্করণটি প্রকাশিত আছে।",
+            "প্রয়োজনীয় সংশোধন করে আবার জমা দিতে পারেন।",
+        ],
+        details: [{ label: "কারণ", value: reason }],
+        action: { label: "বায়োডাটা সংশোধন করুন", path: "/user/account/edit-biodata" },
+    });
     res.status(200).json({
         success: true,
         message: "Biodata changes rejected. Previous approved version remains live.",
@@ -1039,6 +1073,19 @@ const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
     generalInfo.admin_note = "";
     generalInfo.last_approved_at = new Date();
     yield generalInfo.save();
+    (0, bibahoMail_1.mailUserById)(userId, "আপনার বায়োডাটা জমা হয়েছে", {
+        title: "আপনার বায়োডাটা সফলভাবে জমা হয়েছে",
+        tone: "success",
+        paragraphs: [
+            "ধন্যবাদ! আপনার বায়োডাটা জমা ও প্রকাশিত হয়েছে। এখন অন্য সদস্যরা আপনার বায়োডাটা দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
+            "যেকোনো সময় আপনার বায়োডাটা আপডেট করতে পারবেন।",
+        ],
+        details: [
+            { label: "বায়োডাটা ধরন", value: generalInfo.bio_type },
+            { label: "সংস্করণ", value: generalInfo.version },
+        ],
+        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+    });
     res.status(200).json({
         success: true,
         message: "Biodata approved and published automatically.",

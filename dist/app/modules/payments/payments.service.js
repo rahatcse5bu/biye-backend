@@ -13,10 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentService = void 0;
+// payment.service.ts
+const mongoose_1 = require("mongoose");
 const payment_model_1 = __importDefault(require("./payment.model"));
 exports.PaymentService = {
     getAllPayments: () => __awaiter(void 0, void 0, void 0, function* () {
-        const payments = yield payment_model_1.default.find();
+        const payments = yield payment_model_1.default.find().sort({ createdAt: -1, _id: -1 });
         return payments.map((payment) => payment.toObject());
     }),
     getPaymentById: (id) => __awaiter(void 0, void 0, void 0, function* () {
@@ -28,12 +30,19 @@ exports.PaymentService = {
         return payment;
     }),
     getPaymentByEmail: (email) => __awaiter(void 0, void 0, void 0, function* () {
-        const payment = yield payment_model_1.default.find({ email }).lean();
+        const payment = yield payment_model_1.default.find({ email })
+            .sort({ createdAt: -1, _id: -1 })
+            .lean();
         return payment;
     }),
     createPayment: (paymentData) => __awaiter(void 0, void 0, void 0, function* () {
         const createdPayment = yield payment_model_1.default.create(paymentData);
         return createdPayment;
+    }),
+    updatePaymentById: (id, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!(0, mongoose_1.isValidObjectId)(id))
+            return null;
+        return payment_model_1.default.findByIdAndUpdate(id, updatedFields, { new: true }).lean();
     }),
     updatePayment: (id, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedPayment = yield payment_model_1.default.findOneAndUpdate({ user: id }, updatedFields, {

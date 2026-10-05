@@ -38,17 +38,22 @@ exports.NotificationService = {
         yield exports.NotificationService.publish(notification);
         return notification;
     }),
+    // TODO: fire-and-forget so a notification failure never breaks the main request.
+    notify: (input) => {
+        exports.NotificationService.create(input).catch((error) => console.error("Notification create failed:", error));
+    },
     publish: (notification) => __awaiter(void 0, void 0, void 0, function* () {
         if (!ably)
             return;
         try {
             yield ably.channels.get(getChannelName(notification)).publish("notification", {
-                id: String(notification._id || ""),
+                _id: String(notification._id || ""),
                 audience: notification.audience,
                 type: notification.type,
                 title: notification.title,
                 message: notification.message,
                 link: notification.link,
+                isRead: false,
                 createdAt: "createdAt" in notification ? notification.createdAt : new Date(),
             });
         }

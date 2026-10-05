@@ -15,12 +15,14 @@ router.patch('/users/:id/status', admin_controller_1.AdminController.updateUserS
 router.delete('/users/:id', admin_controller_1.AdminController.deleteUser);
 // Biodata Management  
 router.get('/biodatas', admin_controller_1.AdminController.getAllBiodatas);
+router.get('/biodatas/pending-count', admin_controller_1.AdminController.getPendingBiodataCount);
 router.patch('/biodatas/:id/status', admin_controller_1.AdminController.updateBiodataStatus);
 // Payment Management
 router.get('/payments', admin_controller_1.AdminController.getAllPayments);
 router.get('/payments/stats', admin_controller_1.AdminController.getPaymentStats);
 router.get('/payments/:id', admin_controller_1.AdminController.getPaymentById);
 router.patch('/payments/:id/status', admin_controller_1.AdminController.updatePaymentStatus);
+router.post('/payments/:id/refund', admin_controller_1.AdminController.refundPayment);
 // Refund Management
 router.get('/refunds', admin_controller_1.AdminController.getAllRefunds);
 router.get('/refunds/stats', admin_controller_1.AdminController.getRefundStats);

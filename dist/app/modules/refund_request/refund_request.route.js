@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../../middlewares/auth");
+const refund_request_controller_1 = require("./refund_request.controller");
+const router = (0, express_1.Router)();
+router.post("/", (0, auth_1.auth)("user", "admin"), refund_request_controller_1.RefundRequestController.create);
+router.get("/me", (0, auth_1.auth)("user", "admin"), refund_request_controller_1.RefundRequestController.listMine);
+router.get("/", (0, auth_1.auth)("admin"), refund_request_controller_1.RefundRequestController.listAll);
+router.post("/:id/approve", (0, auth_1.auth)("admin"), refund_request_controller_1.RefundRequestController.approve);
+router.post("/:id/reject", (0, auth_1.auth)("admin"), refund_request_controller_1.RefundRequestController.reject);
+exports.default = router;

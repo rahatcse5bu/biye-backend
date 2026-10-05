@@ -24,15 +24,25 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Step 2: Create the Mongoose Schema and Model
-const OngikarNamaSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    is_family_know: { type: String, required: true },
-    isTrueData: { type: String, required: true },
-    isAgree: { type: String, required: true },
-    request_practicing_status: { type: String, required: false },
-}, {
-    timestamps: true,
-});
-const OngikarNama = mongoose_1.default.model("OngikarNama", OngikarNamaSchema);
-exports.default = OngikarNama;
+const RefundRequestSchema = new mongoose_1.Schema({
+    // TODO: unique so each payment can be requested only once.
+    payment: { type: mongoose_1.Schema.Types.ObjectId, ref: "Payment", required: true, unique: true },
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    email: { type: String, required: true },
+    transaction_id: { type: String, required: true },
+    paid_amount: { type: Number, required: true },
+    refund_amount: { type: Number, required: true, min: 1 },
+    points_held: { type: Number, required: true, min: 0 },
+    reason: { type: String, trim: true, default: "" },
+    status: {
+        type: String,
+        enum: ["requested", "refunded", "rejected"],
+        default: "requested",
+        index: true,
+    },
+    admin_note: { type: String, trim: true },
+    refund_trx_id: { type: String },
+    processed_at: { type: Date },
+}, { timestamps: true });
+const RefundRequest = mongoose_1.default.model("RefundRequest", RefundRequestSchema);
+exports.default = RefundRequest;

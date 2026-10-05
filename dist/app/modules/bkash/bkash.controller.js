@@ -16,13 +16,15 @@ exports.bkashControllers = void 0;
 const createPayment_1 = __importDefault(require("../../../helpers/createPayment"));
 const queryPayment_1 = __importDefault(require("../../../helpers/queryPayment"));
 const searchTransaction_1 = __importDefault(require("../../../helpers/searchTransaction"));
-const refundTransaction_1 = __importDefault(require("../../../helpers/refundTransaction"));
 const executePayment_1 = __importDefault(require("../../../helpers/executePayment"));
 const axios_1 = __importDefault(require("axios"));
 const url_1 = require("../../../shared/url");
 const user_info_model_1 = require("../user_info/user_info.model");
 const payment_model_1 = __importDefault(require("../payments/payment.model"));
-const SendEmail_1 = __importDefault(require("../../../shared/SendEmail"));
+const bibahoMail_1 = require("../../../shared/bibahoMail");
+const notification_service_1 = require("../notifications/notification.service");
+const points_package_service_1 = require("../points_package/points_package.service");
+const bkash_refund_1 = require("./bkash.refund");
 // Function to call the bKash execute payment API
 function BkashExecutePaymentAPICall(paymentID) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -99,87 +101,71 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if ((response === null || response === void 0 ? void 0 : response.statusCode) && response.statusCode === "0000") {
             const singleUser = yield user_info_model_1.UserInfoModel.findOne({ email });
             let saveInDb = false;
+            let points = 0;
             if (singleUser) {
-                // add payment to DB;
-                const points = (response === null || response === void 0 ? void 0 : response.amount) * 1.2;
-                yield payment_model_1.default.create({
-                    email,
-                    points,
-                    amount: response === null || response === void 0 ? void 0 : response.amount,
-                    transaction_id: response === null || response === void 0 ? void 0 : response.trxID,
-                    payment_id: paymentID,
-                    status: response === null || response === void 0 ? void 0 : response.transactionStatus,
-                    trnx_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
-                    purpose,
-                });
-                // updated points of the user
-                singleUser.points = singleUser.points + points;
-                yield singleUser.save();
+                // TODO: admin pricing only for the points page; contact top-ups keep the fixed 1.2x.
+                const paidAmount = Number(response === null || response === void 0 ? void 0 : response.amount);
+                points =
+                    purpose === "buy_package"
+                        ? yield points_package_service_1.PointsPackageService.pointsForAmount(paidAmount)
+                        : paidAmount * 1.2;
+                // TODO: insert-once by paymentID so a page refresh or repeat call never credits twice.
+                const existing = yield payment_model_1.default.findOneAndUpdate({ payment_id: paymentID }, {
+                    $setOnInsert: {
+                        email,
+                        points,
+                        amount: response === null || response === void 0 ? void 0 : response.amount,
+                        transaction_id: response === null || response === void 0 ? void 0 : response.trxID,
+                        payment_id: paymentID,
+                        status: response === null || response === void 0 ? void 0 : response.transactionStatus,
+                        trnx_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
+                        purpose,
+                    },
+                }, { upsert: true, new: false }).lean();
+                if (existing) {
+                    return res.json({
+                        success: true,
+                        alreadyRecorded: true,
+                        trxID: existing.transaction_id,
+                        paymentId: paymentID,
+                        amount: existing.amount,
+                        points: existing.points,
+                        status: existing.status,
+                        payment_create_time: existing.trnx_time,
+                    });
+                }
+                yield user_info_model_1.UserInfoModel.updateOne({ _id: singleUser._id }, { $inc: { points } });
                 saveInDb = true;
-                const year = new Date().getFullYear();
-                const html = `<!DOCTYPE html>
-                        <html>
-                        <head>
-                          <style>
-                            .container {
-                              font-family: Arial, sans-serif;
-                              max-width: 600px;
-                              margin: 0 auto;
-                              padding: 20px;
-                              border: 1px solid #ddd;
-                              border-radius: 10px;
-                              background-color: #f9f9f9;
-                            }
-                            .header {
-                              text-align: center;
-                              padding-bottom: 20px;
-                            }
-                            .header h1 {
-                              margin: 0;
-                              color: #4CAF50;
-                            }
-                            .content {
-                              line-height: 1.6;
-                            }
-                            .footer {
-                              margin-top: 20px;
-                              text-align: center;
-                              font-size: 12px;
-                              color: #777;
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="container">
-                            <div class="header">
-                              <h1>Purchase Confirmation</h1>
-                            </div>
-                            <div class="content">
-                              <p>Dear Sir/Mam,</p>
-                              <p>Thank you for your purchase!</p>
-                              <p>We are pleased to inform you that your purchase of ${points}  points was successful. The points have been added to your account and are now available for use.</p>
-                              <p>Here are the details of your transaction:</p>
-                              <ul>
-                                <li><strong>Transaction ID:</strong> ${response === null || response === void 0 ? void 0 : response.trxID}</li>
-                                <li><strong>Points Purchased:</strong>${points}</li>
-                                <li><strong>Amount Paid:</strong> ${response === null || response === void 0 ? void 0 : response.amount}</li>
-                                <li><strong>Date of Purchase:</strong> ${(response === null || response === void 0 ? void 0 : response.paymentCreateTime) ||
-                    (response === null || response === void 0 ? void 0 : response.paymentExecuteTime)}</li>
-                              </ul>
-                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at pnc.nikah@gmail.com or 01714802800.</p>
-                              <p>Thank you for choosing our service!</p>
-                              <p>Best regards,</p>
-                              <p>PNC-Nikah</p>
-                            </div>
-                            <div class="footer">
-                              <p>&copy;${year}PNC-Nikah.com. All rights reserved.</p>
-                              <p>Barishal, Bangladesh</p>
-                            </div>
-                          </div>
-                        </body>
-                        </html>
-                        `;
-                (0, SendEmail_1.default)(email, "Your Purchase of Points was Successful!", html);
+                notification_service_1.NotificationService.notify({
+                    recipient: singleUser._id,
+                    audience: "user",
+                    type: "payment",
+                    title: "পেমেন্ট সফল",
+                    message: `৳${response === null || response === void 0 ? void 0 : response.amount} পেমেন্ট সম্পন্ন হয়েছে। আপনার অ্যাকাউন্টে ${points} পয়েন্ট যোগ হয়েছে।`,
+                    link: "/user/account/dashboard",
+                });
+                notification_service_1.NotificationService.notify({
+                    audience: "admin",
+                    type: "payment",
+                    title: "নতুন পেমেন্ট",
+                    message: `${email} ৳${response === null || response === void 0 ? void 0 : response.amount} পেমেন্ট করেছেন (TrxID: ${response === null || response === void 0 ? void 0 : response.trxID})।`,
+                    link: "/payments",
+                });
+                (0, bibahoMail_1.mailUser)(email, "পয়েন্ট কেনা সফল হয়েছে", {
+                    title: "পয়েন্ট কেনা সফল হয়েছে",
+                    tone: "success",
+                    paragraphs: [
+                        `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে এবং আপনার অ্যাকাউন্টে <strong>${points} পয়েন্ট</strong> যোগ হয়েছে।`,
+                        "পেমেন্টের ৩ দিনের মধ্যে আপনার পেমেন্ট হিস্টোরি থেকে রিফান্ড অনুরোধ করা যাবে।",
+                    ],
+                    details: [
+                        { label: "পরিমাণ", value: (0, bibahoMail_1.formatTaka)(response === null || response === void 0 ? void 0 : response.amount) },
+                        { label: "যোগ হওয়া পয়েন্ট", value: points },
+                        { label: "ট্রানজেকশন আইডি", value: response === null || response === void 0 ? void 0 : response.trxID },
+                        { label: "সময়", value: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime) },
+                    ],
+                    action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+                });
             }
             res.json({
                 success: true,
@@ -188,6 +174,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 saveInDb,
                 paymentId: paymentID,
                 amount: response === null || response === void 0 ? void 0 : response.amount,
+                points,
                 status: response === null || response === void 0 ? void 0 : response.transactionStatus,
                 payment_create_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
             });
@@ -208,22 +195,16 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 const refund = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const refundStatusBody = {
-            paymentID: req.body.paymentID,
-            trxID: req.body.trxID,
-        };
-        const refundStatusResponse = yield (0, refundTransaction_1.default)(refundStatusBody);
-        if (refundStatusResponse === null || refundStatusResponse === void 0 ? void 0 : refundStatusResponse.refundTrxID) {
-            console.log("status");
-            res.send(refundStatusResponse);
-        }
-        else {
-            console.log("refund");
-            res.send(yield (0, refundTransaction_1.default)(req.body));
-        }
+        res.json(yield (0, bkash_refund_1.processRefund)(req.body || {}));
     }
-    catch (e) {
-        console.log(e);
+    catch (error) {
+        const statusCode = error instanceof bkash_refund_1.RefundError ? error.statusCode : 500;
+        if (statusCode === 500)
+            console.error("bKash refund failed:", error);
+        res.status(statusCode).json({
+            success: false,
+            message: statusCode === 500 ? "Refund failed" : error.message,
+        });
     }
 });
 exports.bkashControllers = {

@@ -28,7 +28,7 @@ const transporter = nodemailer_1.default.createTransport({
 // Define the sendEmail function
 const sendEmail = (to, subject, html) => __awaiter(void 0, void 0, void 0, function* () {
     const mailOptions = {
-        from: config_1.default.email_user,
+        from: `"Bibaho" <${config_1.default.email_user}>`,
         to,
         subject,
         html,
@@ -43,7 +43,7 @@ const sendEmail = (to, subject, html) => __awaiter(void 0, void 0, void 0, funct
 });
 const sendEmails = (recipients, subject, html) => __awaiter(void 0, void 0, void 0, function* () {
     const mailOptions = {
-        from: config_1.default.email_user,
+        from: `"Bibaho" <${config_1.default.email_user}>`,
         subject,
         html,
     };

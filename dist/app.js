@@ -52,6 +52,10 @@ const photocard_route_1 = __importDefault(require("./app/modules/photocard/photo
 const photocard_template_route_1 = require("./app/modules/photocard_template/photocard_template.route");
 const upload_route_1 = __importDefault(require("./app/modules/upload/upload.route"));
 const notification_route_1 = __importDefault(require("./app/modules/notifications/notification.route"));
+const points_package_route_1 = __importDefault(require("./app/modules/points_package/points_package.route"));
+const refund_request_route_1 = __importDefault(require("./app/modules/refund_request/refund_request.route"));
+const email_settings_route_1 = __importDefault(require("./app/modules/email_settings/email_settings.route"));
+const account_route_1 = __importDefault(require("./app/modules/account/account.route"));
 const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
 const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
@@ -70,10 +74,10 @@ if (config_1.default.node_env === "development") {
 //     ],
 //   })
 // );
-const allowedOrigins = [
-    "https://www.bibaho.org",
-    "https://bibaho.org",
-];
+const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org", "https://biye-admin-three.vercel.app"];
+if (config_1.default.node_env === "development") {
+    allowedOrigins.push("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001");
+}
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -158,6 +162,10 @@ app.use("/api/v1/photocard", photocard_route_1.default);
 app.use("/api/v1/photocard-templates", photocard_template_route_1.PhotocardTemplateRoutes);
 app.use("/api/v1/uploads", upload_route_1.default);
 app.use("/api/v1/notifications", notification_route_1.default);
+app.use("/api/v1/points-packages", points_package_route_1.default);
+app.use("/api/v1/refund-requests", refund_request_route_1.default);
+app.use("/api/v1/email-settings", email_settings_route_1.default);
+app.use("/api/v1/account", account_route_1.default);
 app.use("/api/v1/unverified-biodatas", unverified_biodata_route_1.default);
 app.use("/api/v1/unverified-contact-purchase", unverified_contact_purchase_route_1.default);
 app.use(globalErrorHandler_1.default);

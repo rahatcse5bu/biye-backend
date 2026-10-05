@@ -107,8 +107,17 @@ exports.UserInfoController = {
         }
     })),
     getUserInfoByEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b;
         const email = req.params.email;
         const userInfo = yield user_info_services_1.UserInfoService.getUserInfoByEmail(email);
+        // TODO: users may only read their own account (same 403 whether or not the email exists); admins can read any.
+        const isOwner = Boolean(userInfo) && String(userInfo === null || userInfo === void 0 ? void 0 : userInfo._id) === String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
+        if (!isOwner && ((_b = req.user) === null || _b === void 0 ? void 0 : _b.user_role) !== "admin") {
+            return res.status(http_status_1.default.FORBIDDEN).json({
+                success: false,
+                message: "Forbidden",
+            });
+        }
         if (!userInfo) {
             res.status(404).json({
                 success: false,
@@ -157,8 +166,8 @@ exports.UserInfoController = {
         });
     })),
     changePassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
-        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        var _c;
+        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
@@ -169,8 +178,8 @@ exports.UserInfoController = {
         });
     })),
     getMe: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _d;
+        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
@@ -182,8 +191,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _e;
+        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -191,7 +200,7 @@ exports.UserInfoController = {
                 success: false,
             });
         }
-        const _d = req.body, { points, user_role } = _d, others = __rest(_d, ["points", "user_role"]);
+        const _f = req.body, { points, user_role } = _f, others = __rest(_f, ["points", "user_role"]);
         if ((others === null || others === void 0 ? void 0 : others.userRole) && !user_info_constant_1.userRoleChangeByUser.includes(others)) {
             throw new ApiError_1.default(403, "You are not allowed to change user role");
         }
@@ -291,12 +300,12 @@ exports.UserInfoController = {
                     .join("")}
             </ul>
             <p>Please review the data and update the user status accordingly.</p>
-            <a href="https://admin.pnc-nikah.com/details/${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_id}" class="button">Review Now</a>
+            <a href="https://www.bibaho.org/biodata/${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_id}" class="button">Review Now</a>
           </td>
         </tr>
         <tr>
           <td class="footer">
-            &copy; 2024 PNC Nikah. All rights reserved.
+            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
           </td>
         </tr>
       </table>
@@ -393,7 +402,7 @@ exports.UserInfoController = {
         </tr>
         <tr>
           <td class="footer">
-            &copy; 2024 PNC Nikah. All rights reserved.
+            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
           </td>
         </tr>
       </table> </body></html>
@@ -485,7 +494,7 @@ exports.UserInfoController = {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -574,7 +583,7 @@ exports.UserInfoController = {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 Your Company. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -591,8 +600,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _g;
+        const id = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -698,7 +707,7 @@ exports.UserInfoController = {
       </tr>
       <tr>
         <td class="footer">
-          &copy; 2024 PNC Nikah. All rights reserved.
+          &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
         </td>
       </tr>
     </table>
@@ -794,11 +803,11 @@ table {
       </td>
     </tr>
     <tr>
-     check your bio-data status <a href="https://admin.pnc-nikah.com/user/account/dashboard">https://admin.pnc-nikah.com/user/account/dashboard</a>
+     check your bio-data status <a href="https://www.bibaho.org/user/account/dashboard">https://www.bibaho.org/user/account/dashboard</a>
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table> </body></html>
@@ -812,8 +821,8 @@ table {
         });
     })),
     updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f;
-        const id = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        var _h;
+        const id = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -917,7 +926,7 @@ table {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table>
@@ -1012,7 +1021,7 @@ table {
     </tr>
     <tr>
       <td class="footer">
-        &copy; 2024 PNC Nikah. All rights reserved.
+        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
       </td>
     </tr>
   </table> </body> </html>
@@ -1026,8 +1035,8 @@ table {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _g;
-        const id = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+        var _j;
+        const id = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

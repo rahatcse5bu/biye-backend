@@ -20,7 +20,10 @@ const config_1 = __importDefault(require("../../../config"));
 const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const user_info_model_1 = require("./user_info.model");
+const mongoose_1 = require("mongoose");
 const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
+const notification_service_1 = require("../notifications/notification.service");
+const bibahoMail_1 = require("../../../shared/bibahoMail");
 const googleClient = new google_auth_library_1.OAuth2Client();
 const scryptAsync = (0, util_1.promisify)(crypto_1.scrypt);
 const invalidPasswordHash = `${"0".repeat(32)}:${"0".repeat(128)}`;
@@ -55,6 +58,26 @@ const sanitizeUser = (user) => {
     return sanitizedUser;
 };
 const addAppToken = (user) => (Object.assign(Object.assign({}, sanitizeUser(user)), { token: createAppToken(user) }));
+const sendWelcomeNotification = (user) => {
+    (0, bibahoMail_1.mailUser)(user.email, "Bibaho-তে স্বাগতম", {
+        title: "Bibaho-তে আপনাকে স্বাগতম!",
+        greeting: `প্রিয় ${user.username || "সদস্য"},`,
+        paragraphs: [
+            "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। এখন আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করতে পারেন।",
+            "বায়োডাটা সম্পূর্ণ করলে অন্যরা আপনার প্রোফাইল দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
+        ],
+        details: [{ label: "অ্যাকাউন্ট ইমেইল", value: user.email }],
+        action: { label: "বায়োডাটা তৈরি করুন", path: "/user/account/edit-biodata" },
+    });
+    notification_service_1.NotificationService.notify({
+        recipient: String(user._id),
+        audience: "user",
+        type: "system",
+        title: "বিয়েতে স্বাগতম!",
+        message: `${user.username ? `${user.username}, ` : ""}আপনার অ্যাকাউন্ট তৈরি হয়েছে। এখনই আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করুন।`,
+        link: "/user/account/edit-biodata",
+    });
+};
 const hashPassword = (password) => __awaiter(void 0, void 0, void 0, function* () {
     const salt = (0, crypto_1.randomBytes)(16).toString("hex");
     const derivedKey = (yield scryptAsync(password, salt, 64));
@@ -91,12 +114,20 @@ exports.UserInfoService = {
         const { session } = options;
         return user_info_model_1.UserInfoModel.findById(id).session(session).exec();
     }),
+    // TODO: accepts the database _id or the public biodata number (user_id) used in /biodata/:id URLs.
     getUserStatus: (id) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
-        const userInfo = yield user_info_model_1.UserInfoModel.findById(id).select("user_status").lean().exec();
+        const filter = (0, mongoose_1.isValidObjectId)(id)
+            ? { _id: id }
+            : /^\d+$/.test(id)
+                ? { user_id: Number(id) }
+                : null;
+        if (!filter)
+            return null;
+        const userInfo = yield user_info_model_1.UserInfoModel.findOne(filter).select("user_status").lean().exec();
         if (!userInfo)
             return null;
-        const bioInfo = yield general_info_model_1.default.findOne({ user: id })
+        const bioInfo = yield general_info_model_1.default.findOne({ user: userInfo._id })
             .select("biodata_status pending_changes")
             .lean()
             .exec();
@@ -118,6 +149,7 @@ exports.UserInfoService = {
         }
         const user_id = yield getNextUserId();
         const user = yield user_info_model_1.UserInfoModel.create(Object.assign(Object.assign({}, userInfo), { user_id }));
+        sendWelcomeNotification(user);
         return sanitizeUser(user);
     }),
     googleAuth: (authInfo) => __awaiter(void 0, void 0, void 0, function* () {
@@ -166,6 +198,7 @@ exports.UserInfoService = {
                     : undefined,
                 picture: payload.picture,
             });
+            sendWelcomeNotification(user);
         }
         else {
             if (user.google_id && user.google_id !== payload.sub) {
@@ -212,6 +245,7 @@ exports.UserInfoService = {
                 username,
                 gender,
             });
+            sendWelcomeNotification(user);
             return addAppToken(user);
         }
         catch (error) {
@@ -258,11 +292,12 @@ exports.UserInfoService = {
         yield user.save();
     }),
     getCurrentUser: (id) => __awaiter(void 0, void 0, void 0, function* () {
-        const user = yield user_info_model_1.UserInfoModel.findById(id).exec();
+        const user = yield user_info_model_1.UserInfoModel.findById(id).select("+password_hash").exec();
         if (!user) {
             throw new ApiError_1.default(404, "User info not found");
         }
-        return user;
+        // TODO: tells the client whether password login exists, without ever exposing the hash.
+        return Object.assign(Object.assign({}, sanitizeUser(user)), { has_password: Boolean(user.password_hash) });
     }),
     updateUserInfo: (id, userInfo) => __awaiter(void 0, void 0, void 0, function* () {
         return user_info_model_1.UserInfoModel.findByIdAndUpdate(id, userInfo, { new: true }).exec();
