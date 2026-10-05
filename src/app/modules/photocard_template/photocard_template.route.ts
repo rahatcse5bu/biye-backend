@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { auth } from "../../middlewares/auth";
 import {
     getAllTemplates,
     getTemplatesByBioType,
@@ -11,6 +12,9 @@ import {
 } from "./photocard_template.controller";
 
 const router = Router();
+
+// TODO: templates hold raw SVG and are managed only from the admin panel.
+router.use(auth("admin"));
 
 // Get all templates
 router.get("/", getAllTemplates);

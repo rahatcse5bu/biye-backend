@@ -34,7 +34,9 @@ userRouter.route("/status/:id").get(UserInfoController.getUserStatus);
 userRouter
   .route("/user-email/:email")
   .post(auth("admin"), UserInfoController.sendUserEmail);
-userRouter.route("/email/:email").get(UserInfoController.getUserInfoByEmail);
+userRouter
+  .route("/email/:email")
+  .get(auth("user", "admin"), UserInfoController.getUserInfoByEmail);
 // userRouter.route("/:id").get(UserInfoController.getSingleUserInfo);
 
 export default userRouter;

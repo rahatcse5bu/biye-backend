@@ -65,6 +65,14 @@ export const UserInfoController = {
   getUserInfoByEmail: catchAsync(async (req: Request, res: Response) => {
     const email = req.params.email;
     const userInfo = await UserInfoService.getUserInfoByEmail(email);
+    // TODO: users may only read their own account; admins can read any.
+    const isOwner = userInfo && String(userInfo._id) === String(req.user?._id);
+    if (userInfo && !isOwner && req.user?.user_role !== "admin") {
+      return res.status(httpStatus.FORBIDDEN).json({
+        success: false,
+        message: "Forbidden",
+      });
+    }
     if (!userInfo) {
       res.status(404).json({
         success: false,

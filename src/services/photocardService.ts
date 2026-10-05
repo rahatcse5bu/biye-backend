@@ -1,4 +1,5 @@
 import { callGroqAPI } from "./groqService";
+import { escapeStrings, escapeXml } from "../shared/escapeXml";
 import { IUnverifiedBiodata } from "../app/modules/unverified_biodata/unverified_biodata.interface";
 
 interface GroqMessage {
@@ -136,10 +137,13 @@ Be creative, positive, and compelling!`,
  * Includes biodata information in an attractive format
  */
 export const generatePhotocardSVG = (
-  biodata: IUnverifiedBiodata,
-  photocardContent: PhotocardData,
+  rawBiodata: IUnverifiedBiodata,
+  rawContent: PhotocardData,
   uid: string,
 ): string => {
+  // TODO: biodata and AI text are user-influenced; escape them once so the SVG below can't be injected.
+  const biodata = escapeStrings(rawBiodata);
+  const photocardContent = escapeStrings(rawContent);
   const WIDTH = 1080; // Facebook post standard width
   const HEIGHT = 1500; // Increased height for more content
   const PADDING = 40;
@@ -372,7 +376,7 @@ export const generatePhotocardWithTemplate = async (
     for (const [key, value] of Object.entries(templateData)) {
       if (value === undefined || value === null) continue;
       const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
-      svg = svg.replace(regex, String(value));
+      svg = svg.replace(regex, () => escapeXml(value));
     }
 
     // Remove any unreplaced placeholders

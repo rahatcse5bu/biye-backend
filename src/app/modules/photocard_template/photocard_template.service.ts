@@ -1,3 +1,4 @@
+import { escapeXml } from "../../../shared/escapeXml";
 import { PhotocardTemplate } from "../photocard_template/photocard_template.model";
 import { BioType } from "../photocard_template/photocard_template.interface";
 
@@ -33,7 +34,7 @@ export const renderTemplateSVG = (
 
         // Match placeholders like {key}, {key:format}, etc
         const regex = new RegExp(`\\{${key}(?::[^}]*)?\\}`, "g");
-        rendered = rendered.replace(regex, String(value));
+        rendered = rendered.replace(regex, () => escapeXml(value));
     }
 
     // Remove any unreplaced placeholders
