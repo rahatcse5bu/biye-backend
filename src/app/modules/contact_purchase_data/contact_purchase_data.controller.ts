@@ -9,6 +9,7 @@ import { IContactPurchase } from "./contact_purchase_data.interface";
 import BioChoice from "../bio_choice_data/bio_choice_data.model";
 import Contact from "../contact/contact.model";
 import { mailUser } from "../../../shared/bibahoMail";
+import { NotificationService } from "../notifications/notification.service";
 import ContactPurchase from "./contact_purchase_data.model";
 
 export const ContactPurchaseController = {
@@ -387,6 +388,29 @@ export const ContactPurchaseController = {
         ],
         details: [{ label: "সদস্যের বায়োডাটা নং", value: userInfo.user_id }],
         action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+      });
+      NotificationService.notify({
+        recipient: String(bioUser._id),
+        audience: "user",
+        type: "biodata",
+        title: "যোগাযোগ তথ্য নেওয়া হয়েছে",
+        message: `বায়োডাটা নং ${userInfo.user_id} আপনার অভিভাবকের যোগাযোগ তথ্য নিয়েছেন।`,
+        link: "/user/account/bio-requests",
+      });
+      NotificationService.notify({
+        recipient: String(userInfo._id),
+        audience: "user",
+        type: "payment",
+        title: "যোগাযোগ তথ্য কেনা সম্পন্ন",
+        message: `বায়োডাটা নং ${bioUser.user_id}-এর অভিভাবকের যোগাযোগ তথ্য আপনার ক্রয়কৃত তালিকায় যোগ হয়েছে।`,
+        link: "/user/account/purchases",
+      });
+      NotificationService.notify({
+        audience: "admin",
+        type: "payment",
+        title: "যোগাযোগ তথ্য বিক্রি হয়েছে",
+        message: `বায়োডাটা নং ${userInfo.user_id} কিনেছেন বায়োডাটা নং ${bioUser.user_id}-এর অভিভাবকের যোগাযোগ তথ্য (৭০ পয়েন্ট)।`,
+        link: "/contact-purchases",
       });
 
       res.status(httpStatus.CREATED).json({

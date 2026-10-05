@@ -12,7 +12,8 @@ const BioChoiceSchema: Schema<IBioChoiceDocument> = new Schema(
       type: String,
       required: false,
       default: "pending",
-      enum: ["pending", "accepted", "rejected", "approved"],
+      // TODO: "accepted" from old clients is converted to "approved" before saving.
+      enum: ["pending", "rejected", "approved"],
     },
   },
   {

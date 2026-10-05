@@ -9,6 +9,7 @@ import ApiError from "../../middlewares/ApiError";
 import BioChoice from "./bio_choice_data.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 import { mailUser } from "../../../shared/bibahoMail";
+import { NotificationService } from "../notifications/notification.service";
 import { UserInfoService } from "../user_info/user_info.services";
 
 export const BioChoiceController = {
@@ -630,6 +631,9 @@ export const BioChoiceController = {
       }
 
       data.user = user;
+      // TODO: only the owner decides; a new proposal always starts pending, whatever the client sends.
+      data.status = "pending";
+      delete data.feedback;
 
       // Fetch user info and check points
 
@@ -678,7 +682,7 @@ export const BioChoiceController = {
           { label: "খরচ হওয়া পয়েন্ট", value: 30 },
           { label: "অবশিষ্ট পয়েন্ট", value: points },
         ],
-        action: { label: "আমার অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
+        action: { label: "আমার অনুরোধগুলো দেখুন", path: "/user/account/purchases" },
       });
       mailUser(bioUserInfo.email, "আপনি একটি নতুন প্রস্তাব পেয়েছেন", {
         title: "আপনি একটি নতুন প্রস্তাব পেয়েছেন",
@@ -688,6 +692,21 @@ export const BioChoiceController = {
         ],
         details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userInfo.user_id }],
         action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
+      });
+      NotificationService.notify({
+        recipient: String(bioUserInfo._id),
+        audience: "user",
+        type: "biodata",
+        title: "নতুন প্রস্তাব",
+        message: `বায়োডাটা নং ${userInfo.user_id} আপনার কাছে তার বায়োডাটা ও প্রস্তাব পাঠিয়েছেন।`,
+        link: "/user/account/bio-requests",
+      });
+      NotificationService.notify({
+        audience: "admin",
+        type: "biodata",
+        title: "নতুন প্রস্তাব পাঠানো হয়েছে",
+        message: `বায়োডাটা নং ${userInfo.user_id} → বায়োডাটা নং ${bioUserInfo.user_id} (৩০ পয়েন্ট)।`,
+        link: "/contact-requests",
       });
       return res.json({
         success: true,
@@ -810,6 +829,8 @@ export const BioChoiceController = {
     const { type } = req.query;
 
     const { user, ...others } = req.body;
+    // TODO: "approved" is the one accepted status; step 2 only checks for it.
+    if (others.status === "accepted") others.status = "approved";
     if (!bio_user) {
       return res.status(httpStatus.UNAUTHORIZED).json({
         statusCode: httpStatus.UNAUTHORIZED,
@@ -832,10 +853,18 @@ export const BioChoiceController = {
     const bioUser = await UserInfoService.getUserInfoById(bio_user);
     const userData = await UserInfoService.getUserInfoById(user);
     const status = others?.status;
-    const accepted = status === "accepted" || status === "approved";
+    const accepted = status === "approved";
 
     // TODO: both sides get an email: the requester learns the answer, the responder gets a confirmation.
     if (type === "feedback") {
+      NotificationService.notify({
+        recipient: String(user),
+        audience: "user",
+        type: "biodata",
+        title: "প্রস্তাবে মতামত এসেছে",
+        message: `বায়োডাটা নং ${bioUser?.user_id} আপনার প্রস্তাবে একটি মতামত দিয়েছেন।`,
+        link: "/user/account/purchases",
+      });
       mailUser(userData?.email, "আপনি একটি মতামত পেয়েছেন", {
         title: "আপনার প্রস্তাবে মতামত এসেছে",
         paragraphs: ["আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তার পক্ষ থেকে একটি মতামত এসেছে।"],
@@ -843,7 +872,7 @@ export const BioChoiceController = {
           { label: "বায়োডাটা নং", value: bioUser?.user_id },
           { label: "মতামত", value: others?.feedback },
         ],
-        action: { label: "বিস্তারিত দেখুন", path: "/user/account/bio-requests" },
+        action: { label: "বিস্তারিত দেখুন", path: "/user/account/purchases" },
       });
       mailUser(bioUser?.email, "আপনার মতামত পাঠানো হয়েছে", {
         title: "আপনার মতামত পাঠানো হয়েছে",
@@ -852,6 +881,23 @@ export const BioChoiceController = {
         action: { label: "অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
       });
     } else if (accepted || status === "rejected") {
+      NotificationService.notify({
+        recipient: String(user),
+        audience: "user",
+        type: "biodata",
+        title: accepted ? "প্রস্তাব গৃহীত হয়েছে" : "প্রস্তাব প্রত্যাখ্যাত হয়েছে",
+        message: accepted
+          ? `বায়োডাটা নং ${bioUser?.user_id} আপনার প্রস্তাব গ্রহণ করেছেন। এখন অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।`
+          : `বায়োডাটা নং ${bioUser?.user_id} এই মুহূর্তে আপনার প্রস্তাবে আগ্রহী নন।`,
+        link: accepted ? "/user/account/purchases" : "/biodatas",
+      });
+      NotificationService.notify({
+        audience: "admin",
+        type: "biodata",
+        title: accepted ? "প্রস্তাব গৃহীত" : "প্রস্তাব প্রত্যাখ্যাত",
+        message: `বায়োডাটা নং ${bioUser?.user_id} ${accepted ? "গ্রহণ করেছেন" : "প্রত্যাখ্যান করেছেন"} বায়োডাটা নং ${userData?.user_id}-এর প্রস্তাব।`,
+        link: "/contact-requests",
+      });
       mailUser(userData?.email, accepted ? "আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে", {
         title: accepted ? "অভিনন্দন! আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে",
         tone: accepted ? "success" : "warning",
@@ -862,7 +908,7 @@ export const BioChoiceController = {
         ],
         details: [{ label: "বায়োডাটা নং", value: bioUser?.user_id }],
         action: accepted
-          ? { label: "পরবর্তী ধাপে যান", path: "/user/account/bio-requests" }
+          ? { label: "পরবর্তী ধাপে যান", path: "/user/account/purchases" }
           : { label: "আরও বায়োডাটা দেখুন", path: "/biodatas" },
       });
       mailUser(bioUser?.email, accepted ? "আপনি একটি প্রস্তাব গ্রহণ করেছেন" : "আপনি একটি প্রস্তাব প্রত্যাখ্যান করেছেন", {

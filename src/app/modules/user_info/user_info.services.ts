@@ -360,13 +360,14 @@ export const UserInfoService = {
     await user.save();
   },
 
-  getCurrentUser: async (id: string): Promise<IUserInfo> => {
-    const user = await UserInfoModel.findById(id).exec();
+  getCurrentUser: async (id: string): Promise<Record<string, any>> => {
+    const user = await UserInfoModel.findById(id).select("+password_hash").exec();
     if (!user) {
       throw new ApiError(404, "User info not found");
     }
 
-    return user;
+    // TODO: tells the client whether password login exists, without ever exposing the hash.
+    return { ...sanitizeUser(user), has_password: Boolean(user.password_hash) };
   },
 
   updateUserInfo: async (

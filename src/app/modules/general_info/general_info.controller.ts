@@ -851,28 +851,18 @@ const getGeneralInfoDashboardByUser = catchAsync(
     }
     const user = req.user._id;
 
-    const generalInfo = await GeneralInfo.findOne({ user: user })
-      .select("likes_count views_count")
-      .lean();
-    const favorite = await Favorite.countDocuments({
-      user,
-    }).lean();
-    const unFavorite = await UnFavorite.countDocuments({
-      user,
-    }).lean();
-    const contactPurchase = await ContactPurchase.countDocuments({
-      user,
-    }).lean();
+    const [generalInfo, favorite, unFavorite, contactPurchase] = await Promise.all([
+      GeneralInfo.findOne({ user: user }).select("likes_count views_count").lean(),
+      Favorite.countDocuments({ user }),
+      UnFavorite.countDocuments({ user }),
+      ContactPurchase.countDocuments({ user }),
+    ]);
 
-    if (!generalInfo) {
-      return res.status(404).json({
-        message: "General info not found",
-        success: false,
-      });
-    }
+    // TODO: users without a biodata still get their own counts; likes/views are just 0.
     const responseData = {
-      likes_count: generalInfo.likes_count,
-      views_count: generalInfo.views_count,
+      has_biodata: Boolean(generalInfo),
+      likes_count: generalInfo?.likes_count || 0,
+      views_count: generalInfo?.views_count || 0,
       favorite_count: favorite,
       unFavorite_count: unFavorite,
       contact_purchase_count: contactPurchase,

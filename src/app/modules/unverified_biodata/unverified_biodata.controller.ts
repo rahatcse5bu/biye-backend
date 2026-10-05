@@ -1,4 +1,5 @@
 import { mailUser } from "../../../shared/bibahoMail";
+import { NotificationService } from "../notifications/notification.service";
 import { Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
 import UnverifiedBiodata from "./unverified_biodata.model";
@@ -645,6 +646,13 @@ const purchaseUnverifiedBiodataContact = catchAsync(
           { label: "অবশিষ্ট পয়েন্ট", value: remainingPoints },
         ],
         action: { label: "ক্রয়কৃত বায়োডাটা দেখুন", path: "/user/account/purchases" },
+      });
+      NotificationService.notify({
+        audience: "admin",
+        type: "payment",
+        title: "আনভেরিফাইড বায়োডাটার যোগাযোগ তথ্য বিক্রি",
+        message: `বায়োডাটা নং ${userInfo.user_id} কিনেছেন আনভেরিফাইড বায়োডাটা নং ${biodata.bio_id}-এর যোগাযোগ তথ্য (৫০ পয়েন্ট)।`,
+        link: "/unverified-biodatas",
       });
       session.endSession();
 
