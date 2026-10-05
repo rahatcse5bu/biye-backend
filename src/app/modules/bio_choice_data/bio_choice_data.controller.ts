@@ -177,7 +177,7 @@ export const BioChoiceController = {
           as: "address",
         },
       },
-      { $unwind: "$address" },
+      { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "users",
@@ -262,7 +262,7 @@ export const BioChoiceController = {
           as: "address",
         },
       },
-      { $unwind: "$address" },
+      { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "generalinfos",
@@ -271,7 +271,7 @@ export const BioChoiceController = {
           as: "generalinfo",
         },
       },
-      { $unwind: "$generalinfo" },
+      { $unwind: { path: "$generalinfo", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "contacts",
@@ -746,10 +746,12 @@ export const BioChoiceController = {
           bio_user,
           user,
         });
+      // TODO: "no proposal yet" is a normal answer, not an error.
       if (!checkBioChoice) {
-        res.status(httpStatus.NOT_FOUND).json({
-          success: false,
-          message: "BioChoice not found",
+        res.status(httpStatus.OK).json({
+          success: true,
+          message: "No proposal sent to this biodata yet",
+          data: null,
         });
       } else {
         res.status(httpStatus.OK).json({
@@ -776,6 +778,10 @@ export const BioChoiceController = {
       }
 
       // Use aggregation with lookup to get contact info
+      if (!mongoose.isValidObjectId(bio_user)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Invalid biodata id" });
+      }
+
       const checkBioChoice = await ContactPurchase.aggregate([
         {
           $match: {
@@ -810,10 +816,12 @@ export const BioChoiceController = {
         },
       ]);
 
+      // TODO: "contact not bought yet" is a normal answer, not an error.
       if (!checkBioChoice.length) {
-        return res.status(httpStatus.NOT_FOUND).json({
-          success: false,
-          message: "BioChoice contact info not found",
+        return res.status(httpStatus.OK).json({
+          success: true,
+          message: "Contact info not purchased yet",
+          data: null,
         });
       }
 

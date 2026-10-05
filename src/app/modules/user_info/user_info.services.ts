@@ -7,6 +7,7 @@ import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import ApiError from "../../middlewares/ApiError";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoModel } from "./user_info.model";
+import { isValidObjectId } from "mongoose";
 import GeneralInfo from "../general_info/general_info.model";
 import { NotificationService } from "../notifications/notification.service";
 import { mailUser } from "../../../shared/bibahoMail";
@@ -134,10 +135,17 @@ export const UserInfoService = {
     const { session } = options;
     return UserInfoModel.findById(id).session(session).exec();
   },
+  // TODO: accepts the database _id or the public biodata number (user_id) used in /biodata/:id URLs.
   getUserStatus: async (id: string): Promise<Record<string, any> | null> => {
-    const userInfo = await UserInfoModel.findById(id).select("user_status").lean().exec();
+    const filter = isValidObjectId(id)
+      ? { _id: id }
+      : /^\d+$/.test(id)
+        ? { user_id: Number(id) }
+        : null;
+    if (!filter) return null;
+    const userInfo = await UserInfoModel.findOne(filter).select("user_status").lean().exec();
     if (!userInfo) return null;
-    const bioInfo = await GeneralInfo.findOne({ user: id })
+    const bioInfo = await GeneralInfo.findOne({ user: userInfo._id })
       .select("biodata_status pending_changes")
       .lean()
       .exec() as any;
