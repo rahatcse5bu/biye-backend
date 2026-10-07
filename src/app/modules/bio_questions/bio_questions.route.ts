@@ -11,6 +11,16 @@ BioQuestionRouter.route("/user/:userId").get(
   BioQuestionController.getQuestionsByUser
 );
 
+// Admin: default questions per religion (used until a user sets their own)
+BioQuestionRouter.route("/defaults").get(
+  auth("admin"),
+  BioQuestionController.listDefaults
+);
+BioQuestionRouter.route("/defaults/:religion").put(
+  auth("admin"),
+  BioQuestionController.updateDefaults
+);
+
 // Get current user's own questions
 BioQuestionRouter.route("/my-questions").get(
   auth("user", "admin"),
