@@ -12,6 +12,9 @@ userRouter
 userRouter
   .route("/me")
   .get(auth("admin", "user"), UserInfoController.getMe);
+userRouter
+  .route("/me/preferences")
+  .patch(auth("admin", "user"), UserInfoController.updateMyPreferences);
 
 userRouter.route("/").post(UserInfoController.createUserInfo);
 userRouter

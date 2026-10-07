@@ -38,6 +38,12 @@ const userInfoSchema = new Schema<IUserInfo>(
     picture: {
       type: String,
     },
+    // TODO: header religion filter, saved for logged-in users; "all" means no filter.
+    preferred_religion: {
+      type: String,
+      enum: ["islam", "hinduism", "christianity", "all"],
+      default: null,
+    },
     user_role: {
       type: String,
       required: false,

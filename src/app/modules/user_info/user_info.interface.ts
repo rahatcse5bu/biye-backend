@@ -10,6 +10,7 @@ export interface IUserInfo extends Document {
   password_hash?: string;
   username?: string;
   picture?: string;
+  preferred_religion?: "islam" | "hinduism" | "christianity" | "all" | null;
   user_role: string;
   edited_timeline_index: number;
   points: number;

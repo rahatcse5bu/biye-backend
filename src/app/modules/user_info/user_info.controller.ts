@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoService } from "./user_info.services";
+import { UserInfoModel } from "./user_info.model";
 import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
 import sendEmail, { sendEmails } from "../../../shared/SendEmail";
@@ -133,6 +134,33 @@ export const UserInfoController = {
     res.status(httpStatus.OK).json({
       success: true,
       message: "Password changed successfully",
+    });
+  }),
+
+  // TODO: only whitelisted preference fields; nothing else on the account can change here.
+  updateMyPreferences: catchAsync(async (req: Request, res: Response) => {
+    const religion = req.body?.preferred_religion;
+    const allowed = ["islam", "hinduism", "christianity", "all"];
+    if (!allowed.includes(religion)) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: `preferred_religion must be one of: ${allowed.join(", ")}`,
+      });
+    }
+    const updated = await UserInfoModel.findByIdAndUpdate(
+      req.user?._id,
+      { preferred_religion: religion },
+      { new: true },
+    )
+      .select("preferred_religion")
+      .lean();
+    if (!updated) {
+      return res.status(httpStatus.NOT_FOUND).json({ success: false, message: "User not found" });
+    }
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Preferences updated successfully",
+      data: { preferred_religion: (updated as any).preferred_religion },
     });
   }),
 
