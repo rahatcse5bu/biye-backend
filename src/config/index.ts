@@ -18,6 +18,13 @@ export default {
   bkash_password: process.env.BKASH_PASSWORD,
   email_pass: process.env.EMAIL_PASS,
   email_user: process.env.EMAIL_USER,
+  // TODO: optional; set SMTP_* to send through a bibaho.org mailbox or a transactional provider instead of Gmail.
+  smtp_host: process.env.SMTP_HOST,
+  smtp_port: process.env.SMTP_PORT,
+  smtp_user: process.env.SMTP_USER,
+  smtp_pass: process.env.SMTP_PASS,
+  email_from: process.env.EMAIL_FROM,
+  email_reply_to: process.env.EMAIL_REPLY_TO,
   groq_api_key: process.env.GROQ_API_KEY,
   google_client_id: process.env.GOOGLE_CLIENT_ID,
   ably_api_key: process.env.ABLY_API_KEY,

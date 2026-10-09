@@ -7,8 +7,63 @@ import { UserInfoService } from "./user_info.services";
 import { UserInfoModel } from "./user_info.model";
 import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
-import sendEmail, { sendEmails } from "../../../shared/SendEmail";
+import sendEmail from "../../../shared/SendEmail";
+import { escapeHtml, mailAdmins, mailUser } from "../../../shared/bibahoMail";
 import generateEmailTemplate from "../../../utils/generateEmailTemplate";
+
+const statusLabels: Record<string, string> = {
+  active: "সক্রিয়",
+  inactive: "নিষ্ক্রিয়",
+  banned: "নিষিদ্ধ",
+  pending: "পর্যালোচনাধীন",
+  "in review": "রিভিউ চলছে",
+};
+
+const statusNotes: Record<string, string> = {
+  active: "আপনার বায়োডাটা এখন অন্য সদস্যরা দেখতে ও প্রস্তাব পাঠাতে পারবেন।",
+  inactive: "নিষ্ক্রিয় অবস্থায় আপনার বায়োডাটা অন্য কেউ দেখতে পাবেন না। যেকোনো সময় সেটিংস থেকে আবার সক্রিয় করতে পারবেন।",
+  banned: "নীতিমালা লঙ্ঘনের কারণে আপনার অ্যাকাউন্ট নিষিদ্ধ করা হয়েছে। ভুল মনে হলে এই ইমেইলের উত্তর দিয়ে আমাদের জানান।",
+  "in review": "আমাদের টিম আপনার বায়োডাটা যাচাই করছে। স্ট্যাটাস পরিবর্তন হলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
+};
+
+// TODO: branded user + admin emails for a biodata status change; replaces the old raw-HTML ones that dumped the request body.
+const mailStatusChange = (user: any, status: string, byAdmin: boolean) => {
+  if (!user?.email || !status) return;
+  const label = statusLabels[status] || status;
+  const inReview = status === "in review";
+
+  mailUser(user.email, inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
+    title: inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
+    tone: status === "active" ? "success" : status === "banned" ? "warning" : "brand",
+    paragraphs: [
+      inReview
+        ? "ধন্যবাদ! আপনার বায়োডাটা আমাদের কাছে পৌঁছেছে।"
+        : `${byAdmin ? "Bibaho অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${escapeHtml(label)}</strong>।`,
+      ...(statusNotes[status] ? [statusNotes[status]] : []),
+    ],
+    details: [
+      { label: "বায়োডাটা নং", value: user.user_id },
+      { label: "স্ট্যাটাস", value: label },
+    ],
+    action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+  });
+
+  if (byAdmin) return;
+  mailAdmins(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
+    title: inReview ? "একটি বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন",
+    paragraphs: [
+      inReview
+        ? "অনুগ্রহ করে বায়োডাটাটি যাচাই করে স্ট্যাটাস আপডেট করুন।"
+        : `সদস্য নিজে তার বায়োডাটা <strong>${escapeHtml(label)}</strong> করেছেন।`,
+    ],
+    details: [
+      { label: "বায়োডাটা নং", value: user.user_id },
+      { label: "ইমেইল", value: user.email },
+      { label: "স্ট্যাটাস", value: label },
+    ],
+    action: { label: "বায়োডাটা দেখুন", path: `/biodata/${user.user_id}` },
+  });
+};
 
 export const UserInfoController = {
   getAllUserInfo: catchAsync(async (req: Request, res: Response) => {
@@ -217,408 +272,14 @@ export const UserInfoController = {
       userInfo
     );
     if (!updatedUserInfo) {
-      res.status(httpStatus.NOT_FOUND).json({
+      return res.status(httpStatus.NOT_FOUND).json({
         success: false,
         message: "User info not found",
       });
     }
 
-    if (others?.user_status === "in review") {
-      // notify to admin
-      const adminHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-      <table class="main-table">
-        <tr>
-          <td class="header">
-            Admin Notification
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear Admin,</p>
-            <p>The user <strong>${
-              updatedUserInfo?.email
-            }</strong> has submitted their bio data for review.</p>
-            <p><strong>Current Status:</strong> ${others?.user_status}</p>
-            <p><strong>Submitted Data:</strong></p>
-            <ul>
-              ${
-                req.body &&
-                Object.keys(req.body).length &&
-                Object.keys(req.body)
-                  .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
-                  .join("")
-              }
-            </ul>
-            <p>Please review the data and update the user status accordingly.</p>
-            <a href="https://www.bibaho.org/biodata/${
-              updatedUserInfo?.user_id
-            }" class="button">Review Now</a>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-          </td>
-        </tr>
-      </table>
-      </body>
-      </html>
-    `;
-
-      const userHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-      <table class="main-table">
-        <tr>
-          <td class="header">
-            
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear <strong>Sir/Mam</strong>,</p>
-            <p>Your bio data has been submitted for review. You will be notified when your status changes.</p>
-            <p><strong>Current Status:</strong> ${others?.user_status}</p>
-            <p><strong>Submitted Data:</strong></p>
-            <ul>
-              ${
-                req.body &&
-                Object.keys(req.body).length &&
-                Object.keys(req.body)
-                  .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
-                  .join("")
-              }
-            </ul>
-            <p>Thank you for your patience.</p>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-          </td>
-        </tr>
-      </table> </body></html>
-      
-      `;
-      await sendEmails(adminEmails, " Admin Notification", adminHtml);
-      await sendEmail(
-        updatedUserInfo?.email,
-        "Status Change Notification",
-        userHtml
-      );
-    } else if (others?.user_status === "inactive") {
-      const adminHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-  <!-- User Notification -->
-  <table>
-    <tr>
-      <td class="header">
-        Bio Data Inactivation Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>We have received your request to inactivate your bio data. Your bio data is now inactive and will not be visible to others.</p>
-        <p>If you have any questions or wish to reactivate your bio data, please contact support.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-      `;
-      const userHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <!-- Admin Notification -->
-  <table>
-    <tr>
-      <td class="header">
-        Admin Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear Admin,</p>
-        <p>The user <strong>${updatedUserInfo?.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
-        <p>Please take any necessary actions to update their status in the system.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-      `;
-      await sendEmails(adminEmails, " Admin Notification", adminHtml);
-      await sendEmail(
-        updatedUserInfo?.email,
-        "Status Change Notification",
-        userHtml
-      );
+    if (others?.user_status === "in review" || others?.user_status === "inactive") {
+      mailStatusChange(updatedUserInfo, others.user_status, false);
     }
 
     res.status(httpStatus.OK).json({
@@ -645,219 +306,13 @@ export const UserInfoController = {
       userInfo
     );
     if (!updatedUserInfo) {
-      res.status(httpStatus.NOT_FOUND).json({
+      return res.status(httpStatus.NOT_FOUND).json({
         success: false,
         message: "User info not found",
       });
     }
 
-    const adminHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bio Data Inactivation Notification</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    max-width: 600px;
-    margin: 20px auto;
-    background-color: #ffffff;
-    border: 1px solid #dddddd;
-    border-radius: 5px;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-  }
-  .header {
-    background-color: #ff4500;
-    color: #ffffff;
-    padding: 10px 20px;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    text-align: center;
-    font-size: 24px;
-  }
-  .content {
-    padding: 20px;
-    color: #555555;
-    line-height: 1.6;
-  }
-  .content strong {
-    color: #333333;
-  }
-  .footer {
-    padding: 10px 20px;
-    background-color: #f4f4f4;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    text-align: center;
-    font-size: 12px;
-    color: #aaaaaa;
-  }
-  .button {
-    display: block;
-    width: 200px;
-    margin: 20px auto;
-    padding: 10px;
-    background-color: #ff4500;
-    color: #ffffff;
-    text-align: center;
-    border-radius: 5px;
-    text-decoration: none;
-  }
-</style>
-</head>
-<body>
-    <table class="main-table">
-      <tr>
-        <td class="header">
-          Admin Notification
-        </td>
-      </tr>
-      <tr>
-        <td class="content">
-          <p>Dear Admin,</p>
-          <p>The user <strong>${
-            updatedUserInfo?.email
-          }</strong> has changed his/her bio-data status.</p>
-          <p><strong>Now, Current Status:</strong> ${user_status}</p>
-          <p><strong>Submitted Data:</strong></p>
-          <ul>
-            ${
-              req.body &&
-              Object.keys(req.body).length &&
-              Object.keys(req.body)
-                .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
-                .join("")
-            }
-          </ul>
-        </td>
-      </tr>
-      <tr>
-        <td class="footer">
-          &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-        </td>
-      </tr>
-    </table>
-    </body>
-    </html>
-  `;
-    const userHtml = `
-  <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bio Data Inactivation Notification</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  margin: 0;
-  padding: 0;
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-}
-table {
-  border-collapse: collapse;
-  width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  background-color: #ffffff;
-  border: 1px solid #dddddd;
-  border-radius: 5px;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-}
-.header {
-  background-color: #ff4500;
-  color: #ffffff;
-  padding: 10px 20px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  text-align: center;
-  font-size: 24px;
-}
-.content {
-  padding: 20px;
-  color: #555555;
-  line-height: 1.6;
-}
-.content strong {
-  color: #333333;
-}
-.footer {
-  padding: 10px 20px;
-  background-color: #f4f4f4;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
-  text-align: center;
-  font-size: 12px;
-  color: #aaaaaa;
-}
-.button {
-  display: block;
-  width: 200px;
-  margin: 20px auto;
-  padding: 10px;
-  background-color: #ff4500;
-  color: #ffffff;
-  text-align: center;
-  border-radius: 5px;
-  text-decoration: none;
-}
-</style>
-</head>
-<body>
-  <table class="main-table">
-    <tr>
-      <td class="header">
-        
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>Your bio-data status has been changed to ${user_status}</p>
-        <p><strong>Now Current Status:</strong> ${user_status}</p>
-        <p><strong>Submitted Data:</strong></p>
-        <ul>
-          ${
-            req.body &&
-            Object.keys(req.body).length &&
-            Object.keys(req.body)
-              .map((field: any) => `<li>${field}: ${req.body[field]}</li>`)
-              .join("")
-          }
-        </ul>
-        <p>Thank you for your patience.</p>
-      </td>
-    </tr>
-    <tr>
-     check your bio-data status <a href="https://www.bibaho.org/user/account/dashboard">https://www.bibaho.org/user/account/dashboard</a>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table> </body></html>
-  
-  `;
-    await sendEmails(adminEmails, " Admin Notification", adminHtml);
-    await sendEmail(
-      updatedUserInfo?.email,
-      "Status Change Notification",
-      userHtml
-    );
+    mailStatusChange(updatedUserInfo, user_status, false);
 
     res.status(httpStatus.OK).json({
       success: true,
@@ -882,210 +337,12 @@ table {
     );
 
     if (!updatedUserInfo) {
-      res.status(httpStatus.NOT_FOUND).json({
+      return res.status(httpStatus.NOT_FOUND).json({
         success: false,
         message: "User info not found",
       });
     }
-    // admin
-    const adminHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <table>
-    <tr>
-      <td class="header">
-        Admin Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear Admin,</p>
-        <p>You have successfully updated the status of the user <strong>${
-          updatedUserInfo?.email
-        }</strong>.</p>
-        <p><strong>New Status:</strong> ${updatedUserInfo?.user_status}</p>
-        ${
-          updatedUserInfo?.user_status === "active"
-            ? " <p>The user account is now active. They can fully access all features of our platform.</p>"
-            : updatedUserInfo?.user_status === "banned" &&
-              "<p>The user account has been banned due to violations of our terms of service. Ensure all necessary actions are documented.</p>"
-        }
-        <p>Thank you for keeping the user data up-to-date.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-  </body>
-  </html>
-  `;
-    // user
-    const userHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <table>
-    <tr>
-      <td class="header">
-        Status Change Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>Your bio data status has been reviewed and updated by the admin.</p>
-        <p><strong>New Status:</strong> ${updatedUserInfo?.user_status}</p>
-        
-         ${
-           updatedUserInfo?.user_status === "active"
-             ? "<p>Congratulations! Your account is now active. You can fully access all features of our platform.</p>"
-             : updatedUserInfo?.user_status === "banned" &&
-               " <p>We regret to inform you that your account has been banned due to violations of our terms of service. Please contact support if you believe this is a mistake.</p>"
-         }
-        <p>If you have any questions, please contact support.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table> </body> </html>
-  `;
-    await sendEmails(adminEmails, " Admin Notification", adminHtml);
-    await sendEmail(
-      updatedUserInfo?.email!,
-      "Status Change Notification",
-      userHtml
-    );
+    if (userInfo?.user_status) mailStatusChange(updatedUserInfo, userInfo.user_status, true);
 
     res.status(httpStatus.OK).json({
       success: true,

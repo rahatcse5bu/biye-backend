@@ -20,6 +20,8 @@ export const escapeHtml = (value: unknown) =>
 
 export type EmailContent = {
   title: string;
+  // TODO: inbox preview line; defaults to the first paragraph.
+  preheader?: string;
   greeting?: string;
   // TODO: trusted HTML paragraphs; escape any user-provided text before passing it in.
   paragraphs: string[];
@@ -31,10 +33,11 @@ export type EmailContent = {
 const accent = { brand: "#0D7377", success: "#15803d", warning: "#b45309" };
 
 export const renderEmail = (
-  { title, greeting, paragraphs, details, action, tone = "brand" }: EmailContent,
+  { title, preheader, greeting, paragraphs, details, action, tone = "brand" }: EmailContent,
   branding: EmailBranding = DEFAULT_EMAIL_SETTINGS,
 ) => {
   const color = accent[tone];
+  const preview = (preheader || paragraphs[0] || title).replace(/<[^>]+>/g, "").slice(0, 140);
   const supportEmail = escapeHtml(branding.support_email);
   const social = branding.social_links
     .map((link) => `<a href="${escapeHtml(link.url)}" style="color:#0D7377;text-decoration:none;font-weight:600;">${escapeHtml(link.label)}</a>`)
@@ -54,6 +57,7 @@ export const renderEmail = (
 <html lang="bn">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;padding:0;background:#f3f7f7;font-family:'Hind Siliguri','Noto Sans Bengali',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(preview)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f7f7;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(13,115,119,0.08);">
@@ -87,14 +91,16 @@ export const renderEmail = (
 export const mailUser = (to: string | undefined | null, subject: string, content: EmailContent) => {
   if (!to) return;
   EmailSettingsService.get()
-    .then((branding) => sendEmail(to, `${subject} | Bibaho`, renderEmail(content, branding)))
+    .then((branding) =>
+      sendEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), { replyTo: branding.support_email }),
+    )
     .catch((error) => console.error("Email send failed:", error));
 };
 
 // TODO: awaited version of mailUser that rejects when the email could not be sent.
 export const mailUserNow = async (to: string, subject: string, content: EmailContent) => {
   const branding = await EmailSettingsService.get();
-  await deliverEmail(to, `${subject} | Bibaho`, renderEmail(content, branding));
+  await deliverEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), { replyTo: branding.support_email });
 };
 
 export const mailAdmins = (subject: string, content: EmailContent) => {

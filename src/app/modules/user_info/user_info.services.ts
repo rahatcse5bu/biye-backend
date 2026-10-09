@@ -10,7 +10,7 @@ import { UserInfoModel } from "./user_info.model";
 import { isValidObjectId } from "mongoose";
 import GeneralInfo from "../general_info/general_info.model";
 import { NotificationService } from "../notifications/notification.service";
-import { mailUser } from "../../../shared/bibahoMail";
+import { mailUser, mailUserNow } from "../../../shared/bibahoMail";
 
 const googleClient = new OAuth2Client();
 const scryptAsync = promisify(scrypt);
@@ -397,7 +397,8 @@ export const UserInfoService = {
     user.reset_password_expires = new Date(now + RESET_TOKEN_TTL_MS);
     await user.save();
 
-    mailUser(user.email, "পাসওয়ার্ড রিসেট", {
+    // TODO: awaited, because on Vercel a fire-and-forget send can be frozen before Gmail gets it.
+    const sent = await mailUserNow(user.email, "পাসওয়ার্ড রিসেট", {
       title: "আপনার পাসওয়ার্ড রিসেট করুন",
       greeting: `প্রিয় ${user.username || "সদস্য"},`,
       paragraphs: [
@@ -406,7 +407,18 @@ export const UserInfoService = {
         "আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন, আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।",
       ],
       action: { label: "নতুন পাসওয়ার্ড সেট করুন", path: `/forgot-password?token=${token}` },
+    }).then(() => true, (error) => {
+      console.error("Password reset email failed:", error);
+      return false;
     });
+
+    if (!sent) {
+      // TODO: drop the unsent token so the resend cooldown doesn't block an immediate retry.
+      user.reset_password_token = undefined;
+      user.reset_password_expires = undefined;
+      await user.save();
+      throw new ApiError(503, "Could not send the reset email. Please try again in a few minutes.");
+    }
   },
 
   resetPassword: async (info: { token?: unknown; password?: unknown }): Promise<void> => {

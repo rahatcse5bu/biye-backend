@@ -4,6 +4,7 @@ import { auth } from "../../middlewares/auth";
 import catchAsync from "../../../shared/catchAsync";
 import { renderEmail } from "../../../shared/bibahoMail";
 import { EmailSettingsService } from "./email_settings.service";
+import { EmailUsageService } from "../email_log/email_log.service";
 
 const router = Router();
 
@@ -32,6 +33,33 @@ router.patch(
       success: true,
       message: "Email settings updated successfully",
       data: await EmailSettingsService.update(data),
+    });
+  }),
+);
+
+router.get(
+  "/usage",
+  catchAsync(async (_req: Request, res: Response) => {
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Email usage retrieved successfully",
+      data: await EmailUsageService.getUsage(),
+    });
+  }),
+);
+
+router.patch(
+  "/daily-limit",
+  catchAsync(async (req: Request, res: Response) => {
+    const limit = Number(req.body?.daily_limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100000) {
+      res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Daily limit must be a whole number between 1 and 100000" });
+      return;
+    }
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Daily email limit updated",
+      data: { daily_limit: await EmailUsageService.setDailyLimit(limit) },
     });
   }),
 );

@@ -217,6 +217,8 @@ export const BioChoiceController = {
           status: { $first: "$status" },
           feedback: { $first: "$feedback" },
           bio_details: { $first: "$bio_details" },
+          reminder_emails_sent: { $first: "$reminder_emails_sent" },
+          last_reminder_at: { $first: "$last_reminder_at" },
         },
       },
       {
@@ -233,14 +235,20 @@ export const BioChoiceController = {
           status: 1,
           feedback: 1,
           bio_details: 1,
+          reminder_emails_sent: 1,
+          last_reminder_at: 1,
         },
       },
     ]).exec();
+    const settings = await ReminderSettingsService.get();
 
     res.status(201).json({
       success: true,
       message: "Bio Choice first step data retrieved successfully",
-      data: results,
+      data: results.map(({ reminder_emails_sent, last_reminder_at, ...item }: any) => ({
+        ...item,
+        reminders: reminderStatus({ status: item.status, reminder_emails_sent, last_reminder_at }, settings),
+      })),
     });
   }),
   getBioChoiceDataOfSecondStep: catchAsync(async (req, res) => {

@@ -1,4 +1,4 @@
-import { mailUser } from "../../../shared/bibahoMail";
+import { mailUser, SITE_URL } from "../../../shared/bibahoMail";
 import { NotificationService } from "../notifications/notification.service";
 import { Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
@@ -8,7 +8,6 @@ import mongoose from "mongoose";
 import { UnverifiedContactPurchaseService } from "../unverified_contact_purchase/unverified_contact_purchase.service";
 import { validateExtraFields } from "./unverified_biodata.validation";
 import httpStatus from "http-status";
-import sendEmail from "../../../shared/SendEmail";
 import axios from "axios";
 
 const createUnverifiedBiodata = catchAsync(
@@ -49,99 +48,18 @@ const createUnverifiedBiodata = catchAsync(
     try {
       const biodata = await UnverifiedBiodata.create(cleanedData);
 
-      // Send welcome email to the user with their biodata link
+      // TODO: branded welcome email with the biodata link; mailUser never throws or delays the response.
       if (biodata.contact_email) {
-        try {
-          const biodataLink = `https://www.bibaho.org/biodata/unverified/${biodata._id}`;
-          const emailSubject =
-            "Welcome to বিয়ে.ইনফো - Your Biodata Profile Created";
-          const emailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 8px; }
-        .header { background: linear-gradient(135deg, #1a2e1a 0%, #2d4a2d 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
-        .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
-        .welcome-text { font-size: 16px; margin-bottom: 20px; }
-        .info-box { background: #f0f8f0; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .link-section { margin: 25px 0; text-align: center; }
-        .share-link { background: #4CAF50; color: white; padding: 15px; border-radius: 6px; display: inline-block; word-break: break-all; font-weight: bold; }
-        .benefits { margin: 20px 0; }
-        .benefit-item { padding: 10px 0; padding-left: 25px; position: relative; }
-        .benefit-item:before { content: "✓"; position: absolute; left: 0; color: #4CAF50; font-weight: bold; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
-        .cta-button { display: inline-block; background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>স্বাগতম দ্বি.ইনফোতে</h1>
-            <p>Welcome to বিয়ে.ইনফো - Matrimony Platform</p>
-        </div>
-        <div class="content">
-            <p class="welcome-text">
-                আপনার সাথে যোগাযোগ করতে পেরে আমরা আনন্দিত। আপনার তথ্য সফলভাবে আমাদের প্ল্যাটফর্মে যোগ করা হয়েছে।
-            </p>
-            
-            <div class="info-box">
-                <strong>Good news!</strong> আপনার বায়োডেটা প্রোফাইল এখন লাইভ আছে এবং সম্ভাব্য ম্যাচদের কাছে দৃশ্যমান।
-            </div>
-
-            <h3 style="color: #1a2e1a;">আপনার প্রোফাইল লিঙ্ক:</h3>
-            <div class="link-section">
-                <div class="share-link">${biodataLink}</div>
-            </div>
-
-            <div class="benefits">
-                <h3 style="color: #1a2e1a;">এই লিঙ্কটি শেয়ার করুন এবং পান:</h3>
-                <div class="benefit-item">আরও ভালো সাড়া এবং মিলের সম্ভাবনা</div>
-                <div class="benefit-item">পরিবার এবং বন্ধুদের সাথে সহজে শেয়ার করুন</div>
-                <div class="benefit-item">আপনার প্রোফাইল সম্পূর্ণ নিয়ন্ত্রণে থাকে</div>
-                <div class="benefit-item">যেকোনো সময় আপডেট করুন</div>
-            </div>
-
-            <h3 style="color: #1a2e1a;">আপনার প্রোফাইল দেখতে:</h3>
-            <p>নিচের বাটনে ক্লিক করুন অথবা উপরের লিঙ্কটি আপনার ব্রাউজারে কপি করুন।</p>
-            <p style="text-align: center;">
-                <a href="${biodataLink}" class="cta-button">আপনার প্রোফাইল দেখুন</a>
-            </p>
-
-            <h3 style="color: #1a2e1a;">প্রশ্ন থাকলে?</h3>
-            <p>আমাদের সাথে যোগাযোগ করুন info@bibaho.org এ অথবা আমাদের ওয়েবসাইট visit করুন।</p>
-
-            <div class="footer">
-                <p>সর্বদা আমাদের সাথে থাকার জন্য ধন্যবাদ। বিয়ে.ইনফো টিম</p>
-                <p>© 2026 বিয়ে.ইনফো | সকল অধিকার সংরক্ষিত</p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-        `;
-
-          // Send email asynchronously (don't wait for it)
-          sendEmail(biodata.contact_email, emailSubject, emailBody).catch(
-            (emailError: any) => {
-              console.warn(
-                "[createUnverifiedBiodata] Email sending failed:",
-                emailError.message,
-              );
-              // Don't fail the API response if email fails
-            },
-          );
-        } catch (emailError: any) {
-          console.warn(
-            "[createUnverifiedBiodata] Email preparation failed:",
-            emailError.message,
-          );
-          // Continue with response even if email fails
-        }
+        mailUser(biodata.contact_email, "আপনার বায়োডাটা প্রোফাইল তৈরি হয়েছে", {
+          title: "স্বাগতম! আপনার বায়োডাটা প্রোফাইল তৈরি হয়েছে",
+          tone: "success",
+          paragraphs: [
+            "আপনার তথ্য সফলভাবে Bibaho-তে যোগ করা হয়েছে। আপনার বায়োডাটা প্রোফাইল এখন লাইভ এবং সম্ভাব্য পাত্র/পাত্রীরা দেখতে পাবেন।",
+            "প্রোফাইল লিংকটি পরিবার ও বন্ধুদের সাথে শেয়ার করলে আরও ভালো সাড়া পাবেন।",
+          ],
+          details: [{ label: "প্রোফাইল লিংক", value: `${SITE_URL}/biodata/unverified/${biodata._id}` }],
+          action: { label: "আপনার প্রোফাইল দেখুন", path: `/biodata/unverified/${biodata._id}` },
+        });
       }
 
       res.status(201).json({
