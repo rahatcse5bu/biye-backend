@@ -8,7 +8,8 @@ import { BioChoiceService } from "./bio_choice_data.services";
 import ApiError from "../../middlewares/ApiError";
 import BioChoice from "./bio_choice_data.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
-import { mailUser } from "../../../shared/bibahoMail";
+import { mailUser, mailUserNow } from "../../../shared/bibahoMail";
+import { ReminderSettingsService, reminderStatus } from "./bio_choice_reminder";
 import { NotificationService } from "../notifications/notification.service";
 import { UserInfoService } from "../user_info/user_info.services";
 
@@ -754,16 +755,163 @@ export const BioChoiceController = {
           data: null,
         });
       } else {
+        const settings = await ReminderSettingsService.get();
         res.status(httpStatus.OK).json({
           success: true,
           message: "Check BioChoice first step successfully",
           data: {
             status: checkBioChoice?.status,
+            reminders: reminderStatus(checkBioChoice, settings),
           },
         });
       }
     }
   ),
+
+  // TODO: the sender emails the biodata owner a reminder about a pending proposal, within the admin-set limits.
+  sendReminderEmail: catchAsync(async (req: Request, res: Response) => {
+    const user = req.user?._id;
+    const bio_user = req.params.id;
+    if (!user) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        success: false,
+        message: "You are not authorized",
+      });
+    }
+    if (!mongoose.isValidObjectId(bio_user)) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid biodata",
+      });
+    }
+
+    const settings = await ReminderSettingsService.get();
+    const choice: any = await BioChoice.findOne({ user, bio_user }).lean();
+    if (!choice) {
+      return res.status(httpStatus.NOT_FOUND).json({
+        success: false,
+        message: "আপনি এই বায়োডাটায় এখনো প্রস্তাব পাঠাননি।",
+      });
+    }
+    const current = reminderStatus(choice, settings);
+    if (choice.status !== "pending") {
+      return res.status(httpStatus.CONFLICT).json({
+        success: false,
+        message: "প্রস্তাবটির উত্তর দেওয়া হয়ে গেছে, এখন আর রিমাইন্ডার পাঠানো যাবে না।",
+        data: current,
+      });
+    }
+    if (!current.remaining) {
+      return res.status(httpStatus.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: "এই প্রস্তাবের জন্য সব রিমাইন্ডার ইমেইল পাঠানো হয়ে গেছে।",
+        data: current,
+      });
+    }
+    if (current.next_available_at) {
+      return res.status(httpStatus.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: "পরবর্তী রিমাইন্ডার পাঠানোর সময় এখনো হয়নি।",
+        data: current,
+      });
+    }
+
+    const [sender, owner]: any[] = await Promise.all([
+      UserInfoModel.findById(user).select("user_id").lean(),
+      UserInfoModel.findById(bio_user).select("email user_id").lean(),
+    ]);
+    if (!owner?.email) {
+      return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
+        success: false,
+        message: "এই বায়োডাটার মালিকের কাছে ইমেইল পাঠানো সম্ভব নয়।",
+      });
+    }
+
+    // TODO: reserve the slot atomically so double-clicks or parallel requests can't exceed the limit.
+    const now = new Date();
+    const cooldownStart = new Date(now.getTime() - settings.cooldown_hours * 60 * 60 * 1000);
+    const reserved: any = await BioChoice.findOneAndUpdate(
+      {
+        _id: choice._id,
+        status: "pending",
+        $and: [
+          { $or: [{ reminder_emails_sent: { $exists: false } }, { reminder_emails_sent: { $lt: settings.max_emails } }] },
+          { $or: [{ last_reminder_at: { $exists: false } }, { last_reminder_at: null }, { last_reminder_at: { $lte: cooldownStart } }] },
+        ],
+      },
+      { $inc: { reminder_emails_sent: 1 }, $set: { last_reminder_at: now } },
+      { new: true },
+    ).lean();
+    if (!reserved) {
+      return res.status(httpStatus.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: "একটি রিমাইন্ডার এইমাত্র পাঠানো হয়েছে, কিছুক্ষণ পর আবার দেখুন।",
+      });
+    }
+
+    try {
+      await mailUserNow(owner.email, "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায়", {
+        title: "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায় আছে",
+        paragraphs: [
+          `বায়োডাটা নং ${sender?.user_id ?? ""} আপনাকে প্রস্তাব পাঠিয়েছেন এবং আপনার উত্তরের অপেক্ষায় আছেন।`,
+          "অনুগ্রহ করে তার বায়োডাটা দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
+        ],
+        details: [
+          { label: "প্রস্তাবকারীর বায়োডাটা নং", value: sender?.user_id },
+          { label: "প্রস্তাব পাঠানোর তারিখ", value: new Date(choice.createdAt).toLocaleDateString("en-GB") },
+        ],
+        action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
+      });
+    } catch (error: any) {
+      console.error("Reminder email failed:", error?.message);
+      // TODO: give the slot back so a failed send doesn't use up the sender's quota.
+      await BioChoice.updateOne(
+        { _id: choice._id },
+        choice.last_reminder_at
+          ? { $inc: { reminder_emails_sent: -1 }, $set: { last_reminder_at: choice.last_reminder_at } }
+          : { $inc: { reminder_emails_sent: -1 }, $unset: { last_reminder_at: 1 } },
+      );
+      return res.status(httpStatus.BAD_GATEWAY).json({
+        success: false,
+        message: "ইমেইল পাঠানো যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন — এটি আপনার ইমেইল সংখ্যা থেকে কাটা হয়নি।",
+      });
+    }
+
+    NotificationService.notify({
+      recipient: String(owner._id),
+      audience: "user",
+      type: "biodata",
+      title: "প্রস্তাবের রিমাইন্ডার",
+      message: `বায়োডাটা নং ${sender?.user_id ?? ""} আপনার উত্তরের অপেক্ষায় আছেন।`,
+      link: "/user/account/bio-requests",
+    });
+
+    return res.status(httpStatus.OK).json({
+      success: true,
+      message: "রিমাইন্ডার ইমেইল পাঠানো হয়েছে।",
+      data: reminderStatus(reserved, settings),
+    });
+  }),
+
+  getReminderSettings: catchAsync(async (_req: Request, res: Response) => {
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Reminder settings retrieved successfully",
+      data: await ReminderSettingsService.get(),
+    });
+  }),
+
+  updateReminderSettings: catchAsync(async (req: Request, res: Response) => {
+    const { data, error } = ReminderSettingsService.parse(req.body);
+    if (error || !data) {
+      return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: error });
+    }
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Reminder settings updated successfully",
+      data: await ReminderSettingsService.update(data),
+    });
+  }),
   checkBioChoiceDataOfSecondStep: catchAsync(
     async (req: Request, res: Response) => {
       const user = req.user?._id;

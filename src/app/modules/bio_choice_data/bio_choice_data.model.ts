@@ -15,6 +15,9 @@ const BioChoiceSchema: Schema<IBioChoiceDocument> = new Schema(
       // TODO: "accepted" from old clients is converted to "approved" before saving.
       enum: ["pending", "rejected", "approved"],
     },
+    // TODO: reminder emails the sender has sent the biodata owner about this pending proposal.
+    reminder_emails_sent: { type: Number, default: 0, min: 0 },
+    last_reminder_at: { type: Date, required: false },
   },
   {
     timestamps: true,

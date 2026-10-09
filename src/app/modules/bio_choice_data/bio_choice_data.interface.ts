@@ -7,6 +7,8 @@ export interface IBioChoice {
   feedback: string; // Assuming feedback is a string
   bio_input: string; // Assuming feedback is a string
   status: string; // Assuming status is a string (e.g., 'active', 'inactive')
+  reminder_emails_sent?: number;
+  last_reminder_at?: Date;
 }
 
 export interface IBioChoiceDocument extends IBioChoice, Document {}

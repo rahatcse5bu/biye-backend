@@ -1,4 +1,4 @@
-import sendEmail from "./SendEmail";
+import sendEmail, { deliverEmail } from "./SendEmail";
 import { UserInfoModel } from "../app/modules/user_info/user_info.model";
 import { adminEmails } from "../app/modules/user_info/user_info.constant";
 import {
@@ -89,6 +89,12 @@ export const mailUser = (to: string | undefined | null, subject: string, content
   EmailSettingsService.get()
     .then((branding) => sendEmail(to, `${subject} | Bibaho`, renderEmail(content, branding)))
     .catch((error) => console.error("Email send failed:", error));
+};
+
+// TODO: awaited version of mailUser that rejects when the email could not be sent.
+export const mailUserNow = async (to: string, subject: string, content: EmailContent) => {
+  const branding = await EmailSettingsService.get();
+  await deliverEmail(to, `${subject} | Bibaho`, renderEmail(content, branding));
 };
 
 export const mailAdmins = (subject: string, content: EmailContent) => {

@@ -33,6 +33,11 @@ const sendEmail = async (
     console.error("Error sending email:", error);
   }
 };
+// TODO: like sendEmail but rejects when Gmail refuses, for callers that must know it was delivered.
+export const deliverEmail = async (to: string, subject: string, html: string): Promise<void> => {
+  await transporter.sendMail({ from: `"Bibaho" <${config.email_user}>`, to, subject, html });
+};
+
 export const sendEmails = async (
   recipients: string[],
   subject: string,
