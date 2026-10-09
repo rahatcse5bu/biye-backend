@@ -89,12 +89,12 @@ const afterPay = async (req: Request, res: Response) => {
       let saveInDb = false;
       let points = 0;
       if (singleUser) {
-        // TODO: admin pricing only for the points page; contact top-ups keep the fixed 1.2x.
+        // TODO: points page uses package/custom pricing; purchase top-ups use the same admin rate the frontend priced them with.
         const paidAmount = Number(response?.amount);
         points =
           purpose === "buy_package"
             ? await PointsPackageService.pointsForAmount(paidAmount)
-            : paidAmount * 1.2;
+            : await PointsPackageService.topUpPointsForAmount(paidAmount);
         // TODO: insert-once by paymentID so a page refresh or repeat call never credits twice.
         const existing: any = await Payment.findOneAndUpdate(
           { payment_id: paymentID },
