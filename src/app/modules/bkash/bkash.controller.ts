@@ -9,6 +9,7 @@ import { formatTaka, mailUser } from "../../../shared/bibahoMail";
 import { NotificationService } from "../notifications/notification.service";
 import { PointsPackageService } from "../points_package/points_package.service";
 import { processRefund, RefundError } from "./bkash.refund";
+import BkashIntent from "./bkash_intent.model";
 
 // TODO: every bKash handler must answer, otherwise the browser waits until it times out.
 const bkashFailed = (res: Response, error: unknown) => {
@@ -18,7 +19,14 @@ const bkashFailed = (res: Response, error: unknown) => {
 
 const create = async (req: Request, res: Response) => {
   try {
-    const createResult = await createPayment(req.body); // pass amount & callbackURL from frontend
+    const createResult: any = await createPayment(req.body); // pass amount & callbackURL from frontend
+    if (createResult?.paymentID) {
+      await BkashIntent.create({
+        payment_id: createResult.paymentID,
+        user: req.user?._id,
+        amount: Number(req.body?.amount) || undefined,
+      });
+    }
     res.json(createResult);
   } catch (e) {
     bkashFailed(res, e);
@@ -59,6 +67,25 @@ const afterPay = async (req: Request, res: Response) => {
     const email = buyer?.email;
     if (!email) {
       return res.status(401).json({ success: false, message: "You are not authorized" });
+    }
+
+    // TODO: only the account that started the payment may confirm it; checked before execute, so a mismatch is never charged.
+    const notYours = {
+      success: false,
+      message: "এই পেমেন্টটি অন্য একটি অ্যাকাউন্ট থেকে শুরু করা হয়েছে। যে অ্যাকাউন্ট থেকে পেমেন্ট শুরু করেছিলেন সেটিতে লগইন করে আবার চেষ্টা করুন।",
+    };
+    if (typeof paymentID !== "string" || !paymentID) {
+      return res.status(400).json({ success: false, message: "paymentID is required" });
+    }
+    const recorded: any = await Payment.findOne({ payment_id: paymentID }).select("email").lean();
+    if (recorded && recorded.email !== email) {
+      return res.status(403).json(notYours);
+    }
+    if (!recorded) {
+      const intent: any = await BkashIntent.findOne({ payment_id: paymentID }).select("user").lean();
+      if (!intent || String(intent.user) !== String(req.user?._id)) {
+        return res.status(403).json(notYours);
+      }
     }
 
     // Execute payment directly (no HTTP call back into this server)

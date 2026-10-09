@@ -3,17 +3,18 @@ import { auth } from "../../middlewares/auth";
 import { PaymentController } from "./payments.controller";
 const PaymentsRouter = express.Router();
 
+// TODO: users only ever see their own history (/token); every by-id or write route is admin-only.
 PaymentsRouter.route("/")
   .get(auth("admin"), PaymentController.getAllPayments)
-  .post(auth("user", "admin"), PaymentController.createPayment);
+  .post(auth("admin"), PaymentController.createPayment);
 
 PaymentsRouter.route("/token").get(
   auth("user", "admin"),
   PaymentController.getPaymentByToken
 );
 PaymentsRouter.route("/:id")
-  .get(auth("user", "admin"), PaymentController.getPaymentById)
-  .put(auth("user", "admin"), PaymentController.updatePayment)
-  .delete(auth("user", "admin"), PaymentController.deletePayment);
+  .get(auth("admin"), PaymentController.getPaymentById)
+  .put(auth("admin"), PaymentController.updatePayment)
+  .delete(auth("admin"), PaymentController.deletePayment);
 
 export default PaymentsRouter;

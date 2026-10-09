@@ -7,7 +7,7 @@ import {
   NotificationAudience,
   NotificationType,
 } from "./notification.interface";
-import { NotificationActor } from "./notification.policy";
+import { NotificationActor, usesAdminFeed } from "./notification.policy";
 
 const ably = config.ably_api_key ? new Ably.Rest(config.ably_api_key) : null;
 
@@ -26,7 +26,7 @@ const getChannelName = (notification: CreateNotificationInput | INotification) =
 };
 
 const getActorFilter = (actor: NotificationActor) => {
-  if (actor.user_role === "admin") {
+  if (usesAdminFeed(actor)) {
     return { audience: "admin" };
   }
 
@@ -72,10 +72,9 @@ export const NotificationService = {
   requestToken: async (actor: NotificationActor) => {
     if (!ably) return null;
 
-    const channel =
-      actor.user_role === "admin"
-        ? "notifications:admins"
-        : `notifications:user:${String(actor._id)}`;
+    const channel = usesAdminFeed(actor)
+      ? "notifications:admins"
+      : `notifications:user:${String(actor._id)}`;
 
     return ably.auth.requestToken({
       clientId: String(actor._id),

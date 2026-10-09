@@ -77,18 +77,9 @@ export const PaymentController = {
   }),
 
   updatePayment: catchAsync(async (req: Request, res: Response) => {
-    const id = req.user?._id;
-    if (!id) {
-      return res.status(httpStatus.UNAUTHORIZED).json({
-        statusCode: httpStatus.UNAUTHORIZED,
-        message: "You are not authorized",
-        success: false,
-      });
-    }
-    const updatedFields = req.body;
-    const updatedPayment = await PaymentService.updatePayment(
-      id,
-      updatedFields
+    const updatedPayment = await PaymentService.updatePaymentById(
+      req.params.id,
+      req.body
     );
     if (!updatedPayment) {
       res.status(httpStatus.NOT_FOUND).json({

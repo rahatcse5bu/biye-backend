@@ -11,6 +11,7 @@ const getActor = (req: Request): NotificationActor => {
   return {
     _id: req.user._id,
     user_role: String(req.user.user_role),
+    scope: req.query.scope === "admin" ? "admin" : "user",
   };
 };
 
