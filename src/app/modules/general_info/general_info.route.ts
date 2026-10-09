@@ -8,6 +8,7 @@ GeneralInfoRouter.route("/")
   .post(auth("user", "admin"), GeneralInfoController.createGeneralInfo)
   .put(auth("user", "admin"), GeneralInfoController.updateGeneralInfo);
 GeneralInfoRouter.route("/admin").get(
+  auth("admin"),
   GeneralInfoController.getGeneralInfoByAdmin
 );
 GeneralInfoRouter.route("/token").get(

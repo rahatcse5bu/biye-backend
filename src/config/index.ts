@@ -10,6 +10,7 @@ export default {
   port: process.env.PORT,
   node_env: process.env.NODE_ENV,
   jwt_secret: process.env.JWT_SECRET,
+  client_url: process.env.CLIENT_URL || "https://www.bibaho.org",
   sand_box: process.env.SANDBOX,
   bkash_app_secret: process.env.BKASH_APP_SECRET,
   bkash_app_key: process.env.BKASH_APP_KEY,

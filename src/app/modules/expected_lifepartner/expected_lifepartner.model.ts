@@ -3,7 +3,8 @@ import { IExpectedPartner } from "./expected_lifepartner.interface";
 
 // Step 2: Create the Mongoose Schema and Model
 const ExpectedPartnerSchema: Schema = new Schema({
-  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  // TODO: unique so the form, biodata page and filters can never read different copies.
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
   age: {
     min: {
       type: Number,

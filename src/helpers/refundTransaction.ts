@@ -3,7 +3,6 @@ import { get } from "node-global-storage";
 import authHeaders from "./authHeaders";
 
 const refundTransaction = async (body_data: any) => {
-	console.log("refund start !!");
 	const refundResponse = await fetch(
 		get("bkash_base_url") + "/checkout/payment/refund",
 		{

@@ -3,7 +3,6 @@ import { get } from "node-global-storage";
 import authHeaders from "./authHeaders";
 
 const queryPayment = async (paymentID: string) => {
-	console.log("query start !!");
 	const queryResponse = await fetch(
 		get("bkash_base_url") + "/checkout/payment/status",
 		{

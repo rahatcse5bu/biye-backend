@@ -8,6 +8,9 @@ export interface IUserInfo extends Document {
   email: string;
   google_id?: string;
   password_hash?: string;
+  reset_password_token?: string;
+  reset_password_expires?: Date;
+  password_changed_at?: Date;
   username?: string;
   picture?: string;
   preferred_religion?: "islam" | "hinduism" | "christianity" | "all" | null;

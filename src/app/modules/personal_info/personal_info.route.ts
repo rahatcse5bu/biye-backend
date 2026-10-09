@@ -6,7 +6,7 @@ const personalInfoRouter = express.Router();
 
 personalInfoRouter
   .route("/")
-  .get(PersonalInfoController.getAllPersonalInfoes)
+  .get(auth("admin"), PersonalInfoController.getAllPersonalInfoes)
   .post(auth("user", "admin"), PersonalInfoController.createPersonalInfo)
   .put(auth("user", "admin"), PersonalInfoController.updatePersonalInfo);
 
@@ -15,7 +15,7 @@ personalInfoRouter
   .get(auth("user", "admin"), PersonalInfoController.getPersonalInfoByToken);
 personalInfoRouter
   .route("/:id")
-  .get(PersonalInfoController.getPersonalInfoById)
-  .delete(PersonalInfoController.deletePersonalInfo);
+  .get(auth("admin"), PersonalInfoController.getPersonalInfoById)
+  .delete(auth("admin"), PersonalInfoController.deletePersonalInfo);
 
 export default personalInfoRouter;

@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { jwtHelpers } from "../../helpers/jwtHelpers";
 import config from "../../config";
+import { isValidObjectId } from "mongoose";
+import { UserInfoModel } from "../modules/user_info/user_info.model";
 // @ts-ignore
 import { Secret } from "jsonwebtoken";
 
@@ -28,6 +30,23 @@ export const auth =
         token,
         config.jwt_secret as Secret
       );
+
+      // TODO: rejects tokens of deleted users and tokens issued before the last password change.
+      const account = isValidObjectId(verifiedUser._id)
+        ? await UserInfoModel.findById(verifiedUser._id)
+            .select("+password_changed_at")
+            .lean()
+        : null;
+      const changedAt = account?.password_changed_at
+        ? Math.floor(new Date(account.password_changed_at).getTime() / 1000)
+        : 0;
+      if (!account || (verifiedUser.iat ?? 0) < changedAt) {
+        return res.status(401).send({
+          statusCode: httpStatus.UNAUTHORIZED,
+          message: "Session expired, please log in again",
+          success: false,
+        });
+      }
 
       req.user = verifiedUser; // user_role, token_id
 

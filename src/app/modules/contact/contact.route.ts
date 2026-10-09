@@ -1,6 +1,7 @@
 import express from "express";
 import { ContactController } from "./contact.controller";
 import { auth } from "../../middlewares/auth";
+import { rateLimit } from "../../../shared/rateLimit";
 const ContactRouter = express.Router();
 
 ContactRouter.route("/")
@@ -11,6 +12,7 @@ ContactRouter.route("/")
 //   ContactController.getContactForBuyer
 // );
 ContactRouter.route("/send-email").post(
+  rateLimit({ name: "contact-us", windowMs: 60 * 60 * 1000, max: 5 }),
   ContactController.createContactUsByEmail
 );
 

@@ -4,7 +4,7 @@ import { EducationalQualificationController } from "./educational_qualification.
 const EducationalQualificationRouter = express.Router();
 
 EducationalQualificationRouter.route("/")
-  .get(EducationalQualificationController.getAllEducationalQualifications)
+  .get(auth("admin"), EducationalQualificationController.getAllEducationalQualifications)
   .post(
     auth("user", "admin"),
     EducationalQualificationController.createEducationalQualification
@@ -19,8 +19,8 @@ EducationalQualificationRouter.route("/token").get(
   EducationalQualificationController.getEducationalQualificationByToken
 );
 EducationalQualificationRouter.route("/:id")
-  .get(EducationalQualificationController.getSingleEducationalQualification)
+  .get(auth("admin"), EducationalQualificationController.getSingleEducationalQualification)
 
-  .delete(EducationalQualificationController.deleteEducationalQualification);
+  .delete(auth("admin"), EducationalQualificationController.deleteEducationalQualification);
 
 export default EducationalQualificationRouter;

@@ -3,47 +3,25 @@ import createPayment from "../../../helpers/createPayment";
 import queryPayment from "../../../helpers/queryPayment";
 import searchTransaction from "../../../helpers/searchTransaction";
 import executePayment from "../../../helpers/executePayment";
-import axios from "axios";
-import { baseUrl } from "../../../shared/url";
 import { UserInfoModel } from "../user_info/user_info.model";
-import { late } from "zod";
 import Payment from "../payments/payment.model";
 import { formatTaka, mailUser } from "../../../shared/bibahoMail";
 import { NotificationService } from "../notifications/notification.service";
 import { PointsPackageService } from "../points_package/points_package.service";
 import { processRefund, RefundError } from "./bkash.refund";
 
-// Function to call the bKash execute payment API
-async function BkashExecutePaymentAPICall(paymentID: string) {
-  try {
-    const response = await axios.post(`${baseUrl}/bkash/execute`, {
-      paymentID,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("An error occurred during payment execution:", error);
-    throw error;
-  }
-}
-
-// Function to call the bKash query payment API
-async function BkashQueryPaymentAPICall(paymentID: string) {
-  try {
-    const response = await axios.post(`${baseUrl}/bkash/query`, { paymentID });
-    return response.data;
-  } catch (error) {
-    console.error("An error occurred during payment querying:", error);
-    throw error;
-  }
-}
+// TODO: every bKash handler must answer, otherwise the browser waits until it times out.
+const bkashFailed = (res: Response, error: unknown) => {
+  console.error("bKash request failed:", error);
+  res.status(502).json({ success: false, message: "bKash request failed. Please try again." });
+};
 
 const create = async (req: Request, res: Response) => {
   try {
     const createResult = await createPayment(req.body); // pass amount & callbackURL from frontend
-    console.log("create payment~", createResult);
     res.json(createResult);
   } catch (e) {
-    console.log(e);
+    bkashFailed(res, e);
   }
 };
 
@@ -52,7 +30,7 @@ const execute = async (req: Request, res: Response) => {
     let executeResponse = await executePayment(req.body.paymentID);
     res.json(executeResponse);
   } catch (e) {
-    console.log(e);
+    bkashFailed(res, e);
   }
 };
 
@@ -61,7 +39,7 @@ const query = async (req: Request, res: Response) => {
     let queryResponse = await queryPayment(req.body.paymentID);
     res.json(queryResponse);
   } catch (e) {
-    console.log(e);
+    bkashFailed(res, e);
   }
 };
 
@@ -69,19 +47,26 @@ const search = async (req: Request, res: Response) => {
   try {
     res.send(await searchTransaction(req.body.trxID));
   } catch (e) {
-    console.log(e);
+    bkashFailed(res, e);
   }
 };
 const afterPay = async (req: Request, res: Response) => {
-  let { paymentID, email, purpose } = req.body;
+  const { paymentID, purpose } = req.body;
 
   try {
-    // Execute payment
-    let response = await BkashExecutePaymentAPICall(paymentID);
+    // TODO: points always go to the logged-in buyer, never to an email named in the request.
+    const buyer: any = await UserInfoModel.findById(req.user?._id).select("email").lean();
+    const email = buyer?.email;
+    if (!email) {
+      return res.status(401).json({ success: false, message: "You are not authorized" });
+    }
+
+    // Execute payment directly (no HTTP call back into this server)
+    let response = await executePayment(paymentID);
 
     // Query payment if there is a message in the response
     if (response?.message) {
-      response = await BkashQueryPaymentAPICall(paymentID);
+      response = await queryPayment(paymentID);
     }
 
     if (response?.statusCode && response.statusCode === "0000") {
@@ -184,7 +169,7 @@ const afterPay = async (req: Request, res: Response) => {
     console.error("An error occurred:", error);
     res
       .status(500)
-      .json({ success: false, message: "An error occurred", error });
+      .json({ success: false, message: "Payment could not be confirmed. If money was deducted, contact support with your TrxID." });
   }
 };
 

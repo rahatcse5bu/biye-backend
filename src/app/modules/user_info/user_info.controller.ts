@@ -124,16 +124,34 @@ export const UserInfoController = {
     });
   }),
 
+  forgotPassword: catchAsync(async (req: Request, res: Response) => {
+    await UserInfoService.forgotPassword(req.body);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "If an account exists for this email, a reset link has been sent",
+    });
+  }),
+
+  resetPassword: catchAsync(async (req: Request, res: Response) => {
+    await UserInfoService.resetPassword(req.body);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  }),
+
   changePassword: catchAsync(async (req: Request, res: Response) => {
     const id = req.user?._id;
     if (!id) {
       throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized");
     }
 
-    await UserInfoService.changePassword(String(id), req.body);
+    // TODO: other sessions are revoked; the caller keeps working with this fresh token.
+    const data = await UserInfoService.changePassword(String(id), req.body);
     res.status(httpStatus.OK).json({
       success: true,
       message: "Password changed successfully",
+      data,
     });
   }),
 

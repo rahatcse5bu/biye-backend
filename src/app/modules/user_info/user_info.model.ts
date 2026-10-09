@@ -31,6 +31,11 @@ const userInfoSchema = new Schema<IUserInfo>(
       type: String,
       select: false,
     },
+    // TODO: sha256 of the emailed reset token; the raw token is never stored.
+    reset_password_token: { type: String, select: false, index: { sparse: true } },
+    reset_password_expires: { type: Date, select: false },
+    // TODO: tokens issued before this instant are rejected by auth().
+    password_changed_at: { type: Date, select: false },
     username: {
       type: String,
       trim: true,

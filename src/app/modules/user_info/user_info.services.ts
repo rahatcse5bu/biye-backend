@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, timingSafeEqual } from "crypto";
+import { createHash, randomBytes, scrypt, timingSafeEqual } from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { Secret } from "jsonwebtoken";
 import { promisify } from "util";
@@ -15,6 +15,11 @@ import { mailUser } from "../../../shared/bibahoMail";
 const googleClient = new OAuth2Client();
 const scryptAsync = promisify(scrypt);
 const invalidPasswordHash = `${"0".repeat(32)}:${"0".repeat(128)}`;
+const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+const RESET_RESEND_COOLDOWN_MS = 60 * 1000;
+
+const hashResetToken = (token: string): string =>
+  createHash("sha256").update(token).digest("hex");
 
 const normalizeEmail = (email: unknown): string => {
   if (typeof email !== "string") {
@@ -89,6 +94,12 @@ const hashPassword = async (password: string): Promise<string> => {
   const salt = randomBytes(16).toString("hex");
   const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${salt}:${derivedKey.toString("hex")}`;
+};
+
+// TODO: every password write goes through here so older sessions are revoked.
+const setPassword = async (user: IUserInfo, password: string): Promise<void> => {
+  user.password_hash = await hashPassword(password);
+  user.password_changed_at = new Date();
 };
 
 const verifyPassword = async (
@@ -337,7 +348,7 @@ export const UserInfoService = {
       currentPassword?: unknown;
       newPassword?: unknown;
     }
-  ): Promise<void> => {
+  ): Promise<{ token: string }> => {
     if (
       typeof passwordInfo?.currentPassword !== "string" ||
       typeof passwordInfo?.newPassword !== "string"
@@ -364,7 +375,59 @@ export const UserInfoService = {
       throw new ApiError(401, "Current password is incorrect");
     }
 
-    user.password_hash = await hashPassword(passwordInfo.newPassword);
+    await setPassword(user, passwordInfo.newPassword);
+    await user.save();
+    return { token: createAppToken(user) };
+  },
+
+  // TODO: silent on unknown emails so the endpoint can't be used to probe registered accounts.
+  forgotPassword: async (info: { email?: unknown }): Promise<void> => {
+    const email = normalizeEmail(info?.email);
+    const user = await UserInfoModel.findOne({ email }).select("+reset_password_expires");
+    if (!user) return;
+
+    const now = Date.now();
+    const lastIssuedAt = user.reset_password_expires
+      ? user.reset_password_expires.getTime() - RESET_TOKEN_TTL_MS
+      : 0;
+    if (now - lastIssuedAt < RESET_RESEND_COOLDOWN_MS) return;
+
+    const token = randomBytes(32).toString("hex");
+    user.reset_password_token = hashResetToken(token);
+    user.reset_password_expires = new Date(now + RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    mailUser(user.email, "পাসওয়ার্ড রিসেট", {
+      title: "আপনার পাসওয়ার্ড রিসেট করুন",
+      greeting: `প্রিয় ${user.username || "সদস্য"},`,
+      paragraphs: [
+        "আপনার Bibaho অ্যাকাউন্টের পাসওয়ার্ড রিসেটের অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।",
+        "এই লিংকটি ৩০ মিনিট পর্যন্ত কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে।",
+        "আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন, আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।",
+      ],
+      action: { label: "নতুন পাসওয়ার্ড সেট করুন", path: `/forgot-password?token=${token}` },
+    });
+  },
+
+  resetPassword: async (info: { token?: unknown; password?: unknown }): Promise<void> => {
+    if (typeof info?.token !== "string" || !/^[a-f0-9]{64}$/.test(info.token)) {
+      throw new ApiError(400, "Reset link is invalid or has expired");
+    }
+    if (typeof info.password !== "string" || info.password.length < 6) {
+      throw new ApiError(400, "Password must be at least 6 characters long");
+    }
+
+    const user = await UserInfoModel.findOne({
+      reset_password_token: hashResetToken(info.token),
+      reset_password_expires: { $gt: new Date() },
+    });
+    if (!user) {
+      throw new ApiError(400, "Reset link is invalid or has expired");
+    }
+
+    await setPassword(user, info.password);
+    user.reset_password_token = undefined;
+    user.reset_password_expires = undefined;
     await user.save();
   },
 

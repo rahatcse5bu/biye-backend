@@ -42,8 +42,6 @@ import PointsPackageRouter from "./app/modules/points_package/points_package.rou
 import RefundRequestRouter from "./app/modules/refund_request/refund_request.route";
 import EmailSettingsRouter from "./app/modules/email_settings/email_settings.route";
 import AccountRouter from "./app/modules/account/account.route";
-import sendEmail from "./shared/SendEmail";
-import Address from "./app/modules/address/address.model";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
@@ -64,7 +62,16 @@ if (config.node_env === "development") {
 //   })
 // );
 
-const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org","https://biye-admin-three.vercel.app"];
+// TODO: more origins (e.g. a custom admin domain) can be added via CORS_ORIGINS, comma-separated.
+const allowedOrigins = [
+  "https://www.bibaho.org",
+  "https://bibaho.org",
+  "https://biye-admin-three.vercel.app",
+  ...(process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean),
+];
 if (config.node_env === "development") {
   allowedOrigins.push(
     "http://localhost:3000",
@@ -94,18 +101,6 @@ app.get("/", async (req: Request, res: Response) => {
   res.send("server is running!");
 });
 
-app.get("/send-email", async (req: Request, res: Response) => {
-  try {
-    sendEmail(
-      "anis.cse5.bu@gmail.com",
-      "Test Eamil",
-      "<strong>Hello, this is a test email!</strong>",
-    );
-    res.json("send");
-  } catch (error) {
-    res.send(error);
-  }
-});
 
 app.use(async (req, res, next) => {
   try {
@@ -120,23 +115,6 @@ app.use(async (req, res, next) => {
   }
 });
 
-app.put("/update-addresses", async (req, res) => {
-  try {
-    const addresses = await Address.find({});
-    for (let address of addresses) {
-      const present_address = address.present_address.split(",");
-
-      address.present_zilla = present_address[1];
-      address.present_upzilla = present_address[2];
-      address.present_division = present_address[0]; // Copy division to present_division
-
-      await address.save();
-    }
-    res.status(200).send("Addresses updated successfully");
-  } catch (err: any) {
-    res.status(500).send("Error updating addresses: " + err.message);
-  }
-});
 
 app.use("/api/v1/user-info", userRouter);
 app.use("/api/v1/personal-info", personalInfoRouter);

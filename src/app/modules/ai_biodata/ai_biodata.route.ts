@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
+import { auth } from "../../middlewares/auth";
 import {
     searchBiodataWithAI,
     parseBiodataForm,
@@ -9,6 +10,9 @@ import {
 } from "../../../services/groqService";
 
 const AiBiodataRouter = express.Router();
+
+// TODO: these call the paid Groq API; only the admin panel may use them.
+AiBiodataRouter.use(auth("admin"));
 
 /**
  * POST /ai-biodata/search

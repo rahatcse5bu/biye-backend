@@ -44,9 +44,34 @@ export const ExpectedPartnerService = {
       updatedFields,
       {
         new: true,
+        runValidators: true,
       }
     );
     return updatedExpectedPartner ? updatedExpectedPartner.toObject() : null;
+  },
+
+  // TODO: one record per user; a repeat create (double click, failed load) updates instead of duplicating.
+  upsertExpectedPartner: async (
+    userId: string,
+    fields: Partial<IExpectedPartner>,
+    options?: { session?: ClientSession }
+  ): Promise<{ record: IExpectedPartner; created: boolean }> => {
+    const existing = await ExpectedPartner.findOne({ user: userId }).session(options?.session || null);
+    const update = { ...fields, user: userId };
+    const settings = { new: true, runValidators: true, session: options?.session };
+    try {
+      const record = await ExpectedPartner.findOneAndUpdate({ user: userId }, update, {
+        ...settings,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      });
+      return { record: record!.toObject(), created: !existing };
+    } catch (error: any) {
+      // TODO: a simultaneous save won the insert; apply this one as an update to that record.
+      if (error?.code !== 11000) throw error;
+      const record = await ExpectedPartner.findOneAndUpdate({ user: userId }, update, settings);
+      return { record: record!.toObject(), created: false };
+    }
   },
 
   deleteExpectedPartner: async (id: string): Promise<void> => {

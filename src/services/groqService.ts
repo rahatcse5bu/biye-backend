@@ -41,7 +41,8 @@ export const callGroqAPI = async (
     messages: GroqMessage[],
     model: string = "meta-llama/llama-4-scout-17b-16e-instruct",
     temperature: number = 0.7,
-    max_tokens: number = 1024
+    max_tokens: number = 1024,
+    extra: { tools?: unknown[]; tool_choice?: unknown } = {}
 ): Promise<GroqResponse> => {
     const apiKey = config.groq_api_key;
 
@@ -54,7 +55,8 @@ export const callGroqAPI = async (
         messages,
         temperature,
         max_tokens,
-    };
+        ...(extra.tools ? { tools: extra.tools, tool_choice: extra.tool_choice ?? "auto" } : {}),
+    } as GroqRequest;
 
     try {
         const response = await axios.post<GroqResponse>(GROQ_API_URL, payload, {

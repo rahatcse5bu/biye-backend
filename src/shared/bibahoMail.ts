@@ -6,8 +6,9 @@ import {
   EmailSettingsService,
 } from "../app/modules/email_settings/email_settings.service";
 import { DEFAULT_EMAIL_SETTINGS } from "../app/modules/email_settings/email_settings.model";
+import config from "../config";
 
-export const SITE_URL = "https://www.bibaho.org";
+export const SITE_URL = config.client_url.replace(/\/+$/, "");
 
 export const escapeHtml = (value: unknown) =>
   String(value ?? "")

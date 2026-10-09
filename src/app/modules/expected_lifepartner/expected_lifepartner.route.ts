@@ -4,7 +4,7 @@ import { ExpectedPartnerController } from "./expected_lifepartner.controller";
 const ExpectedLifePartnerRouter = express.Router();
 
 ExpectedLifePartnerRouter.route("/")
-  .get(ExpectedPartnerController.getAllExpectedPartners)
+  .get(auth("admin"), ExpectedPartnerController.getAllExpectedPartners)
   .post(auth("user", "admin"), ExpectedPartnerController.createExpectedPartner)
   .put(auth("user", "admin"), ExpectedPartnerController.updateExpectedPartner);
 

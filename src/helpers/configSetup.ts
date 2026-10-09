@@ -1,7 +1,6 @@
 import config from "../config";
 import { get, set, flush } from "node-global-storage";
 const configSetup = async () => {
-	console.log(get);
 
 	const sandbox = config.sand_box?.toLowerCase();
 	if (get("sandbox") !== sandbox) {

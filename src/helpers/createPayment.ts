@@ -8,7 +8,6 @@ interface CustomRequest extends Request {
 }
 const createPayment = async (req: CustomRequest) => {
 	try {
-		console.log("create start !!");
 		if (!req.amount || !req.callbackURL) {
 			return "amount & callbackURL required";
 		}
@@ -38,7 +37,7 @@ const createPayment = async (req: CustomRequest) => {
 
 		return createResult;
 	} catch (e) {
-		console.log(e);
+		console.error("bKash call failed:", (e as any)?.message || e);
 	}
 };
 

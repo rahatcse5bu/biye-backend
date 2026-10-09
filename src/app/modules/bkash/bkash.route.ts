@@ -7,10 +7,12 @@ const bkashRouter = express.Router();
 bkashRouter.use(authCheck);
 
 // User Part
-bkashRouter.post("/create", bkashControllers.create);
-bkashRouter.post("/execute", bkashControllers.execute);
-bkashRouter.post("/query", bkashControllers.query);
-bkashRouter.post("/after-pay", bkashControllers.afterPay);
+bkashRouter.post("/create", auth("user", "admin"), bkashControllers.create);
+bkashRouter.post("/after-pay", auth("user", "admin"), bkashControllers.afterPay);
+
+// TODO: low-level bKash calls; the app runs them internally, so only admins may call them directly.
+bkashRouter.post("/execute", auth("admin"), bkashControllers.execute);
+bkashRouter.post("/query", auth("admin"), bkashControllers.query);
 
 // Admin Part
 bkashRouter.post("/search", auth("admin"), bkashControllers.search);

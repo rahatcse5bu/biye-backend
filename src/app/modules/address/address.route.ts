@@ -4,7 +4,7 @@ import { AddressController } from "./address.controller";
 const AddressRouter = express.Router();
 
 AddressRouter.route("/")
-  .get(AddressController.getAllAddresses)
+  .get(auth("admin"), AddressController.getAllAddresses)
   .put(auth("user", "admin"), AddressController.updateAddress)
   .post(auth("user", "admin"), AddressController.createAddress);
 
@@ -13,7 +13,7 @@ AddressRouter.route("/token").get(
   AddressController.getAddressByToken
 );
 AddressRouter.route("/:id")
-  .get(AddressController.getAddressById)
-  .delete(AddressController.deleteAddress);
+  .get(auth("admin"), AddressController.getAddressById)
+  .delete(auth("admin"), AddressController.deleteAddress);
 
 export default AddressRouter;
