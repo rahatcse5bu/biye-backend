@@ -5,6 +5,8 @@ import catchAsync from "../../../shared/catchAsync";
 import { UserInfoModel } from "../user_info/user_info.model";
 import mongoose from "mongoose";
 import { escapeHtml, mailAdmins } from "../../../shared/bibahoMail";
+import ContactMessage from "../contact_message/contact_message.model";
+import { NotificationService } from "../notifications/notification.service";
 
 export const ContactController = {
   getAllContacts: catchAsync(async (req: Request, res: Response) => {
@@ -103,23 +105,44 @@ export const ContactController = {
     }
   }),
   createContactUsByEmail: catchAsync(async (req: Request, res: Response) => {
-    const { name, email, phone, bio, message } = req.body;
-
     // TODO: visitor input is escaped by the template; raw HTML here let anyone send links from our address.
     const text = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
+    const input = {
+      name: text(req.body?.name, 100),
+      email: text(req.body?.email, 200).toLowerCase(),
+      phone: text(req.body?.phone, 40),
+      bio: text(req.body?.bio, 40),
+      message: text(req.body?.message, 3000),
+    };
+    if (!input.name || !input.message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: "নাম, সঠিক ইমেইল এবং বার্তা দেওয়া আবশ্যক",
+      });
+    }
+
+    // TODO: saved first so the admin site keeps every message even if the email fails.
+    const saved = await ContactMessage.create(input);
     mailAdmins("ওয়েবসাইট থেকে নতুন বার্তা", {
       title: "যোগাযোগ ফর্ম থেকে নতুন বার্তা",
       paragraphs: [
-        `<strong>বার্তা:</strong><br>${escapeHtml(text(message, 3000)).replace(/\n/g, "<br>")}`,
+        `<strong>বার্তা:</strong><br>${escapeHtml(input.message).replace(/\n/g, "<br>")}`,
       ],
       details: [
-        { label: "নাম", value: text(name, 100) },
-        { label: "ইমেইল", value: text(email, 200) },
-        { label: "ফোন", value: text(phone, 40) },
-        { label: "বায়োডাটা নং", value: text(bio, 40) },
+        { label: "নাম", value: input.name },
+        { label: "ইমেইল", value: input.email },
+        { label: "ফোন", value: input.phone },
+        { label: "বায়োডাটা নং", value: input.bio },
       ],
     });
-    res.json({ success: true, message: "Email sent successfully" });
+    NotificationService.notify({
+      audience: "admin",
+      type: "system",
+      title: "নতুন যোগাযোগ বার্তা",
+      message: `${input.name} (${input.email}) একটি বার্তা পাঠিয়েছেন।`,
+      link: "/contact-messages",
+    });
+    res.status(httpStatus.CREATED).json({ success: true, message: "Message sent successfully", data: { _id: saved._id } });
   }),
 
   updateContact: catchAsync(async (req: Request, res: Response) => {

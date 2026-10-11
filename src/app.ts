@@ -42,6 +42,7 @@ import PointsPackageRouter from "./app/modules/points_package/points_package.rou
 import RefundRequestRouter from "./app/modules/refund_request/refund_request.route";
 import EmailSettingsRouter from "./app/modules/email_settings/email_settings.route";
 import AccountRouter from "./app/modules/account/account.route";
+import ContactMessageRouter from "./app/modules/contact_message/contact_message.route";
 import { sanitizeInput, stripOwnerFields } from "./app/middlewares/sanitizeInput";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
@@ -180,6 +181,7 @@ app.use("/api/v1/points-packages", PointsPackageRouter);
 app.use("/api/v1/refund-requests", RefundRequestRouter);
 app.use("/api/v1/email-settings", EmailSettingsRouter);
 app.use("/api/v1/account", AccountRouter);
+app.use("/api/v1/contact-messages", ContactMessageRouter);
 app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
 app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);
