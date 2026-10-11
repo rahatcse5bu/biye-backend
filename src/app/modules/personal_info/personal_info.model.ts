@@ -6,10 +6,12 @@ interface IPersonalInfoDocument extends IPersonalInfo, Document {}
 
 const personalInfoSchema: Schema<IPersonalInfoDocument> = new Schema(
   {
+    // TODO: every biodata section is looked up by user, so it needs an index.
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     
     // Common Fields

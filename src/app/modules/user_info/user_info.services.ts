@@ -137,7 +137,7 @@ export const UserInfoService = {
       user_status: "active",
     })
       .select("_id user_id")
-      .lean();
+      .lean<IUserInfo[]>();
   },
   getUserInfoByIdWithSession: async (
     id: string,
@@ -169,7 +169,7 @@ export const UserInfoService = {
   getUserInfoByEmail: async (
     email: string
   ): Promise<Partial<IUserInfo> | null> => {
-    return await UserInfoModel.findOne({ email }).lean().exec();
+    return await UserInfoModel.findOne({ email }).lean<IUserInfo>().exec();
   },
 
   createUserInfo: async (userInfo: IUserInfo): Promise<IUserInfo> => {

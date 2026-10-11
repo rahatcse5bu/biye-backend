@@ -13,7 +13,7 @@ MaritalInfoRouter.route("/token").get(
   MaritalInfoController.getMaritalInfoByToken
 );
 MaritalInfoRouter.route("/:id")
-  .get(auth("user", "admin"), MaritalInfoController.getMaritalInfoById)
-  .delete(auth("user", "admin"), MaritalInfoController.deleteMaritalInfo);
+  .get(auth("admin"), MaritalInfoController.getMaritalInfoById)
+  .delete(auth("admin"), MaritalInfoController.deleteMaritalInfo);
 
 export default MaritalInfoRouter;

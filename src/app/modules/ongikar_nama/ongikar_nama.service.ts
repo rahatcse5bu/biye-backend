@@ -14,7 +14,7 @@ export const OngikarNamaService = {
     return ongikarNama ? ongikarNama.toObject() : null;
   },
   getOngikarNamaByToken: async (user: string): Promise<IOngikarNama | null> => {
-    const ongikarNama = await OngikarNama.findOne({ user }).lean();
+    const ongikarNama = await OngikarNama.findOne({ user }).lean<IOngikarNama>();
     return ongikarNama;
   },
 

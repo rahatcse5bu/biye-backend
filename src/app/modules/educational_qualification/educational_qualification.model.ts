@@ -4,10 +4,12 @@ import { IEducationalQualification } from "./educational_qualification.interface
 // Create a Schema corresponding to the document interface.
 const EducationalQualificationSchema: Schema = new Schema(
   {
+    // TODO: every biodata section is looked up by user, so it needs an index.
     user: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
+      index: true,
     },
     education_medium: { type: String, required: false },
     highest_edu_level: { type: String, required: false },

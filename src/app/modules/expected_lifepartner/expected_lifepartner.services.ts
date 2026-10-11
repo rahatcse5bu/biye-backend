@@ -20,7 +20,7 @@ export const ExpectedPartnerService = {
   getExpectedPartnerByToken: async (
     user: string
   ): Promise<IExpectedPartner | null> => {
-    const expectedPartner = await ExpectedPartner.findOne({ user }).lean();
+    const expectedPartner = await ExpectedPartner.findOne({ user }).lean<IExpectedPartner>();
     return expectedPartner;
   },
 

@@ -42,12 +42,24 @@ import PointsPackageRouter from "./app/modules/points_package/points_package.rou
 import RefundRequestRouter from "./app/modules/refund_request/refund_request.route";
 import EmailSettingsRouter from "./app/modules/email_settings/email_settings.route";
 import AccountRouter from "./app/modules/account/account.route";
+import { sanitizeInput, stripOwnerFields } from "./app/middlewares/sanitizeInput";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
 const app = express();
 
+app.disable("x-powered-by");
+// TODO: Vercel sits in front, so req.ip is the real client instead of the proxy.
+app.set("trust proxy", 1);
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+  next();
+});
 app.use(express.json());
+app.use(sanitizeInput);
 
 if (config.node_env === "development") {
   app.use(morgan("dev"));
@@ -116,6 +128,23 @@ app.use(async (req, res, next) => {
 });
 
 
+app.use(
+  [
+    "/api/v1/personal-info",
+    "/api/v1/ongikar-nama",
+    "/api/v1/occupation",
+    "/api/v1/marital-info",
+    "/api/v1/general-info",
+    "/api/v1/family-status",
+    "/api/v1/expected-life-partner",
+    "/api/v1/educational-qualification",
+    "/api/v1/address",
+    "/api/v1/contact",
+    "/api/v1/achievement",
+    "/api/v1/bio-questions",
+  ],
+  stripOwnerFields,
+);
 app.use("/api/v1/user-info", userRouter);
 app.use("/api/v1/personal-info", personalInfoRouter);
 app.use("/api/v1/ongikar-nama", ongikarNamaRouter);

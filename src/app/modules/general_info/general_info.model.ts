@@ -6,7 +6,8 @@ interface GeneralInfoDocument extends IGeneralInfo, Document {}
 
 const GeneralInfoSchema: Schema<GeneralInfoDocument> = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     refer_user: { type: Schema.Types.ObjectId, ref: "User", required: false },
     bio_type: { type: String, required: true },
     isMarriageDone: { type: Boolean, default: false },

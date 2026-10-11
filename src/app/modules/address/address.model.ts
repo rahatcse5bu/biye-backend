@@ -4,7 +4,8 @@ import { IAddress } from "./address.interface";
 // Define Address Schema
 const addressSchema: Schema<IAddress> = new Schema<IAddress>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     permanent_address: { type: String, required: true },
     present_address: { type: String, required: true },
     grown_up: { type: String, required: true },

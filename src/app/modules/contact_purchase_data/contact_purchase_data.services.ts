@@ -22,7 +22,7 @@ export const ContactPurchaseService = {
       bio_user,
     })
       .session(options.session)
-      .lean();
+      .lean<IContactPurchase>();
     return contactPurchase;
   },
 

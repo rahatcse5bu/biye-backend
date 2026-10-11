@@ -96,10 +96,13 @@ const afterPay = async (req: Request, res: Response) => {
       response = await queryPayment(paymentID);
     }
 
-    if (response?.statusCode && response.statusCode === "0000") {
+    // TODO: query returns 0000 for unpaid "Initiated" payments too; only a Completed transaction earns points.
+    if (response?.statusCode === "0000" && response?.transactionStatus === "Completed") {
       const singleUser = await UserInfoModel.findOne({ email });
       let saveInDb = false;
       let points = 0;
+      // TODO: the buyer's balance after this payment, so the site can update it without refetching.
+      let pointsBalance: number | null = singleUser ? Number(singleUser.points) || 0 : null;
       if (singleUser) {
         // TODO: points page uses package/custom pricing; purchase top-ups use the same admin rate the frontend priced them with.
         const paidAmount = Number(response?.amount);
@@ -133,14 +136,19 @@ const afterPay = async (req: Request, res: Response) => {
             paymentId: paymentID,
             amount: existing.amount,
             points: existing.points,
+            points_balance: pointsBalance,
             status: existing.status,
             payment_create_time: existing.trnx_time,
           });
         }
-        await UserInfoModel.updateOne(
+        const credited: any = await UserInfoModel.findOneAndUpdate(
           { _id: singleUser._id },
           { $inc: { points } },
-        );
+          { new: true },
+        )
+          .select("points")
+          .lean();
+        pointsBalance = Number(credited?.points) || 0;
         saveInDb = true;
         NotificationService.notify({
           recipient: singleUser._id,
@@ -182,6 +190,7 @@ const afterPay = async (req: Request, res: Response) => {
         paymentId: paymentID,
         amount: response?.amount,
         points,
+        points_balance: pointsBalance,
         status: response?.transactionStatus,
         payment_create_time:
           response?.paymentCreateTime || response?.paymentExecuteTime,

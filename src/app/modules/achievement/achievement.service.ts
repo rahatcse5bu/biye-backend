@@ -3,7 +3,7 @@ import Achievement from "./achievement.model";
 
 export const AchievementService = {
   getAchievementByUser: async (userId: string): Promise<IAchievement | null> => {
-    return await Achievement.findOne({ user: userId }).lean();
+    return await Achievement.findOne({ user: userId }).lean<IAchievement>();
   },
 
   createAchievement: async (data: Partial<IAchievement>): Promise<IAchievement> => {

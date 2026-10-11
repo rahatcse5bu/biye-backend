@@ -2,7 +2,8 @@ import mongoose, { Schema } from "mongoose";
 import { IMaritalInfo } from "./marital_info.interface";
 
 const MaritalInfoSchema: Schema = new Schema({
-  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  // TODO: every biodata section is looked up by user, so it needs an index.
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   isFamilyAgree: { type: String, required: false },
   isPordaToWife: { type: String, required: false },
   permission_for_study: { type: String, required: false },

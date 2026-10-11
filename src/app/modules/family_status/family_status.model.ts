@@ -4,7 +4,8 @@ import { IFamilyStatus } from "./family_status.interface";
 
 const UserFamilyInfoSchema: Schema = new Schema<IFamilyStatus>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     father_name: { type: String, required: true },
     father_occupation: { type: String, required: true },
     isFatherAlive: { type: String, required: true },

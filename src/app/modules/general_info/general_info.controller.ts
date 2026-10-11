@@ -118,9 +118,14 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     screen_color: { $ifNull: ["$approved_data.screen_color", "$screen_color"] },
   };
 
+  // TODO: the public list only shows active biodatas (plus "in review" in development); inactive/banned stay hidden.
+  const listedStatus =
+    process.env.NODE_ENV === "development" && user_status === "in review"
+      ? "in review"
+      : "active";
   const andConditions: any = [
     {
-      "userDetails.user_status": user_status,
+      "userDetails.user_status": listedStatus,
     },
   ];
 

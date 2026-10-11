@@ -14,7 +14,7 @@ export const OccupationService = {
     return occupation ? occupation.toObject() : null;
   },
   getOccupationByToken: async (user: string): Promise<IOccupation | null> => {
-    const occupation = await Occupation.findOne({ user }).lean();
+    const occupation = await Occupation.findOne({ user }).lean<IOccupation>();
     return occupation;
   },
 

@@ -14,13 +14,13 @@ export const PaymentService = {
     return payment ? payment.toObject() : null;
   },
   getPaymentByToken: async (user: string): Promise<IPayment | null> => {
-    const payment = await Payment.findOne({ user }).lean();
+    const payment = await Payment.findOne({ user }).lean<IPayment>();
     return payment;
   },
   getPaymentByEmail: async (email: string) => {
     const payment = await Payment.find({ email })
       .sort({ createdAt: -1, _id: -1 })
-      .lean();
+      .lean<IPayment[]>();
     return payment;
   },
 
@@ -34,7 +34,7 @@ export const PaymentService = {
     updatedFields: Partial<IPayment>,
   ): Promise<IPayment | null> => {
     if (!isValidObjectId(id)) return null;
-    return Payment.findByIdAndUpdate(id, updatedFields, { new: true }).lean();
+    return Payment.findByIdAndUpdate(id, updatedFields, { new: true }).lean<IPayment>();
   },
 
   updatePayment: async (

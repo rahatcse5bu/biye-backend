@@ -64,12 +64,14 @@ export const auth =
 
       next();
     } catch (error: any) {
+      // TODO: internal errors (e.g. DB failures) are logged, never echoed to the client.
       const statusCode = error.statusCode || 500;
-      const message = error.isOperational ? error.message : "Internal Server Error";
+      if (statusCode === 500) console.error("Auth check failed:", error);
+      const message = statusCode < 500 ? error.message : "Internal Server Error";
       res.status(statusCode).send({
         statusCode,
         message,
-        error: error.message,
+        error: message,
         success: false,
       });
     }

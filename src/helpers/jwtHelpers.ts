@@ -31,7 +31,7 @@ const verifyToken = (token: string, secret: Secret): JwtPayloadOrNull => {
   // return jwt.verify(token, secret) ;
 
   try {
-    return jwt.verify(token, secret) as JwtPayload;
+    return jwt.verify(token, secret, { algorithms: ["HS256"] }) as JwtPayload;
   } catch (error: any) {
     if (error instanceof TokenExpiredError) {
       console.log("Token has expired");

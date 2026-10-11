@@ -5,6 +5,7 @@ import catchAsync from "../../../shared/catchAsync";
 import { IUserInfo } from "./user_info.interface";
 import { UserInfoService } from "./user_info.services";
 import { UserInfoModel } from "./user_info.model";
+import GeneralInfo from "../general_info/general_info.model";
 import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
 import sendEmail from "../../../shared/SendEmail";
@@ -260,16 +261,19 @@ export const UserInfoController = {
         success: false,
       });
     }
-    const { points, user_role, ...others } = req.body;
-
-    if (others?.userRole && !userRoleChangeByUser.includes(others)) {
-      throw new ApiError(403, "You are not allowed to change user role");
+    // TODO: allowlist; passing the raw body let users set user_role/points/email (or $set them) on their own account.
+    const others = { user_status: req.body?.user_status };
+    if (!userRoleChangeByUser.includes(others.user_status)) {
+      throw new ApiError(403, "You are not allowed to set this status");
+    }
+    const current: any = await UserInfoModel.findById(id).select("user_status").lean();
+    if (current?.user_status === "banned") {
+      throw new ApiError(403, "Your account is banned");
     }
 
-    const userInfo: IUserInfo = others;
     const updatedUserInfo: any = await UserInfoService.updateUserInfo(
       id,
-      userInfo
+      others as IUserInfo
     );
     if (!updatedUserInfo) {
       return res.status(httpStatus.NOT_FOUND).json({
@@ -299,6 +303,24 @@ export const UserInfoController = {
       });
     }
     const { user_status } = req.body;
+
+    // TODO: users may hide their biodata, but only an admin-approved one can be switched back to active.
+    if (user_status !== "active" && user_status !== "inactive") {
+      throw new ApiError(400, "user_status must be active or inactive");
+    }
+    const current: any = await UserInfoModel.findById(id).select("user_status").lean();
+    if (current?.user_status === "banned") {
+      throw new ApiError(403, "Your account is banned");
+    }
+    if (user_status === "active") {
+      const bio: any = await GeneralInfo.findOne({ user: id })
+        .select("biodata_status approved_data")
+        .lean();
+      const approved = bio?.biodata_status === "approved" || Boolean(bio?.approved_data);
+      if (current?.user_status !== "inactive" || !approved) {
+        throw new ApiError(403, "Your biodata must be approved before it can be activated");
+      }
+    }
 
     const userInfo: any = { user_status };
     const updatedUserInfo: any = await UserInfoService.updateUserInfo(

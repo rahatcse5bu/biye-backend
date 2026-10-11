@@ -14,7 +14,7 @@ export const AddressService = {
     return address ? address.toObject() : null;
   },
   getAddressByToken: async (user: string): Promise<IAddress | null> => {
-    const address = await Address.findOne({ user }).lean();
+    const address = await Address.findOne({ user }).lean<IAddress>();
     return address;
   },
 

@@ -14,7 +14,7 @@ export const ContactService = {
     return contact ? contact.toObject() : null;
   },
   getContactByToken: async (user: string): Promise<IContact | null> => {
-    const contact = await Contact.findOne({ user }).lean();
+    const contact = await Contact.findOne({ user }).lean<IContact>();
     return contact;
   },
 

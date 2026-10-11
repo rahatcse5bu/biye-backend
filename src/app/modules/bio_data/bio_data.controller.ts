@@ -14,6 +14,19 @@ import ExpectedPartner from "../expected_lifepartner/expected_lifepartner.model"
 import OngikarNama from "../ongikar_nama/ongikar_nama.model";
 import Contact from "../contact/contact.model";
 import Achievement from "../achievement/achievement.model";
+import { jwtHelpers } from "../../../helpers/jwtHelpers";
+import config from "../../../config";
+
+// TODO: optional login; returns the verified token payload, or null for visitors and bad tokens.
+const optionalViewer = (req: Request): any => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return null;
+  try {
+    return jwtHelpers.verifyToken(header.slice(7), config.jwt_secret as string);
+  } catch {
+    return null;
+  }
+};
 
 const getBioData = catchAsync(async (req: Request, res: Response) => {
   const bioId = req.params.id;
@@ -35,8 +48,48 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
+  // TODO: unapproved biodatas are visible only to their owner (preview) and admins; development also lists "in review".
+  const unpublished =
+    user.user_status === "pending" ||
+    (user.user_status === "in review" && config.node_env !== "development");
+  if (unpublished) {
+    const viewer = optionalViewer(req);
+    const canView =
+      viewer?.user_role === "admin" || String(viewer?._id) === String(user._id);
+    if (!canView) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+  }
+
   const userId = user._id;
-  const generalInfoRaw = await GeneralInfo.findOne({ user: userId }).lean();
+  // TODO: one parallel round trip instead of ten sequential ones (each is a full DB round trip from Vercel).
+  const [
+    generalInfoRaw,
+    address,
+    educationQualification,
+    personalInfo,
+    familyStatus,
+    occupation,
+    maritalInfo,
+    expectedLifePartner,
+    ongikarNama,
+    achievement,
+  ] = await Promise.all([
+    GeneralInfo.findOne({ user: userId }).lean(),
+    Address.findOne({ user: userId }).lean(),
+    EducationalQualification.findOne({ user: userId }).lean(),
+    // TODO: phone/email are paid contact data; the public profile must never return them.
+    PersonalInfo.findOne({ user: userId }).select("-my_phone -my_email").lean(),
+    FamilyStatus.findOne({ user: userId }).lean(),
+    Occupation.findOne({ user: userId }).lean(),
+    MaritalInfo.findOne({ user: userId }).lean(),
+    ExpectedPartner.findOne({ user: userId }).lean(),
+    OngikarNama.findOne({ user: userId }).lean(),
+    Achievement.findOne({ user: userId }).lean(),
+  ]);
 
   // Public view: always show the last approved snapshot, never expose pending_changes
   let generalInfo: any = generalInfoRaw;
@@ -65,30 +118,7 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
       generalInfo.religion = 'islam';
     }
   }
-  
-  const address = await Address.findOne({ user: userId }).lean();
-  const educationQualification = await EducationalQualification.findOne({
-    user: userId,
-  }).lean();
-  const personalInfo = await PersonalInfo.findOne({
-    user: userId,
-  }).lean();
-  const familyStatus = await FamilyStatus.findOne({
-    user: userId,
-  }).lean();
-  const occupation = await Occupation.findOne({
-    user: userId,
-  }).lean();
-  const maritalInfo = await MaritalInfo.findOne({
-    user: userId,
-  }).lean();
-  const expectedLifePartner = await ExpectedPartner.findOne({
-    user: userId,
-  }).lean();
-  const ongikarNama = await OngikarNama.findOne({
-    user: userId,
-  }).lean();
-  const achievement = await Achievement.findOne({ user: userId }).lean();
+
   let data = {
     generalInfo,
     address,
@@ -120,7 +150,32 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
   // console.log(user);
 
   const userId = user._id;
-  const generalInfoRaw = await GeneralInfo.findOne({ user: userId }).lean();
+  // TODO: same parallel lookup as the public handler, plus contact for the admin.
+  const [
+    generalInfoRaw,
+    address,
+    educationQualification,
+    personalInfo,
+    familyStatus,
+    occupation,
+    maritalInfo,
+    expectedLifePartner,
+    ongikarNama,
+    contact,
+    achievement,
+  ] = await Promise.all([
+    GeneralInfo.findOne({ user: userId }).lean(),
+    Address.findOne({ user: userId }).lean(),
+    EducationalQualification.findOne({ user: userId }).lean(),
+    PersonalInfo.findOne({ user: userId }).lean(),
+    FamilyStatus.findOne({ user: userId }).lean(),
+    Occupation.findOne({ user: userId }).lean(),
+    MaritalInfo.findOne({ user: userId }).lean(),
+    ExpectedPartner.findOne({ user: userId }).lean(),
+    OngikarNama.findOne({ user: userId }).lean(),
+    Contact.findOne({ user: userId }).lean(),
+    Achievement.findOne({ user: userId }).lean(),
+  ]);
   
   // Admin view: merge pending_changes so admin sees the latest user edits for review
   let generalInfo: any = generalInfoRaw;
@@ -132,33 +187,7 @@ const getBioDataByAdmin = catchAsync(async (req: Request, res: Response) => {
   if (generalInfo && !generalInfo.religion) {
     generalInfo.religion = 'islam';
   }
-  
-  const address = await Address.findOne({ user: userId }).lean();
-  const educationQualification = await EducationalQualification.findOne({
-    user: userId,
-  }).lean();
-  const personalInfo = await PersonalInfo.findOne({
-    user: userId,
-  }).lean();
-  const familyStatus = await FamilyStatus.findOne({
-    user: userId,
-  }).lean();
-  const occupation = await Occupation.findOne({
-    user: userId,
-  }).lean();
-  const maritalInfo = await MaritalInfo.findOne({
-    user: userId,
-  }).lean();
-  const expectedLifePartner = await ExpectedPartner.findOne({
-    user: userId,
-  }).lean();
-  const ongikarNama = await OngikarNama.findOne({
-    user: userId,
-  }).lean();
-  const contact = await Contact.findOne({
-    user: userId,
-  }).lean();
-  const achievement = await Achievement.findOne({ user: userId }).lean();
+
   let data = {
     generalInfo,
     address,

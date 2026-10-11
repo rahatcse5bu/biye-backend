@@ -14,7 +14,7 @@ export const ShortlistService = {
   },
 
   getShortlistByToken: async (user: string): Promise<IShortlist | null> => {
-    const shortlist = await Shortlist.findOne({ user }).lean();
+    const shortlist = await Shortlist.findOne({ user }).lean<IShortlist>();
     return shortlist;
   },
 

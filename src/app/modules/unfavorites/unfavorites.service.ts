@@ -14,7 +14,7 @@ export const UnFavoriteService = {
     return unFavorite ? unFavorite.toObject() : null;
   },
   getUnFavoriteByToken: async (user: string): Promise<IUnFavorite | null> => {
-    const unFavorite = await UnFavorite.findOne({ user }).lean();
+    const unFavorite = await UnFavorite.findOne({ user }).lean<IUnFavorite>();
     return unFavorite;
   },
 

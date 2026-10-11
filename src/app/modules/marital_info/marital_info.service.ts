@@ -14,7 +14,7 @@ export const MaritalInfoService = {
     return maritalInfo ? maritalInfo.toObject() : null;
   },
   getMaritalInfoByToken: async (user: string): Promise<IMaritalInfo | null> => {
-    const maritalInfo = await MaritalInfo.findOne({ user }).lean();
+    const maritalInfo = await MaritalInfo.findOne({ user }).lean<IMaritalInfo>();
     return maritalInfo;
   },
 

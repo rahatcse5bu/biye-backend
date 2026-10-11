@@ -24,7 +24,7 @@ export const EducationalQualificationService = {
   ): Promise<IEducationalQualification | null> => {
     const qualification = await EducationalQualification.findOne({
       user_id: userId,
-    }).lean();
+    }).lean<IEducationalQualification>();
     return qualification;
   },
   getEducationalQualificationByToken: async (
@@ -32,7 +32,7 @@ export const EducationalQualificationService = {
   ): Promise<IEducationalQualification | null> => {
     const qualification = await EducationalQualification.findOne({
       user: userId,
-    }).lean();
+    }).lean<IEducationalQualification>();
     return qualification;
   },
 

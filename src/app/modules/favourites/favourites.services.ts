@@ -14,7 +14,7 @@ export const FavoriteService = {
     return favorite ? favorite.toObject() : null;
   },
   getFavoriteByToken: async (user: string): Promise<IFavorite | null> => {
-    const favorite = await Favorite.findOne({ user }).lean();
+    const favorite = await Favorite.findOne({ user }).lean<IFavorite>();
     return favorite;
   },
 
