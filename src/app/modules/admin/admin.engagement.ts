@@ -72,13 +72,16 @@ const getEngagement = catchAsync(async (req: Request, res: Response) => {
     },
   ]);
 
+  // TODO: stats ignore the filters so the totals and reaction chips always describe the whole type.
   const [stats] = await model.aggregate([
-    { $match: baseMatch },
     {
       $facet: {
         total: [{ $count: "count" }],
         last7: [{ $match: { createdAt: { $gte: new Date(Date.now() - 7 * DAY) } } }, { $count: "count" }],
-        byType: req.params.type === "reactions" ? [{ $group: { _id: "$reaction_type", count: { $sum: 1 } } }, { $sort: { count: -1 } }] : [],
+        // TODO: an empty facet pipeline would pass every document through, so the breakdown is added only for reactions.
+        ...(req.params.type === "reactions"
+          ? { byType: [{ $group: { _id: "$reaction_type", count: { $sum: 1 } } }, { $sort: { count: -1 } }] }
+          : {}),
         top: [
           { $group: { _id: "$bio_user", count: { $sum: 1 } } },
           { $sort: { count: -1 } },

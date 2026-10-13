@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import {
     getActiveTemplatesByBioType,
-    getAllActiveTemplates,
     upsertTemplate,
     disableTemplate,
     extractPlaceholders,
 } from "./photocard_template.service";
 import { PhotocardTemplate } from "./photocard_template.model";
+import { seedPhotocardTemplates } from "./photocard_template.seed";
 
 /**
  * Get all active templates
@@ -17,7 +17,10 @@ export const getAllTemplates = async (
     next: NextFunction
 ) => {
     try {
-        const templates = await getAllActiveTemplates();
+        // TODO: Vercel never runs server.ts (where built-ins are seeded), so seed them on first use.
+        if (!(await PhotocardTemplate.exists({ isBuiltIn: true }))) await seedPhotocardTemplates();
+        // TODO: admins see disabled templates too, otherwise a disabled one could never be switched back on.
+        const templates = await PhotocardTemplate.find().sort({ bioType: 1, isBuiltIn: -1, name: 1 });
         res.status(200).json({
             success: true,
             data: templates,
@@ -145,20 +148,21 @@ export const updateTemplate = async (
         const { templateId } = req.params;
         const { name, svgCode, description, bioType, isActive } = req.body;
 
+        // TODO: only the fields sent are changed, so a status toggle can't wipe the SVG.
+        const changes: Record<string, unknown> = {};
+        if (typeof name === "string" && name.trim()) changes.name = name.trim();
+        if (typeof description === "string") changes.description = description;
+        if (bioType === "supply" || bioType === "demand") changes.bioType = bioType;
+        if (typeof isActive === "boolean") changes.isActive = isActive;
+        if (typeof svgCode === "string" && svgCode.trim()) {
+            changes.svgCode = svgCode;
+            changes.placeholders = extractPlaceholders(svgCode);
+        }
+
         const template = await PhotocardTemplate.findByIdAndUpdate(
             templateId,
-            {
-                $set: {
-                    name,
-                    svgCode,
-                    description,
-                    bioType,
-                    isActive,
-                    placeholders: extractPlaceholders(svgCode),
-                    updatedAt: new Date(),
-                },
-            },
-            { new: true }
+            { $set: changes },
+            { new: true, runValidators: true }
         );
 
         if (!template) {
@@ -189,6 +193,13 @@ export const deleteTemplate = async (
     try {
         const { templateId } = req.params;
 
+        const existing = await PhotocardTemplate.findById(templateId).select("isBuiltIn").lean();
+        if (existing?.isBuiltIn) {
+            return res.status(400).json({
+                success: false,
+                message: "Built-in templates can't be deleted; disable them instead",
+            });
+        }
         const template = await PhotocardTemplate.findByIdAndDelete(templateId);
 
         if (!template) {

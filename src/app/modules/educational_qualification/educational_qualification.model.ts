@@ -22,7 +22,8 @@ const EducationalQualificationSchema: Schema = new Schema(
     ssc_result: { type: String, required: false },
 
     // After SSC Information
-    after_ssc_running: { type: Boolean, required: false },
+    // TODO: holds the HSC year text (e.g. "HSC প্রথম বর্ষ"); as Boolean every such save failed to cast.
+    after_ssc_running: { type: String, required: false },
     after_ssc_result: { type: String, required: false },
     after_ssc_group: { type: String, required: false },
     after_ssc_year: { type: Number, required: false },
@@ -49,6 +50,25 @@ const EducationalQualificationSchema: Schema = new Schema(
     phd_pass_year: { type: Number, required: false },
     phd_inst: { type: String, required: false },
     phd_sub: { type: String, required: false },
+
+    // TODO: running/professional levels (SSC/Masters/PhD running, BEd, MEd, MPhil, Post Doc).
+    ssc_exam_year: { type: Number, required: false },
+    msc_running_year: { type: String, required: false },
+    phd_running_year: { type: String, required: false },
+    bed_inst: { type: String, required: false },
+    bed_running_year: { type: String, required: false },
+    bed_pass_year: { type: Number, required: false },
+    med_inst: { type: String, required: false },
+    med_running_year: { type: String, required: false },
+    med_pass_year: { type: Number, required: false },
+    mphil_sub: { type: String, required: false },
+    mphil_inst: { type: String, required: false },
+    mphil_running_year: { type: String, required: false },
+    mphil_pass_year: { type: Number, required: false },
+    postdoc_sub: { type: String, required: false },
+    postdoc_inst: { type: String, required: false },
+    postdoc_running_year: { type: String, required: false },
+    postdoc_pass_year: { type: Number, required: false },
 
     // Additional Qualifications
     ibti_result: { type: String, required: false },

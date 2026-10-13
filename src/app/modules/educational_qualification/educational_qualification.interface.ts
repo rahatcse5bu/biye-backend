@@ -15,7 +15,7 @@ export interface IEducationalQualification extends Document {
   ssc_result?: string; // Optional string for SSC result
 
   // After SSC Information
-  after_ssc_running?: boolean; // Boolean indicating if studying after SSC
+  after_ssc_running?: string; // Boolean indicating if studying after SSC
   after_ssc_result?: string; // Optional string for after SSC result
   after_ssc_group?: string; // Optional string for after SSC group
   after_ssc_year?: number; // Optional number for after SSC year
@@ -42,6 +42,23 @@ export interface IEducationalQualification extends Document {
   phd_pass_year?: number; // Optional number for PhD passing year
   phd_inst?: string; // Optional string for PhD institution
   phd_sub?: string; // Optional string for PhD subject
+  ssc_exam_year?: number;
+  msc_running_year?: string;
+  phd_running_year?: string;
+  bed_inst?: string;
+  bed_running_year?: string;
+  bed_pass_year?: number;
+  med_inst?: string;
+  med_running_year?: string;
+  med_pass_year?: number;
+  mphil_sub?: string;
+  mphil_inst?: string;
+  mphil_running_year?: string;
+  mphil_pass_year?: number;
+  postdoc_sub?: string;
+  postdoc_inst?: string;
+  postdoc_running_year?: string;
+  postdoc_pass_year?: number;
 
   // Additional Qualifications
   ibti_result?: string; // Optional string for Ibtidai result

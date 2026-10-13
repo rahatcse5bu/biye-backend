@@ -144,4 +144,6 @@ const deleteProfileImage = async (
 export const UploadService = {
   uploadProfileImages,
   deleteProfileImage,
+  getCloudinary,
+  PROFILE_PHOTO_ROOT,
 };

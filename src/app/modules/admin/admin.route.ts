@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AdminController } from "./admin.controller";
 import { EngagementController } from "./admin.engagement";
+import { UploadsController } from "./admin.uploads";
 import { auth } from "../../middlewares/auth";
 
 const router = Router();
@@ -11,6 +12,8 @@ router.use(auth("admin"));
 // Dashboard
 router.get('/dashboard/stats', AdminController.getDashboardStats);
 router.get('/engagement/:type', EngagementController.getEngagement);
+router.get('/uploads', UploadsController.listUploads);
+router.delete('/uploads', UploadsController.deleteUpload);
 
 // User Management
 router.get('/users', AdminController.getAllUsers);

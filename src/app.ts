@@ -61,6 +61,8 @@ app.use((_req, res, next) => {
   res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   next();
 });
+// TODO: photocard SVGs can embed images, so their route gets a larger body limit than the 100kb default.
+app.use("/api/v1/photocard-templates", express.json({ limit: "2mb" }));
 app.use(express.json());
 app.use(sanitizeInput);
 
