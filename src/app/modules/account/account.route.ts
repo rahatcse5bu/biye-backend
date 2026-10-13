@@ -11,6 +11,8 @@ import BioChoice from "../bio_choice_data/bio_choice_data.model";
 import Payment from "../payments/payment.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 import { UserInfoModel } from "../user_info/user_info.model";
+import BiodataRevision from "../biodata_revision/biodata_revision.model";
+import { sectionByKey } from "../biodata_revision/biodata_revision.sections";
 
 const router = Router();
 
@@ -50,6 +52,29 @@ router.get(
         payments,
       },
     });
+  }),
+);
+
+// TODO: edit-biodata step order (1-11); the review step (12) has no data of its own.
+const STEP_SECTIONS = [
+  "general_info", "address", "educational_qualification", "family_status", "personal_info", "occupation",
+  "achievement", "marital_info", "expected_life_partner", "ongikar_nama", "contact",
+];
+
+// TODO: progress from what is actually saved, not edited_timeline_index (starts at 1, skipped by some sections, never decreases).
+router.get(
+  "/biodata-progress",
+  auth("user", "admin"),
+  catchAsync(async (req: Request, res: Response) => {
+    const user = new Types.ObjectId(String(req.user?._id));
+    const [exists, revision]: any[] = await Promise.all([
+      Promise.all(STEP_SECTIONS.map((key) => sectionByKey(key)!.model.exists({ user }))),
+      BiodataRevision.findOne({ user, status: { $in: ["draft", "pending"] } }).select("changes").lean(),
+    ]);
+    const completed = STEP_SECTIONS.map((key, index) => ({ step: index + 1, done: Boolean(exists[index]) || Boolean(revision?.changes?.[key]) }))
+      .filter((s) => s.done)
+      .map((s) => s.step);
+    res.status(httpStatus.OK).json({ success: true, data: { completed, total: STEP_SECTIONS.length } });
   }),
 );
 

@@ -10,12 +10,14 @@ export interface IEducationalQualification extends Document {
   // Secondary School Certificate (SSC) Information
   before_ssc?: string; // Optional string for details before SSC
   deeni_edu?: []; // Optional string for religious education details
+  ssc_inst?: string;
+  after_ssc_inst?: string;
   ssc_year?: number; // Optional number for SSC year
   ssc_group?: string; // Optional string for SSC group
   ssc_result?: string; // Optional string for SSC result
 
   // After SSC Information
-  after_ssc_running?: string; // Boolean indicating if studying after SSC
+  after_ssc_running?: string; // TODO: which HSC year they are in (text), e.g. "HSC প্রথম বর্ষ".
   after_ssc_result?: string; // Optional string for after SSC result
   after_ssc_group?: string; // Optional string for after SSC group
   after_ssc_year?: number; // Optional number for after SSC year

@@ -78,7 +78,8 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
   educational_qualification: {
     education_medium: "পড়াশোনার মাধ্যম", highest_edu_level: "সর্বোচ্চ শিক্ষাগত যোগ্যতা", others_edu: "অন্যান্য শিক্ষা",
     before_ssc: "এসএসসির আগে", deeni_edu: "দ্বীনি শিক্ষা", ssc_year: "এসএসসি সাল", ssc_group: "এসএসসি বিভাগ",
-    ssc_result: "এসএসসি ফলাফল", after_ssc_medium: "এসএসসির পর মাধ্যম", after_ssc_running: "এসএসসির পর (চলমান)",
+    ssc_inst: "স্কুল / মাদ্রাসার নাম", after_ssc_inst: "কলেজ / মাদ্রাসার নাম",
+    ssc_result: "এসএসসি ফলাফল", after_ssc_medium: "এসএসসির পর মাধ্যম", after_ssc_running: "এইচএসসি কোন বর্ষে পড়ছেন",
     after_ssc_result: "এইচএসসি/সমমান ফলাফল", after_ssc_group: "এইচএসসি/সমমান বিভাগ", after_ssc_year: "এইচএসসি/সমমান সাল",
     diploma_sub: "ডিপ্লোমা বিষয়", diploma_inst: "ডিপ্লোমা প্রতিষ্ঠান", diploma_pass_year: "ডিপ্লোমা পাসের সাল",
     diploma_running_year: "ডিপ্লোমা চলমান বর্ষ", hons_sub: "স্নাতক বিষয়", hons_inst: "স্নাতক প্রতিষ্ঠান",
@@ -91,6 +92,11 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
     takmil_inst: "তাকমিল প্রতিষ্ঠান", takmil_result: "তাকমিল ফলাফল", takmil_pass_year: "তাকমিল পাসের সাল",
     takhassus_inst: "তাখাসসুস প্রতিষ্ঠান", takhassus_sub: "তাখাসসুস বিষয়", takhassus_result: "তাখাসসুস ফলাফল",
     takhassus_pass_year: "তাখাসসুস পাসের সাল", status: "অবস্থা",
+    ssc_exam_year: "এসএসসি সম্ভাব্য পরীক্ষার সাল", msc_running_year: "স্নাতকোত্তর চলমান বর্ষ", phd_running_year: "পিএইচডি চলমান বর্ষ",
+    bed_inst: "বিএড প্রতিষ্ঠান", bed_running_year: "বিএড চলমান বর্ষ", bed_pass_year: "বিএড পাসের সাল",
+    med_inst: "এমএড প্রতিষ্ঠান", med_running_year: "এমএড চলমান বর্ষ", med_pass_year: "এমএড পাসের সাল",
+    mphil_sub: "এমফিল বিষয়", mphil_inst: "এমফিল প্রতিষ্ঠান", mphil_running_year: "এমফিল চলমান বর্ষ", mphil_pass_year: "এমফিল পাসের সাল",
+    postdoc_sub: "পোস্ট ডক বিষয়", postdoc_inst: "পোস্ট ডক প্রতিষ্ঠান", postdoc_running_year: "পোস্ট ডক চলমান বর্ষ", postdoc_pass_year: "পোস্ট ডক সম্পন্নের সাল",
   },
   family_status: {
     father_name: "পিতার নাম", isFatherAlive: "পিতা জীবিত", father_occupation: "পিতার পেশা", mother_name: "মাতার নাম",

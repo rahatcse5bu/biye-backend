@@ -17,6 +17,8 @@ const EducationalQualificationSchema: Schema = new Schema(
     // Secondary School Certificate (SSC) Information
     before_ssc: { type: String, required: false },
     deeni_edu: [],
+    ssc_inst: { type: String, required: false },
+    after_ssc_inst: { type: String, required: false },
     ssc_year: { type: Number, required: false },
     ssc_group: { type: String, required: false },
     ssc_result: { type: String, required: false },
