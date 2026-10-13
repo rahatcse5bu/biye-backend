@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AdminController } from "./admin.controller";
+import { EngagementController } from "./admin.engagement";
 import { auth } from "../../middlewares/auth";
 
 const router = Router();
@@ -9,6 +10,7 @@ router.use(auth("admin"));
 
 // Dashboard
 router.get('/dashboard/stats', AdminController.getDashboardStats);
+router.get('/engagement/:type', EngagementController.getEngagement);
 
 // User Management
 router.get('/users', AdminController.getAllUsers);

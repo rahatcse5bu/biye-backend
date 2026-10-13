@@ -20,6 +20,7 @@ router.get("/reactions-to-me", auth(), ReactionController.getReactionsToMyBiodat
 router.get("/counts/:bio_user", ReactionController.getReactionCounts);
 
 // Get all reactions (admin)
-router.get("/all", auth(), ReactionController.getAllReactions);
+// TODO: every member's reactions; admin only.
+router.get("/all", auth("admin"), ReactionController.getAllReactions);
 
 export const ReactionRoutes = router;

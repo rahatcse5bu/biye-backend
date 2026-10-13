@@ -16,6 +16,7 @@ import Contact from "../contact/contact.model";
 import Achievement from "../achievement/achievement.model";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import config from "../../../config";
+import { BiodataRevisionService } from "../biodata_revision/biodata_revision.service";
 
 // TODO: optional login; returns the verified token payload, or null for visitors and bad tokens.
 const optionalViewer = (req: Request): any => {
@@ -95,7 +96,13 @@ const getBioData = catchAsync(async (req: Request, res: Response) => {
   let generalInfo: any = generalInfoRaw;
   if (generalInfoRaw) {
     const { approved_data, pending_changes, admin_note, ...rest } = generalInfoRaw as any;
-    const hasPendingChanges = !!(pending_changes && typeof pending_changes === 'object');
+    // TODO: owner-only flag for the "awaiting review" banner; visitors never learn a change is pending.
+    const viewer = optionalViewer(req);
+    const ownerHasPendingRevision =
+      String(viewer?._id) === String(user._id) &&
+      (await BiodataRevisionService.hasOpenRevision(user._id, ["pending"]));
+    const hasPendingChanges =
+      ownerHasPendingRevision || !!(pending_changes && typeof pending_changes === 'object');
 
     if (approved_data && typeof approved_data === 'object') {
       // Use approved_data as the canonical public view regardless of biodata_status

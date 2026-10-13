@@ -43,6 +43,8 @@ import RefundRequestRouter from "./app/modules/refund_request/refund_request.rou
 import EmailSettingsRouter from "./app/modules/email_settings/email_settings.route";
 import AccountRouter from "./app/modules/account/account.route";
 import ContactMessageRouter from "./app/modules/contact_message/contact_message.route";
+import BiodataRevisionRouter from "./app/modules/biodata_revision/biodata_revision.route";
+import { biodataReviewGate } from "./app/modules/biodata_revision/biodata_revision.gate";
 import { sanitizeInput, stripOwnerFields } from "./app/middlewares/sanitizeInput";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
@@ -146,6 +148,8 @@ app.use(
   ],
   stripOwnerFields,
 );
+// TODO: must run before the section routers so saves to a published biodata are staged for review.
+app.use(biodataReviewGate);
 app.use("/api/v1/user-info", userRouter);
 app.use("/api/v1/personal-info", personalInfoRouter);
 app.use("/api/v1/ongikar-nama", ongikarNamaRouter);
@@ -182,6 +186,7 @@ app.use("/api/v1/refund-requests", RefundRequestRouter);
 app.use("/api/v1/email-settings", EmailSettingsRouter);
 app.use("/api/v1/account", AccountRouter);
 app.use("/api/v1/contact-messages", ContactMessageRouter);
+app.use("/api/v1/biodata-revisions", BiodataRevisionRouter);
 app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
 app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);
