@@ -45,7 +45,10 @@ import AccountRouter from "./app/modules/account/account.route";
 import ContactMessageRouter from "./app/modules/contact_message/contact_message.route";
 import BiodataRevisionRouter from "./app/modules/biodata_revision/biodata_revision.route";
 import { biodataReviewGate } from "./app/modules/biodata_revision/biodata_revision.gate";
-import { sanitizeInput, stripOwnerFields } from "./app/middlewares/sanitizeInput";
+import {
+  sanitizeInput,
+  stripOwnerFields,
+} from "./app/middlewares/sanitizeInput";
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 
@@ -58,7 +61,10 @@ app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains",
+  );
   next();
 });
 // TODO: photocard SVGs can embed images, so their route gets a larger body limit than the 100kb default.
@@ -84,7 +90,7 @@ const allowedOrigins = [
   "https://www.bibaho.org",
   "https://bibaho.org",
   "https://biye-admin-three.vercel.app",
-  "https://bibaho-admin.vercel.app"
+  "https://bibaho-admin.vercel.app",
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim().replace(/\/+$/, ""))
@@ -119,7 +125,6 @@ app.get("/", async (req: Request, res: Response) => {
   res.send("server is running!");
 });
 
-
 app.use(async (req, res, next) => {
   try {
     await connectMongo();
@@ -132,7 +137,6 @@ app.use(async (req, res, next) => {
     });
   }
 });
-
 
 app.use(
   [
