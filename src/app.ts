@@ -84,6 +84,7 @@ const allowedOrigins = [
   "https://www.bibaho.org",
   "https://bibaho.org",
   "https://biye-admin-three.vercel.app",
+  "https://bibaho-admin.vercel.app"
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim().replace(/\/+$/, ""))
