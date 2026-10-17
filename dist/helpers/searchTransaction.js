@@ -16,7 +16,6 @@ const isomorphic_fetch_1 = __importDefault(require("isomorphic-fetch"));
 const authHeaders_1 = __importDefault(require("./authHeaders"));
 const node_global_storage_1 = require("node-global-storage");
 const searchTransaction = (trxID) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("search start !!");
     const searchResponse = yield (0, isomorphic_fetch_1.default)((0, node_global_storage_1.get)("bkash_base_url") + "/checkout/general/search/searchTransaction", {
         method: "POST",
         headers: yield (0, authHeaders_1.default)(),

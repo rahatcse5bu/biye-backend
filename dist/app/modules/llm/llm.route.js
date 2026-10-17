@@ -15,13 +15,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const groqService_1 = require("../../../services/groqService");
+const rateLimit_1 = require("../../../shared/rateLimit");
+// TODO: only the model the site uses; callers can't switch to pricier models on our key.
+const ALLOWED_MODELS = new Set(["meta-llama/llama-4-scout-17b-16e-instruct"]);
+const DEFAULT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const MAX_MESSAGES = 30;
+const MAX_CHARS = 20000;
 const LlmRouter = express_1.default.Router();
-LlmRouter.post("/chat", (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { messages, model = "meta-llama/llama-4-scout-17b-16e-instruct", temperature = 0.7, max_tokens = 2048 } = req.body;
-    if (!messages || !Array.isArray(messages)) {
+LlmRouter.post("/chat", (0, rateLimit_1.rateLimit)({ name: "llm", windowMs: 10 * 60 * 1000, max: 40, message: "AI search limit reached. Please try again in a few minutes." }), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { messages, model, temperature, tools, tool_choice } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ success: false, message: "Messages array is required" });
     }
-    const response = yield (0, groqService_1.callGroqAPI)(messages, model, temperature, max_tokens);
+    if (messages.length > MAX_MESSAGES || JSON.stringify(messages).length > MAX_CHARS) {
+        return res.status(413).json({ success: false, message: "Conversation is too long" });
+    }
+    if (tools !== undefined && (!Array.isArray(tools) || tools.length > 10 || JSON.stringify(tools).length > MAX_CHARS)) {
+        return res.status(400).json({ success: false, message: "Invalid tools" });
+    }
+    const response = yield (0, groqService_1.callGroqAPI)(messages, ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL, Math.min(Math.max(Number(temperature) || 0, 0), 1), 1024, { tools, tool_choice: tool_choice === "none" ? "none" : "auto" });
     res.status(200).json(response);
 })));
 exports.default = LlmRouter;

@@ -26,7 +26,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/models/GeneralInfo.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const GeneralInfoSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     refer_user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: false },
     bio_type: { type: String, required: true },
     isMarriageDone: { type: Boolean, default: false },

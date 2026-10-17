@@ -19,18 +19,16 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 /**
  * Call Groq API for chat completions
  */
-const callGroqAPI = (messages, model = "meta-llama/llama-4-scout-17b-16e-instruct", temperature = 0.7, max_tokens = 1024) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+const callGroqAPI = (messages, model = "meta-llama/llama-4-scout-17b-16e-instruct", temperature = 0.7, max_tokens = 1024, extra = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
     const apiKey = config_1.default.groq_api_key;
     if (!apiKey) {
         throw new Error("GROQ_API_KEY is not configured");
     }
-    const payload = {
-        model,
+    const payload = Object.assign({ model,
         messages,
         temperature,
-        max_tokens,
-    };
+        max_tokens }, (extra.tools ? { tools: extra.tools, tool_choice: (_a = extra.tool_choice) !== null && _a !== void 0 ? _a : "auto" } : {}));
     try {
         const response = yield axios_1.default.post(GROQ_API_URL, payload, {
             headers: {
@@ -42,9 +40,9 @@ const callGroqAPI = (messages, model = "meta-llama/llama-4-scout-17b-16e-instruc
     }
     catch (error) {
         if (axios_1.default.isAxiosError(error)) {
-            const errorData = ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || {};
-            const errorMessage = ((_b = errorData.error) === null || _b === void 0 ? void 0 : _b.message) || JSON.stringify(errorData);
-            throw new Error(`Groq API Error: ${(_c = error.response) === null || _c === void 0 ? void 0 : _c.status} - ${errorMessage}`);
+            const errorData = ((_b = error.response) === null || _b === void 0 ? void 0 : _b.data) || {};
+            const errorMessage = ((_c = errorData.error) === null || _c === void 0 ? void 0 : _c.message) || JSON.stringify(errorData);
+            throw new Error(`Groq API Error: ${(_d = error.response) === null || _d === void 0 ? void 0 : _d.status} - ${errorMessage}`);
         }
         throw error;
     }
@@ -95,7 +93,7 @@ const parseBiodataForm = (formData) => __awaiter(void 0, void 0, void 0, functio
         try {
             return JSON.parse(content);
         }
-        catch (_d) {
+        catch (_e) {
             return { raw: content };
         }
     }
@@ -143,7 +141,7 @@ const checkBiodataCompatibility = (biodata1, biodata2) => __awaiter(void 0, void
         try {
             return JSON.parse(content);
         }
-        catch (_e) {
+        catch (_f) {
             return {
                 compatibility_score: 50,
                 analysis: content,

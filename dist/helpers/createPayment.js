@@ -18,7 +18,6 @@ const authHeaders_1 = __importDefault(require("./authHeaders"));
 const isomorphic_fetch_1 = __importDefault(require("isomorphic-fetch"));
 const createPayment = (req) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("create start !!");
         if (!req.amount || !req.callbackURL) {
             return "amount & callbackURL required";
         }
@@ -42,7 +41,7 @@ const createPayment = (req) => __awaiter(void 0, void 0, void 0, function* () {
         return createResult;
     }
     catch (e) {
-        console.log(e);
+        console.error("bKash call failed:", (e === null || e === void 0 ? void 0 : e.message) || e);
     }
 });
 exports.default = createPayment;

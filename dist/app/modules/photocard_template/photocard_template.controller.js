@@ -12,12 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.testPlaceholders = exports.disableTemplateController = exports.deleteTemplate = exports.updateTemplate = exports.getTemplateById = exports.createOrUpdateTemplate = exports.getTemplatesByBioType = exports.getAllTemplates = void 0;
 const photocard_template_service_1 = require("./photocard_template.service");
 const photocard_template_model_1 = require("./photocard_template.model");
+const photocard_template_seed_1 = require("./photocard_template.seed");
 /**
  * Get all active templates
  */
 const getAllTemplates = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const templates = yield (0, photocard_template_service_1.getAllActiveTemplates)();
+        // TODO: Vercel never runs server.ts (where built-ins are seeded), so seed them on first use.
+        if (!(yield photocard_template_model_1.PhotocardTemplate.exists({ isBuiltIn: true })))
+            yield (0, photocard_template_seed_1.seedPhotocardTemplates)();
+        // TODO: admins see disabled templates too, otherwise a disabled one could never be switched back on.
+        const templates = yield photocard_template_model_1.PhotocardTemplate.find().sort({ bioType: 1, isBuiltIn: -1, name: 1 });
         res.status(200).json({
             success: true,
             data: templates,
@@ -122,17 +127,21 @@ const updateTemplate = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     try {
         const { templateId } = req.params;
         const { name, svgCode, description, bioType, isActive } = req.body;
-        const template = yield photocard_template_model_1.PhotocardTemplate.findByIdAndUpdate(templateId, {
-            $set: {
-                name,
-                svgCode,
-                description,
-                bioType,
-                isActive,
-                placeholders: (0, photocard_template_service_1.extractPlaceholders)(svgCode),
-                updatedAt: new Date(),
-            },
-        }, { new: true });
+        // TODO: only the fields sent are changed, so a status toggle can't wipe the SVG.
+        const changes = {};
+        if (typeof name === "string" && name.trim())
+            changes.name = name.trim();
+        if (typeof description === "string")
+            changes.description = description;
+        if (bioType === "supply" || bioType === "demand")
+            changes.bioType = bioType;
+        if (typeof isActive === "boolean")
+            changes.isActive = isActive;
+        if (typeof svgCode === "string" && svgCode.trim()) {
+            changes.svgCode = svgCode;
+            changes.placeholders = (0, photocard_template_service_1.extractPlaceholders)(svgCode);
+        }
+        const template = yield photocard_template_model_1.PhotocardTemplate.findByIdAndUpdate(templateId, { $set: changes }, { new: true, runValidators: true });
         if (!template) {
             return res.status(404).json({
                 success: false,
@@ -156,6 +165,13 @@ exports.updateTemplate = updateTemplate;
 const deleteTemplate = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { templateId } = req.params;
+        const existing = yield photocard_template_model_1.PhotocardTemplate.findById(templateId).select("isBuiltIn").lean();
+        if (existing === null || existing === void 0 ? void 0 : existing.isBuiltIn) {
+            return res.status(400).json({
+                success: false,
+                message: "Built-in templates can't be deleted; disable them instead",
+            });
+        }
         const template = yield photocard_template_model_1.PhotocardTemplate.findByIdAndDelete(templateId);
         if (!template) {
             return res.status(404).json({

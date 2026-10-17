@@ -29,6 +29,13 @@ const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const expected_lifepartner_services_1 = require("./expected_lifepartner.services");
+// TODO: fields a client must never set: ownership, ids and form bookkeeping.
+const stripProtected = (body) => {
+    const _a = body || {}, { user, _id, __v, user_form } = _a, fields = __rest(_a, ["user", "_id", "__v", "user_form"]);
+    return fields;
+};
+// TODO: bad input (wrong types, invalid values) is the client's mistake, not a server error.
+const isInputError = (error) => (error === null || error === void 0 ? void 0 : error.name) === "ValidationError" || (error === null || error === void 0 ? void 0 : error.name) === "CastError";
 exports.ExpectedPartnerController = {
     getAllExpectedPartners: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const expectedPartners = yield expected_lifepartner_services_1.ExpectedPartnerService.getAllExpectedPartners();
@@ -81,44 +88,67 @@ exports.ExpectedPartnerController = {
         }
     })),
     createExpectedPartner: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c;
-        const session = yield mongoose_1.default.startSession();
-        session.startTransaction();
+        var _b, _c, _d, _e;
+        const user_form = (_b = req.body) === null || _b === void 0 ? void 0 : _b.user_form;
+        const fields = stripProtected(req.body);
+        // TODO: one attempt = upsert the record + update the form timeline, all-or-nothing.
+        const attempt = () => __awaiter(void 0, void 0, void 0, function* () {
+            var _f, _g;
+            const session = yield mongoose_1.default.startSession();
+            session.startTransaction();
+            try {
+                const result = yield expected_lifepartner_services_1.ExpectedPartnerService.upsertExpectedPartner(String((_f = req.user) === null || _f === void 0 ? void 0 : _f._id), fields, { session });
+                const user = yield user_info_model_1.UserInfoModel.findById((_g = req.user) === null || _g === void 0 ? void 0 : _g._id).session(session);
+                user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
+                user.last_edited_timeline_index = user_form;
+                yield user.save({ session });
+                yield session.commitTransaction();
+                return result;
+            }
+            catch (error) {
+                yield session.abortTransaction();
+                throw error;
+            }
+            finally {
+                session.endSession();
+            }
+        });
         try {
-            let _d = req.body, { user_form } = _d, expectedPartnerData = __rest(_d, ["user_form"]);
-            expectedPartnerData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-            // Create expectedPartner
-            const createdExpectedPartner = yield expected_lifepartner_services_1.ExpectedPartnerService.createExpectedPartner(expectedPartnerData, {
-                session,
-            });
-            // Find user and update the fields
-            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
-            user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
-            user.last_edited_timeline_index = user_form;
-            yield user.save({ session });
-            // Commit the transaction
-            yield session.commitTransaction();
-            session.endSession();
-            res.status(http_status_1.default.CREATED).json({
+            let result;
+            // TODO: MongoDB asks to retry transactions that hit a transient conflict (e.g. two saves at once).
+            for (let tries = 1;; tries++) {
+                try {
+                    result = yield attempt();
+                    break;
+                }
+                catch (error) {
+                    const transient = ((_d = (_c = error === null || error === void 0 ? void 0 : error.errorLabels) === null || _c === void 0 ? void 0 : _c.includes) === null || _d === void 0 ? void 0 : _d.call(_c, "TransientTransactionError")) || ((_e = error === null || error === void 0 ? void 0 : error.hasErrorLabel) === null || _e === void 0 ? void 0 : _e.call(error, "TransientTransactionError"));
+                    if (!transient || tries >= 5)
+                        throw error;
+                    // TODO: random backoff so simultaneous saves stop colliding on the retry.
+                    yield new Promise((resolve) => setTimeout(resolve, 40 * tries + Math.random() * 80));
+                }
+            }
+            res.status(result.created ? http_status_1.default.CREATED : http_status_1.default.OK).json({
                 success: true,
-                message: "ExpectedPartner created successfully",
-                data: createdExpectedPartner,
+                message: result.created ? "ExpectedPartner created successfully" : "ExpectedPartner updated successfully",
+                data: result.record,
             });
         }
         catch (error) {
-            // If any error occurs, abort the transaction
-            yield session.abortTransaction();
-            session.endSession();
+            if (isInputError(error)) {
+                return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: `Invalid data: ${error.message}` });
+            }
+            console.error("Expected partner create failed:", error);
             res.status(http_status_1.default.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: "An error occurred while creating the expectedPartner",
-                error: error.message,
             });
         }
     })),
     updateExpectedPartner: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _h;
+        const id = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -126,8 +156,15 @@ exports.ExpectedPartnerController = {
                 success: false,
             });
         }
-        const updatedFields = req.body;
-        const updatedExpectedPartner = yield expected_lifepartner_services_1.ExpectedPartnerService.updateExpectedPartner(id, updatedFields);
+        let updatedExpectedPartner;
+        try {
+            updatedExpectedPartner = yield expected_lifepartner_services_1.ExpectedPartnerService.updateExpectedPartner(id, stripProtected(req.body));
+        }
+        catch (error) {
+            if (!isInputError(error))
+                throw error;
+            return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: `Invalid data: ${error.message}` });
+        }
         if (!updatedExpectedPartner) {
             res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,

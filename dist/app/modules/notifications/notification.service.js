@@ -17,6 +17,7 @@ const mongoose_1 = require("mongoose");
 const ably_1 = __importDefault(require("ably"));
 const config_1 = __importDefault(require("../../../config"));
 const notification_model_1 = require("./notification.model");
+const notification_policy_1 = require("./notification.policy");
 const ably = config_1.default.ably_api_key ? new ably_1.default.Rest(config_1.default.ably_api_key) : null;
 const getChannelName = (notification) => {
     if (notification.audience === "admin")
@@ -24,7 +25,7 @@ const getChannelName = (notification) => {
     return `notifications:user:${String(notification.recipient)}`;
 };
 const getActorFilter = (actor) => {
-    if (actor.user_role === "admin") {
+    if ((0, notification_policy_1.usesAdminFeed)(actor)) {
         return { audience: "admin" };
     }
     return {
@@ -64,7 +65,7 @@ exports.NotificationService = {
     requestToken: (actor) => __awaiter(void 0, void 0, void 0, function* () {
         if (!ably)
             return null;
-        const channel = actor.user_role === "admin"
+        const channel = (0, notification_policy_1.usesAdminFeed)(actor)
             ? "notifications:admins"
             : `notifications:user:${String(actor._id)}`;
         return ably.auth.requestToken({

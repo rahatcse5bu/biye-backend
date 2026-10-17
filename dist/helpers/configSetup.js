@@ -16,7 +16,6 @@ const config_1 = __importDefault(require("../config"));
 const node_global_storage_1 = require("node-global-storage");
 const configSetup = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    console.log(node_global_storage_1.get);
     const sandbox = (_a = config_1.default.sand_box) === null || _a === void 0 ? void 0 : _a.toLowerCase();
     if ((0, node_global_storage_1.get)("sandbox") !== sandbox) {
         (0, node_global_storage_1.flush)();

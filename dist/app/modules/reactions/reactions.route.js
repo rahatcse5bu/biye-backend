@@ -19,5 +19,6 @@ router.get("/reactions-to-me", (0, auth_1.auth)(), reactions_controller_1.Reacti
 // Get reaction counts for a biodata
 router.get("/counts/:bio_user", reactions_controller_1.ReactionController.getReactionCounts);
 // Get all reactions (admin)
-router.get("/all", (0, auth_1.auth)(), reactions_controller_1.ReactionController.getAllReactions);
+// TODO: every member's reactions; admin only.
+router.get("/all", (0, auth_1.auth)("admin"), reactions_controller_1.ReactionController.getAllReactions);
 exports.ReactionRoutes = router;

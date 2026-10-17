@@ -3,8 +3,10 @@ import { AdminController } from "./admin.controller";
 import { EngagementController } from "./admin.engagement";
 import { UploadsController } from "./admin.uploads";
 import { auth } from "../../middlewares/auth";
+import AccountsRouter from "../accounts/accounts.route";
 
 const router = Router();
+router.use('/accounts', AccountsRouter);
 
 // Apply admin auth middleware to all routes below
 router.use(auth("admin"));

@@ -88,17 +88,7 @@ exports.PaymentController = {
         });
     })),
     updatePayment: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-        if (!id) {
-            return res.status(http_status_1.default.UNAUTHORIZED).json({
-                statusCode: http_status_1.default.UNAUTHORIZED,
-                message: "You are not authorized",
-                success: false,
-            });
-        }
-        const updatedFields = req.body;
-        const updatedPayment = yield payments_service_1.PaymentService.updatePayment(id, updatedFields);
+        const updatedPayment = yield payments_service_1.PaymentService.updatePaymentById(req.params.id, req.body);
         if (!updatedPayment) {
             res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,

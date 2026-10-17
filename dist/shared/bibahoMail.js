@@ -1,15 +1,48 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatTaka = exports.mailUserById = exports.mailAdmins = exports.mailUser = exports.renderEmail = exports.escapeHtml = exports.SITE_URL = void 0;
-const SendEmail_1 = __importDefault(require("./SendEmail"));
+exports.formatTaka = exports.mailUserById = exports.mailAdmins = exports.mailUserNow = exports.mailUser = exports.renderEmail = exports.escapeHtml = exports.SITE_URL = void 0;
+const SendEmail_1 = __importStar(require("./SendEmail"));
 const user_info_model_1 = require("../app/modules/user_info/user_info.model");
 const user_info_constant_1 = require("../app/modules/user_info/user_info.constant");
 const email_settings_service_1 = require("../app/modules/email_settings/email_settings.service");
 const email_settings_model_1 = require("../app/modules/email_settings/email_settings.model");
-exports.SITE_URL = "https://www.bibaho.org";
+const config_1 = __importDefault(require("../config"));
+exports.SITE_URL = config_1.default.client_url.replace(/\/+$/, "");
 const escapeHtml = (value) => String(value !== null && value !== void 0 ? value : "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -18,8 +51,9 @@ const escapeHtml = (value) => String(value !== null && value !== void 0 ? value 
     .replace(/'/g, "&#39;");
 exports.escapeHtml = escapeHtml;
 const accent = { brand: "#0D7377", success: "#15803d", warning: "#b45309" };
-const renderEmail = ({ title, greeting, paragraphs, details, action, tone = "brand" }, branding = email_settings_model_1.DEFAULT_EMAIL_SETTINGS) => {
+const renderEmail = ({ title, preheader, greeting, paragraphs, details, action, tone = "brand" }, branding = email_settings_model_1.DEFAULT_EMAIL_SETTINGS) => {
     const color = accent[tone];
+    const preview = (preheader || paragraphs[0] || title).replace(/<[^>]+>/g, "").slice(0, 140);
     const supportEmail = (0, exports.escapeHtml)(branding.support_email);
     const social = branding.social_links
         .map((link) => `<a href="${(0, exports.escapeHtml)(link.url)}" style="color:#0D7377;text-decoration:none;font-weight:600;">${(0, exports.escapeHtml)(link.label)}</a>`)
@@ -36,6 +70,7 @@ const renderEmail = ({ title, greeting, paragraphs, details, action, tone = "bra
 <html lang="bn">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${(0, exports.escapeHtml)(title)}</title></head>
 <body style="margin:0;padding:0;background:#f3f7f7;font-family:'Hind Siliguri','Noto Sans Bengali',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${(0, exports.escapeHtml)(preview)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f7f7;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(13,115,119,0.08);">
@@ -70,10 +105,16 @@ const mailUser = (to, subject, content) => {
     if (!to)
         return;
     email_settings_service_1.EmailSettingsService.get()
-        .then((branding) => (0, SendEmail_1.default)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding)))
+        .then((branding) => (0, SendEmail_1.default)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), { replyTo: branding.support_email }))
         .catch((error) => console.error("Email send failed:", error));
 };
 exports.mailUser = mailUser;
+// TODO: awaited version of mailUser that rejects when the email could not be sent.
+const mailUserNow = (to, subject, content) => __awaiter(void 0, void 0, void 0, function* () {
+    const branding = yield email_settings_service_1.EmailSettingsService.get();
+    yield (0, SendEmail_1.deliverEmail)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), { replyTo: branding.support_email });
+});
+exports.mailUserNow = mailUserNow;
 const mailAdmins = (subject, content) => {
     user_info_constant_1.adminEmails.forEach((to) => (0, exports.mailUser)(to, subject, content));
 };

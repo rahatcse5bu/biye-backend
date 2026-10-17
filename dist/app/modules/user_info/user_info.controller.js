@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31,17 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -50,10 +16,64 @@ exports.UserInfoController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const user_info_services_1 = require("./user_info.services");
+const user_info_model_1 = require("./user_info.model");
+const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const user_info_constant_1 = require("./user_info.constant");
-const SendEmail_1 = __importStar(require("../../../shared/SendEmail"));
+const SendEmail_1 = __importDefault(require("../../../shared/SendEmail"));
+const bibahoMail_1 = require("../../../shared/bibahoMail");
 const generateEmailTemplate_1 = __importDefault(require("../../../utils/generateEmailTemplate"));
+const statusLabels = {
+    active: "সক্রিয়",
+    inactive: "নিষ্ক্রিয়",
+    banned: "নিষিদ্ধ",
+    pending: "পর্যালোচনাধীন",
+    "in review": "রিভিউ চলছে",
+};
+const statusNotes = {
+    active: "আপনার বায়োডাটা এখন অন্য সদস্যরা দেখতে ও প্রস্তাব পাঠাতে পারবেন।",
+    inactive: "নিষ্ক্রিয় অবস্থায় আপনার বায়োডাটা অন্য কেউ দেখতে পাবেন না। যেকোনো সময় সেটিংস থেকে আবার সক্রিয় করতে পারবেন।",
+    banned: "নীতিমালা লঙ্ঘনের কারণে আপনার অ্যাকাউন্ট নিষিদ্ধ করা হয়েছে। ভুল মনে হলে এই ইমেইলের উত্তর দিয়ে আমাদের জানান।",
+    "in review": "আমাদের টিম আপনার বায়োডাটা যাচাই করছে। স্ট্যাটাস পরিবর্তন হলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
+};
+// TODO: branded user + admin emails for a biodata status change; replaces the old raw-HTML ones that dumped the request body.
+const mailStatusChange = (user, status, byAdmin) => {
+    if (!(user === null || user === void 0 ? void 0 : user.email) || !status)
+        return;
+    const label = statusLabels[status] || status;
+    const inReview = status === "in review";
+    (0, bibahoMail_1.mailUser)(user.email, inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
+        title: inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
+        tone: status === "active" ? "success" : status === "banned" ? "warning" : "brand",
+        paragraphs: [
+            inReview
+                ? "ধন্যবাদ! আপনার বায়োডাটা আমাদের কাছে পৌঁছেছে।"
+                : `${byAdmin ? "Bibaho অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong>।`,
+            ...(statusNotes[status] ? [statusNotes[status]] : []),
+        ],
+        details: [
+            { label: "বায়োডাটা নং", value: user.user_id },
+            { label: "স্ট্যাটাস", value: label },
+        ],
+        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+    });
+    if (byAdmin)
+        return;
+    (0, bibahoMail_1.mailAdmins)(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
+        title: inReview ? "একটি বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন",
+        paragraphs: [
+            inReview
+                ? "অনুগ্রহ করে বায়োডাটাটি যাচাই করে স্ট্যাটাস আপডেট করুন।"
+                : `সদস্য নিজে তার বায়োডাটা <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong> করেছেন।`,
+        ],
+        details: [
+            { label: "বায়োডাটা নং", value: user.user_id },
+            { label: "ইমেইল", value: user.email },
+            { label: "স্ট্যাটাস", value: label },
+        ],
+        action: { label: "বায়োডাটা দেখুন", path: `/biodata/${user.user_id}` },
+    });
+};
 exports.UserInfoController = {
     getAllUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const userInfo = yield user_info_services_1.UserInfoService.getAllUserInfo();
@@ -165,21 +185,60 @@ exports.UserInfoController = {
             data: authData,
         });
     })),
+    forgotPassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        yield user_info_services_1.UserInfoService.forgotPassword(req.body);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "If an account exists for this email, a reset link has been sent",
+        });
+    })),
+    resetPassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        yield user_info_services_1.UserInfoService.resetPassword(req.body);
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Password reset successfully",
+        });
+    })),
     changePassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _c;
         const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
-        yield user_info_services_1.UserInfoService.changePassword(String(id), req.body);
+        // TODO: other sessions are revoked; the caller keeps working with this fresh token.
+        const data = yield user_info_services_1.UserInfoService.changePassword(String(id), req.body);
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Password changed successfully",
+            data,
+        });
+    })),
+    // TODO: only whitelisted preference fields; nothing else on the account can change here.
+    updateMyPreferences: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _d, _e;
+        const religion = (_d = req.body) === null || _d === void 0 ? void 0 : _d.preferred_religion;
+        const allowed = ["islam", "hinduism", "christianity", "all"];
+        if (!allowed.includes(religion)) {
+            return res.status(http_status_1.default.BAD_REQUEST).json({
+                success: false,
+                message: `preferred_religion must be one of: ${allowed.join(", ")}`,
+            });
+        }
+        const updated = yield user_info_model_1.UserInfoModel.findByIdAndUpdate((_e = req.user) === null || _e === void 0 ? void 0 : _e._id, { preferred_religion: religion }, { new: true })
+            .select("preferred_religion")
+            .lean();
+        if (!updated) {
+            return res.status(http_status_1.default.NOT_FOUND).json({ success: false, message: "User not found" });
+        }
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "Preferences updated successfully",
+            data: { preferred_religion: updated.preferred_religion },
         });
     })),
     getMe: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const id = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _f;
+        const id = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
@@ -191,416 +250,7 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
-        if (!id) {
-            return res.status(http_status_1.default.UNAUTHORIZED).json({
-                statusCode: http_status_1.default.UNAUTHORIZED,
-                message: "You are not authorized",
-                success: false,
-            });
-        }
-        const _f = req.body, { points, user_role } = _f, others = __rest(_f, ["points", "user_role"]);
-        if ((others === null || others === void 0 ? void 0 : others.userRole) && !user_info_constant_1.userRoleChangeByUser.includes(others)) {
-            throw new ApiError_1.default(403, "You are not allowed to change user role");
-        }
-        const userInfo = others;
-        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, userInfo);
-        if (!updatedUserInfo) {
-            res.status(http_status_1.default.NOT_FOUND).json({
-                success: false,
-                message: "User info not found",
-            });
-        }
-        if ((others === null || others === void 0 ? void 0 : others.user_status) === "in review") {
-            // notify to admin
-            const adminHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-      <table class="main-table">
-        <tr>
-          <td class="header">
-            Admin Notification
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear Admin,</p>
-            <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has submitted their bio data for review.</p>
-            <p><strong>Current Status:</strong> ${others === null || others === void 0 ? void 0 : others.user_status}</p>
-            <p><strong>Submitted Data:</strong></p>
-            <ul>
-              ${req.body &&
-                Object.keys(req.body).length &&
-                Object.keys(req.body)
-                    .map((field) => `<li>${field}: ${req.body[field]}</li>`)
-                    .join("")}
-            </ul>
-            <p>Please review the data and update the user status accordingly.</p>
-            <a href="https://www.bibaho.org/biodata/${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_id}" class="button">Review Now</a>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-          </td>
-        </tr>
-      </table>
-      </body>
-      </html>
-    `;
-            const userHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-      <table class="main-table">
-        <tr>
-          <td class="header">
-            
-          </td>
-        </tr>
-        <tr>
-          <td class="content">
-            <p>Dear <strong>Sir/Mam</strong>,</p>
-            <p>Your bio data has been submitted for review. You will be notified when your status changes.</p>
-            <p><strong>Current Status:</strong> ${others === null || others === void 0 ? void 0 : others.user_status}</p>
-            <p><strong>Submitted Data:</strong></p>
-            <ul>
-              ${req.body &&
-                Object.keys(req.body).length &&
-                Object.keys(req.body)
-                    .map((field) => `<li>${field}: ${req.body[field]}</li>`)
-                    .join("")}
-            </ul>
-            <p>Thank you for your patience.</p>
-          </td>
-        </tr>
-        <tr>
-          <td class="footer">
-            &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-          </td>
-        </tr>
-      </table> </body></html>
-      
-      `;
-            yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-            yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
-        }
-        else if ((others === null || others === void 0 ? void 0 : others.user_status) === "inactive") {
-            const adminHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-  <!-- User Notification -->
-  <table>
-    <tr>
-      <td class="header">
-        Bio Data Inactivation Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>We have received your request to inactivate your bio data. Your bio data is now inactive and will not be visible to others.</p>
-        <p>If you have any questions or wish to reactivate your bio data, please contact support.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-      `;
-            const userHtml = `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <!-- Admin Notification -->
-  <table>
-    <tr>
-      <td class="header">
-        Admin Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear Admin,</p>
-        <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has requested to inactivate their bio data. Their bio data is now inactive and will not be visible to others.</p>
-        <p>Please take any necessary actions to update their status in the system.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-      `;
-            yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-            yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
-        }
-        res.status(http_status_1.default.OK).json({
-            success: true,
-            message: "User info updated successfully",
-            data: updatedUserInfo,
-        });
-    })),
-    updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _g;
+        var _g, _h;
         const id = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -609,220 +259,76 @@ exports.UserInfoController = {
                 success: false,
             });
         }
-        const { user_status } = req.body;
-        const userInfo = { user_status };
-        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, userInfo);
+        // TODO: allowlist; passing the raw body let users set user_role/points/email (or $set them) on their own account.
+        const others = { user_status: (_h = req.body) === null || _h === void 0 ? void 0 : _h.user_status };
+        if (!user_info_constant_1.userRoleChangeByUser.includes(others.user_status)) {
+            throw new ApiError_1.default(403, "You are not allowed to set this status");
+        }
+        const current = yield user_info_model_1.UserInfoModel.findById(id).select("user_status").lean();
+        if ((current === null || current === void 0 ? void 0 : current.user_status) === "banned") {
+            throw new ApiError_1.default(403, "Your account is banned");
+        }
+        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, others);
         if (!updatedUserInfo) {
-            res.status(http_status_1.default.NOT_FOUND).json({
+            return res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,
                 message: "User info not found",
             });
         }
-        const adminHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bio Data Inactivation Notification</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    max-width: 600px;
-    margin: 20px auto;
-    background-color: #ffffff;
-    border: 1px solid #dddddd;
-    border-radius: 5px;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-  }
-  .header {
-    background-color: #ff4500;
-    color: #ffffff;
-    padding: 10px 20px;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    text-align: center;
-    font-size: 24px;
-  }
-  .content {
-    padding: 20px;
-    color: #555555;
-    line-height: 1.6;
-  }
-  .content strong {
-    color: #333333;
-  }
-  .footer {
-    padding: 10px 20px;
-    background-color: #f4f4f4;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    text-align: center;
-    font-size: 12px;
-    color: #aaaaaa;
-  }
-  .button {
-    display: block;
-    width: 200px;
-    margin: 20px auto;
-    padding: 10px;
-    background-color: #ff4500;
-    color: #ffffff;
-    text-align: center;
-    border-radius: 5px;
-    text-decoration: none;
-  }
-</style>
-</head>
-<body>
-    <table class="main-table">
-      <tr>
-        <td class="header">
-          Admin Notification
-        </td>
-      </tr>
-      <tr>
-        <td class="content">
-          <p>Dear Admin,</p>
-          <p>The user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong> has changed his/her bio-data status.</p>
-          <p><strong>Now, Current Status:</strong> ${user_status}</p>
-          <p><strong>Submitted Data:</strong></p>
-          <ul>
-            ${req.body &&
-            Object.keys(req.body).length &&
-            Object.keys(req.body)
-                .map((field) => `<li>${field}: ${req.body[field]}</li>`)
-                .join("")}
-          </ul>
-        </td>
-      </tr>
-      <tr>
-        <td class="footer">
-          &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-        </td>
-      </tr>
-    </table>
-    </body>
-    </html>
-  `;
-        const userHtml = `
-  <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bio Data Inactivation Notification</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  margin: 0;
-  padding: 0;
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-}
-table {
-  border-collapse: collapse;
-  width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  background-color: #ffffff;
-  border: 1px solid #dddddd;
-  border-radius: 5px;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-}
-.header {
-  background-color: #ff4500;
-  color: #ffffff;
-  padding: 10px 20px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  text-align: center;
-  font-size: 24px;
-}
-.content {
-  padding: 20px;
-  color: #555555;
-  line-height: 1.6;
-}
-.content strong {
-  color: #333333;
-}
-.footer {
-  padding: 10px 20px;
-  background-color: #f4f4f4;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
-  text-align: center;
-  font-size: 12px;
-  color: #aaaaaa;
-}
-.button {
-  display: block;
-  width: 200px;
-  margin: 20px auto;
-  padding: 10px;
-  background-color: #ff4500;
-  color: #ffffff;
-  text-align: center;
-  border-radius: 5px;
-  text-decoration: none;
-}
-</style>
-</head>
-<body>
-  <table class="main-table">
-    <tr>
-      <td class="header">
-        
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>Your bio-data status has been changed to ${user_status}</p>
-        <p><strong>Now Current Status:</strong> ${user_status}</p>
-        <p><strong>Submitted Data:</strong></p>
-        <ul>
-          ${req.body &&
-            Object.keys(req.body).length &&
-            Object.keys(req.body)
-                .map((field) => `<li>${field}: ${req.body[field]}</li>`)
-                .join("")}
-        </ul>
-        <p>Thank you for your patience.</p>
-      </td>
-    </tr>
-    <tr>
-     check your bio-data status <a href="https://www.bibaho.org/user/account/dashboard">https://www.bibaho.org/user/account/dashboard</a>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table> </body></html>
-  
-  `;
-        yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-        yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
+        if ((others === null || others === void 0 ? void 0 : others.user_status) === "in review" || (others === null || others === void 0 ? void 0 : others.user_status) === "inactive") {
+            mailStatusChange(updatedUserInfo, others.user_status, false);
+        }
+        res.status(http_status_1.default.OK).json({
+            success: true,
+            message: "User info updated successfully",
+            data: updatedUserInfo,
+        });
+    })),
+    updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _j;
+        const id = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+        if (!id) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({
+                statusCode: http_status_1.default.UNAUTHORIZED,
+                message: "You are not authorized",
+                success: false,
+            });
+        }
+        const { user_status } = req.body;
+        // TODO: users may hide their biodata, but only an admin-approved one can be switched back to active.
+        if (user_status !== "active" && user_status !== "inactive") {
+            throw new ApiError_1.default(400, "user_status must be active or inactive");
+        }
+        const current = yield user_info_model_1.UserInfoModel.findById(id).select("user_status").lean();
+        if ((current === null || current === void 0 ? void 0 : current.user_status) === "banned") {
+            throw new ApiError_1.default(403, "Your account is banned");
+        }
+        if (user_status === "active") {
+            const bio = yield general_info_model_1.default.findOne({ user: id })
+                .select("biodata_status approved_data")
+                .lean();
+            const approved = (bio === null || bio === void 0 ? void 0 : bio.biodata_status) === "approved" || Boolean(bio === null || bio === void 0 ? void 0 : bio.approved_data);
+            if ((current === null || current === void 0 ? void 0 : current.user_status) !== "inactive" || !approved) {
+                throw new ApiError_1.default(403, "Your biodata must be approved before it can be activated");
+            }
+        }
+        const userInfo = { user_status };
+        const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(id, userInfo);
+        if (!updatedUserInfo) {
+            return res.status(http_status_1.default.NOT_FOUND).json({
+                success: false,
+                message: "User info not found",
+            });
+        }
+        mailStatusChange(updatedUserInfo, user_status, false);
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "User status updated successfully",
         });
     })),
     updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _h;
-        const id = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+        var _k;
+        const id = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -834,200 +340,13 @@ table {
         const userInfo = req.body;
         const updatedUserInfo = yield user_info_services_1.UserInfoService.updateUserInfo(bioId, userInfo);
         if (!updatedUserInfo) {
-            res.status(http_status_1.default.NOT_FOUND).json({
+            return res.status(http_status_1.default.NOT_FOUND).json({
                 success: false,
                 message: "User info not found",
             });
         }
-        // admin
-        const adminHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <table>
-    <tr>
-      <td class="header">
-        Admin Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear Admin,</p>
-        <p>You have successfully updated the status of the user <strong>${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email}</strong>.</p>
-        <p><strong>New Status:</strong> ${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status}</p>
-        ${(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status) === "active"
-            ? " <p>The user account is now active. They can fully access all features of our platform.</p>"
-            : (updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status) === "banned" &&
-                "<p>The user account has been banned due to violations of our terms of service. Ensure all necessary actions are documented.</p>"}
-        <p>Thank you for keeping the user data up-to-date.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table>
-  </body>
-  </html>
-  `;
-        // user
-        const userHtml = `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Data Inactivation Notification</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      border: 1px solid #dddddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background-color: #ff4500;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
-      text-align: center;
-      font-size: 24px;
-    }
-    .content {
-      padding: 20px;
-      color: #555555;
-      line-height: 1.6;
-    }
-    .content strong {
-      color: #333333;
-    }
-    .footer {
-      padding: 10px 20px;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-    .button {
-      display: block;
-      width: 200px;
-      margin: 20px auto;
-      padding: 10px;
-      background-color: #ff4500;
-      color: #ffffff;
-      text-align: center;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-    <table>
-    <tr>
-      <td class="header">
-        Status Change Notification
-      </td>
-    </tr>
-    <tr>
-      <td class="content">
-        <p>Dear <strong>Sir/Mam</strong>,</p>
-        <p>Your bio data status has been reviewed and updated by the admin.</p>
-        <p><strong>New Status:</strong> ${updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status}</p>
-        
-         ${(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status) === "active"
-            ? "<p>Congratulations! Your account is now active. You can fully access all features of our platform.</p>"
-            : (updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.user_status) === "banned" &&
-                " <p>We regret to inform you that your account has been banned due to violations of our terms of service. Please contact support if you believe this is a mistake.</p>"}
-        <p>If you have any questions, please contact support.</p>
-      </td>
-    </tr>
-    <tr>
-      <td class="footer">
-        &copy; ${new Date().getFullYear()} Bibaho &middot; bibaho.org
-      </td>
-    </tr>
-  </table> </body> </html>
-  `;
-        yield (0, SendEmail_1.sendEmails)(user_info_constant_1.adminEmails, " Admin Notification", adminHtml);
-        yield (0, SendEmail_1.default)(updatedUserInfo === null || updatedUserInfo === void 0 ? void 0 : updatedUserInfo.email, "Status Change Notification", userHtml);
+        if (userInfo === null || userInfo === void 0 ? void 0 : userInfo.user_status)
+            mailStatusChange(updatedUserInfo, userInfo.user_status, true);
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "User info updated successfully",
@@ -1035,8 +354,8 @@ table {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _j;
-        const id = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+        var _l;
+        const id = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

@@ -26,7 +26,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // models/userFamilyInfo.model.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const UserFamilyInfoSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     father_name: { type: String, required: true },
     father_occupation: { type: String, required: true },
     isFatherAlive: { type: String, required: true },

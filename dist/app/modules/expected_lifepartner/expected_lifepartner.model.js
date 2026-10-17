@@ -26,7 +26,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 // Step 2: Create the Mongoose Schema and Model
 const ExpectedPartnerSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: unique so the form, biodata page and filters can never read different copies.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     age: {
         min: {
             type: Number,

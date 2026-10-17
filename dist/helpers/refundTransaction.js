@@ -16,7 +16,6 @@ const isomorphic_fetch_1 = __importDefault(require("isomorphic-fetch"));
 const node_global_storage_1 = require("node-global-storage");
 const authHeaders_1 = __importDefault(require("./authHeaders"));
 const refundTransaction = (body_data) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("refund start !!");
     const refundResponse = yield (0, isomorphic_fetch_1.default)((0, node_global_storage_1.get)("bkash_base_url") + "/checkout/payment/refund", {
         method: "POST",
         headers: yield (0, authHeaders_1.default)(),

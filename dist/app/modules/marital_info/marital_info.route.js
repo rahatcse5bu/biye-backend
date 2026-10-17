@@ -13,6 +13,6 @@ MaritalInfoRouter.route("/")
     .put((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.updateMaritalInfo);
 MaritalInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.getMaritalInfoByToken);
 MaritalInfoRouter.route("/:id")
-    .get((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.getMaritalInfoById)
-    .delete((0, auth_1.auth)("user", "admin"), marital_info_controller_1.MaritalInfoController.deleteMaritalInfo);
+    .get((0, auth_1.auth)("admin"), marital_info_controller_1.MaritalInfoController.getMaritalInfoById)
+    .delete((0, auth_1.auth)("admin"), marital_info_controller_1.MaritalInfoController.deleteMaritalInfo);
 exports.default = MaritalInfoRouter;

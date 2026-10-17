@@ -11,7 +11,7 @@ GeneralInfoRouter.route("/")
     .get(general_info_controller_1.GeneralInfoController.getGeneralInfo)
     .post((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.createGeneralInfo)
     .put((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.updateGeneralInfo);
-GeneralInfoRouter.route("/admin").get(general_info_controller_1.GeneralInfoController.getGeneralInfoByAdmin);
+GeneralInfoRouter.route("/admin").get((0, auth_1.auth)("admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoByAdmin);
 GeneralInfoRouter.route("/token").get((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoByToken);
 GeneralInfoRouter.route("/dash-board").get((0, auth_1.auth)("user", "admin"), general_info_controller_1.GeneralInfoController.getGeneralInfoDashboardByUser);
 GeneralInfoRouter.route("/:id/user-id").get(general_info_controller_1.GeneralInfoController.getGeneralInfoByUserId);

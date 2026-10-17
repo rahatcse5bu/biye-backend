@@ -23,8 +23,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_EMAIL_SETTINGS = void 0;
+exports.DEFAULT_EMAIL_SETTINGS = exports.DEFAULT_DAILY_EMAIL_LIMIT = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+// TODO: Gmail allows ~500 recipients per rolling 24h; Google Workspace allows 2000.
+exports.DEFAULT_DAILY_EMAIL_LIMIT = 500;
 exports.DEFAULT_EMAIL_SETTINGS = {
     logo_url: "https://res.cloudinary.com/dfcyydhfn/image/upload/v1791121207/logo_vmmj9g.png",
     support_email: "bibahosupport@gmail.com",
@@ -39,6 +41,7 @@ const EmailSettingsSchema = new mongoose_1.Schema({
         type: [{ _id: false, label: { type: String, required: true }, url: { type: String, required: true } }],
         default: [],
     },
+    daily_limit: { type: Number, default: exports.DEFAULT_DAILY_EMAIL_LIMIT, min: 1 },
 }, { timestamps: true });
 const EmailSettings = mongoose_1.default.model("EmailSettings", EmailSettingsSchema);
 exports.default = EmailSettings;

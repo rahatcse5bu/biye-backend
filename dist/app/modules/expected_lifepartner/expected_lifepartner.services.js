@@ -34,8 +34,26 @@ exports.ExpectedPartnerService = {
     updateExpectedPartner: (id, updatedFields) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedExpectedPartner = yield expected_lifepartner_model_1.default.findOneAndUpdate({ user: id }, updatedFields, {
             new: true,
+            runValidators: true,
         });
         return updatedExpectedPartner ? updatedExpectedPartner.toObject() : null;
+    }),
+    // TODO: one record per user; a repeat create (double click, failed load) updates instead of duplicating.
+    upsertExpectedPartner: (userId, fields, options) => __awaiter(void 0, void 0, void 0, function* () {
+        const existing = yield expected_lifepartner_model_1.default.findOne({ user: userId }).session((options === null || options === void 0 ? void 0 : options.session) || null);
+        const update = Object.assign(Object.assign({}, fields), { user: userId });
+        const settings = { new: true, runValidators: true, session: options === null || options === void 0 ? void 0 : options.session };
+        try {
+            const record = yield expected_lifepartner_model_1.default.findOneAndUpdate({ user: userId }, update, Object.assign(Object.assign({}, settings), { upsert: true, setDefaultsOnInsert: true }));
+            return { record: record.toObject(), created: !existing };
+        }
+        catch (error) {
+            // TODO: a simultaneous save won the insert; apply this one as an update to that record.
+            if ((error === null || error === void 0 ? void 0 : error.code) !== 11000)
+                throw error;
+            const record = yield expected_lifepartner_model_1.default.findOneAndUpdate({ user: userId }, update, settings);
+            return { record: record.toObject(), created: false };
+        }
     }),
     deleteExpectedPartner: (id) => __awaiter(void 0, void 0, void 0, function* () {
         yield expected_lifepartner_model_1.default.findByIdAndDelete(id);

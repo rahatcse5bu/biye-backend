@@ -31,12 +31,23 @@ const userInfoSchema = new mongoose_1.Schema({
         type: String,
         select: false,
     },
+    // TODO: sha256 of the emailed reset token; the raw token is never stored.
+    reset_password_token: { type: String, select: false, index: { sparse: true } },
+    reset_password_expires: { type: Date, select: false },
+    // TODO: tokens issued before this instant are rejected by auth().
+    password_changed_at: { type: Date, select: false },
     username: {
         type: String,
         trim: true,
     },
     picture: {
         type: String,
+    },
+    // TODO: header religion filter, saved for logged-in users; "all" means no filter.
+    preferred_religion: {
+        type: String,
+        enum: ["islam", "hinduism", "christianity", "all"],
+        default: null,
     },
     user_role: {
         type: String,

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const contact_controller_1 = require("./contact.controller");
 const auth_1 = require("../../middlewares/auth");
+const rateLimit_1 = require("../../../shared/rateLimit");
 const ContactRouter = express_1.default.Router();
 ContactRouter.route("/")
     .post((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.createContact)
@@ -14,7 +15,7 @@ ContactRouter.route("/")
 //   auth("user", "admin"),
 //   ContactController.getContactForBuyer
 // );
-ContactRouter.route("/send-email").post(contact_controller_1.ContactController.createContactUsByEmail);
+ContactRouter.route("/send-email").post((0, rateLimit_1.rateLimit)({ name: "contact-us", windowMs: 60 * 60 * 1000, max: 5 }), contact_controller_1.ContactController.createContactUsByEmail);
 ContactRouter.route("/token").get((0, auth_1.auth)("user", "admin"), contact_controller_1.ContactController.getContactByToken);
 // ContactRouter.route("/:id").delete(ContactController.deleteContact);
 exports.default = ContactRouter;

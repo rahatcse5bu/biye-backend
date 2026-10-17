@@ -67,6 +67,11 @@ exports.PointsPackageService = {
             .select(customSettingsFields)
             .lean();
     }),
+    // TODO: purchase top-ups get the exact admin rate (no rounding) so the frontend's rounded-up taka covers the shortfall.
+    topUpPointsForAmount: (amount) => __awaiter(void 0, void 0, void 0, function* () {
+        const settings = yield exports.PointsPackageService.getCustomSettings();
+        return amount * settings.points_per_taka;
+    }),
     // TODO: package price match wins; otherwise the admin-set custom rate, rounded down.
     pointsForAmount: (amount) => __awaiter(void 0, void 0, void 0, function* () {
         const matched = yield exports.PointsPackageService.findActiveByPrice(amount);

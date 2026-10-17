@@ -2,10 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const personalInfoSchema = new mongoose_1.Schema({
+    // TODO: every biodata section is looked up by user, so it needs an index.
     user: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
         required: true,
+        index: true,
     },
     // Common Fields
     physical_problem: { type: String, required: false },

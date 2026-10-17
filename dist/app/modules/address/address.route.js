@@ -8,11 +8,11 @@ const auth_1 = require("../../middlewares/auth");
 const address_controller_1 = require("./address.controller");
 const AddressRouter = express_1.default.Router();
 AddressRouter.route("/")
-    .get(address_controller_1.AddressController.getAllAddresses)
+    .get((0, auth_1.auth)("admin"), address_controller_1.AddressController.getAllAddresses)
     .put((0, auth_1.auth)("user", "admin"), address_controller_1.AddressController.updateAddress)
     .post((0, auth_1.auth)("user", "admin"), address_controller_1.AddressController.createAddress);
 AddressRouter.route("/token").get((0, auth_1.auth)("user", "admin"), address_controller_1.AddressController.getAddressByToken);
 AddressRouter.route("/:id")
-    .get(address_controller_1.AddressController.getAddressById)
-    .delete(address_controller_1.AddressController.deleteAddress);
+    .get((0, auth_1.auth)("admin"), address_controller_1.AddressController.getAddressById)
+    .delete((0, auth_1.auth)("admin"), address_controller_1.AddressController.deleteAddress);
 exports.default = AddressRouter;

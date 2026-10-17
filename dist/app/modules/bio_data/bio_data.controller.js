@@ -38,6 +38,21 @@ const expected_lifepartner_model_1 = __importDefault(require("../expected_lifepa
 const ongikar_nama_model_1 = __importDefault(require("../ongikar_nama/ongikar_nama.model"));
 const contact_model_1 = __importDefault(require("../contact/contact.model"));
 const achievement_model_1 = __importDefault(require("../achievement/achievement.model"));
+const jwtHelpers_1 = require("../../../helpers/jwtHelpers");
+const config_1 = __importDefault(require("../../../config"));
+const biodata_revision_service_1 = require("../biodata_revision/biodata_revision.service");
+// TODO: optional login; returns the verified token payload, or null for visitors and bad tokens.
+const optionalViewer = (req) => {
+    const header = req.headers.authorization;
+    if (!(header === null || header === void 0 ? void 0 : header.startsWith("Bearer ")))
+        return null;
+    try {
+        return jwtHelpers_1.jwtHelpers.verifyToken(header.slice(7), config_1.default.jwt_secret);
+    }
+    catch (_a) {
+        return null;
+    }
+};
 const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const bioId = req.params.id;
     const user = yield user_info_model_1.UserInfoModel.findOne({
@@ -55,13 +70,43 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
             success: false,
         });
     }
+    // TODO: unapproved biodatas are visible only to their owner (preview) and admins; development also lists "in review".
+    const unpublished = user.user_status === "pending" ||
+        (user.user_status === "in review" && config_1.default.node_env !== "development");
+    if (unpublished) {
+        const viewer = optionalViewer(req);
+        const canView = (viewer === null || viewer === void 0 ? void 0 : viewer.user_role) === "admin" || String(viewer === null || viewer === void 0 ? void 0 : viewer._id) === String(user._id);
+        if (!canView) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false,
+            });
+        }
+    }
     const userId = user._id;
-    const generalInfoRaw = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    // TODO: one parallel round trip instead of ten sequential ones (each is a full DB round trip from Vercel).
+    const [generalInfoRaw, address, educationQualification, personalInfo, familyStatus, occupation, maritalInfo, expectedLifePartner, ongikarNama, achievement,] = yield Promise.all([
+        general_info_model_1.default.findOne({ user: userId }).lean(),
+        address_model_1.default.findOne({ user: userId }).lean(),
+        educational_qualification_model_1.default.findOne({ user: userId }).lean(),
+        // TODO: phone/email are paid contact data; the public profile must never return them.
+        personal_info_model_1.default.findOne({ user: userId }).select("-my_phone -my_email").lean(),
+        family_status_model_1.default.findOne({ user: userId }).lean(),
+        occupation_model_1.default.findOne({ user: userId }).lean(),
+        marital_info_model_1.default.findOne({ user: userId }).lean(),
+        expected_lifepartner_model_1.default.findOne({ user: userId }).lean(),
+        ongikar_nama_model_1.default.findOne({ user: userId }).lean(),
+        achievement_model_1.default.findOne({ user: userId }).lean(),
+    ]);
     // Public view: always show the last approved snapshot, never expose pending_changes
     let generalInfo = generalInfoRaw;
     if (generalInfoRaw) {
         const _a = generalInfoRaw, { approved_data, pending_changes, admin_note } = _a, rest = __rest(_a, ["approved_data", "pending_changes", "admin_note"]);
-        const hasPendingChanges = !!(pending_changes && typeof pending_changes === 'object');
+        // TODO: owner-only flag for the "awaiting review" banner; visitors never learn a change is pending.
+        const viewer = optionalViewer(req);
+        const ownerHasPendingRevision = String(viewer === null || viewer === void 0 ? void 0 : viewer._id) === String(user._id) &&
+            (yield biodata_revision_service_1.BiodataRevisionService.hasOpenRevision(user._id, ["pending"]));
+        const hasPendingChanges = ownerHasPendingRevision || !!(pending_changes && typeof pending_changes === 'object');
         if (approved_data && typeof approved_data === 'object') {
             // Use approved_data as the canonical public view regardless of biodata_status
             generalInfo = Object.assign(Object.assign(Object.assign({}, rest), approved_data), { biodata_status: rest.biodata_status, has_pending_changes: hasPendingChanges });
@@ -74,29 +119,6 @@ const getBioData = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
             generalInfo.religion = 'islam';
         }
     }
-    const address = yield address_model_1.default.findOne({ user: userId }).lean();
-    const educationQualification = yield educational_qualification_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const personalInfo = yield personal_info_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const familyStatus = yield family_status_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const occupation = yield occupation_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const maritalInfo = yield marital_info_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const expectedLifePartner = yield expected_lifepartner_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const ongikarNama = yield ongikar_nama_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const achievement = yield achievement_model_1.default.findOne({ user: userId }).lean();
     let data = {
         generalInfo,
         address,
@@ -124,7 +146,20 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     }
     // console.log(user);
     const userId = user._id;
-    const generalInfoRaw = yield general_info_model_1.default.findOne({ user: userId }).lean();
+    // TODO: same parallel lookup as the public handler, plus contact for the admin.
+    const [generalInfoRaw, address, educationQualification, personalInfo, familyStatus, occupation, maritalInfo, expectedLifePartner, ongikarNama, contact, achievement,] = yield Promise.all([
+        general_info_model_1.default.findOne({ user: userId }).lean(),
+        address_model_1.default.findOne({ user: userId }).lean(),
+        educational_qualification_model_1.default.findOne({ user: userId }).lean(),
+        personal_info_model_1.default.findOne({ user: userId }).lean(),
+        family_status_model_1.default.findOne({ user: userId }).lean(),
+        occupation_model_1.default.findOne({ user: userId }).lean(),
+        marital_info_model_1.default.findOne({ user: userId }).lean(),
+        expected_lifepartner_model_1.default.findOne({ user: userId }).lean(),
+        ongikar_nama_model_1.default.findOne({ user: userId }).lean(),
+        contact_model_1.default.findOne({ user: userId }).lean(),
+        achievement_model_1.default.findOne({ user: userId }).lean(),
+    ]);
     // Admin view: merge pending_changes so admin sees the latest user edits for review
     let generalInfo = generalInfoRaw;
     if (generalInfoRaw && generalInfoRaw.pending_changes && typeof generalInfoRaw.pending_changes === 'object') {
@@ -135,32 +170,6 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     if (generalInfo && !generalInfo.religion) {
         generalInfo.religion = 'islam';
     }
-    const address = yield address_model_1.default.findOne({ user: userId }).lean();
-    const educationQualification = yield educational_qualification_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const personalInfo = yield personal_info_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const familyStatus = yield family_status_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const occupation = yield occupation_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const maritalInfo = yield marital_info_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const expectedLifePartner = yield expected_lifepartner_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const ongikarNama = yield ongikar_nama_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const contact = yield contact_model_1.default.findOne({
-        user: userId,
-    }).lean();
-    const achievement = yield achievement_model_1.default.findOne({ user: userId }).lean();
     let data = {
         generalInfo,
         address,

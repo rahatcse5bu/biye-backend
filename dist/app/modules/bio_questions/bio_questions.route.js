@@ -11,6 +11,9 @@ const bio_questions_validation_1 = require("./bio_questions.validation");
 const BioQuestionRouter = express_1.default.Router();
 // Get questions for a specific user (public - for buyers)
 BioQuestionRouter.route("/user/:userId").get(bio_questions_controller_1.BioQuestionController.getQuestionsByUser);
+// Admin: default questions per religion (used until a user sets their own)
+BioQuestionRouter.route("/defaults").get((0, auth_1.auth)("admin"), bio_questions_controller_1.BioQuestionController.listDefaults);
+BioQuestionRouter.route("/defaults/:religion").put((0, auth_1.auth)("admin"), bio_questions_controller_1.BioQuestionController.updateDefaults);
 // Get current user's own questions
 BioQuestionRouter.route("/my-questions").get((0, auth_1.auth)("user", "admin"), bio_questions_controller_1.BioQuestionController.getMyQuestions);
 // Create or update questions

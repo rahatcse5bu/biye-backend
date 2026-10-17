@@ -25,6 +25,8 @@ const bio_choice_data_model_1 = __importDefault(require("../bio_choice_data/bio_
 const payment_model_1 = __importDefault(require("../payments/payment.model"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const user_info_model_1 = require("../user_info/user_info.model");
+const biodata_revision_model_1 = __importDefault(require("../biodata_revision/biodata_revision.model"));
+const biodata_revision_sections_1 = require("../biodata_revision/biodata_revision.sections");
 const router = (0, express_1.Router)();
 // TODO: one round trip for every account-sidebar badge; keys match the sidebar paths.
 router.get("/sidebar-counts", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -57,5 +59,23 @@ router.get("/sidebar-counts", (0, auth_1.auth)("user", "admin"), (0, catchAsync_
             payments,
         },
     });
+})));
+// TODO: edit-biodata step order (1-11); the review step (12) has no data of its own.
+const STEP_SECTIONS = [
+    "general_info", "address", "educational_qualification", "family_status", "personal_info", "occupation",
+    "achievement", "marital_info", "expected_life_partner", "ongikar_nama", "contact",
+];
+// TODO: progress from what is actually saved, not edited_timeline_index (starts at 1, skipped by some sections, never decreases).
+router.get("/biodata-progress", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
+    const user = new mongoose_1.Types.ObjectId(String((_b = req.user) === null || _b === void 0 ? void 0 : _b._id));
+    const [exists, revision] = yield Promise.all([
+        Promise.all(STEP_SECTIONS.map((key) => (0, biodata_revision_sections_1.sectionByKey)(key).model.exists({ user }))),
+        biodata_revision_model_1.default.findOne({ user, status: { $in: ["draft", "pending"] } }).select("changes").lean(),
+    ]);
+    const completed = STEP_SECTIONS.map((key, index) => { var _a; return ({ step: index + 1, done: Boolean(exists[index]) || Boolean((_a = revision === null || revision === void 0 ? void 0 : revision.changes) === null || _a === void 0 ? void 0 : _a[key]) }); })
+        .filter((s) => s.done)
+        .map((s) => s.step);
+    res.status(http_status_1.default.OK).json({ success: true, data: { completed, total: STEP_SECTIONS.length } });
 })));
 exports.default = router;

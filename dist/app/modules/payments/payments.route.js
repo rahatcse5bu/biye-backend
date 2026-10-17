@@ -7,12 +7,13 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../../middlewares/auth");
 const payments_controller_1 = require("./payments.controller");
 const PaymentsRouter = express_1.default.Router();
+// TODO: users only ever see their own history (/token); every by-id or write route is admin-only.
 PaymentsRouter.route("/")
     .get((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.getAllPayments)
-    .post((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.createPayment);
+    .post((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.createPayment);
 PaymentsRouter.route("/token").get((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.getPaymentByToken);
 PaymentsRouter.route("/:id")
-    .get((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.getPaymentById)
-    .put((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.updatePayment)
-    .delete((0, auth_1.auth)("user", "admin"), payments_controller_1.PaymentController.deletePayment);
+    .get((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.getPaymentById)
+    .put((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.updatePayment)
+    .delete((0, auth_1.auth)("admin"), payments_controller_1.PaymentController.deletePayment);
 exports.default = PaymentsRouter;

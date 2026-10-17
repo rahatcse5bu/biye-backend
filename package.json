@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
+    "test:accounts": "npm run build && node tests/accounts.test.cjs",
+    "test:accounts:integration": "npm run build && node tests/accounts.integration.cjs",
     "start": "node dist/server.js",
     "atoz": "npm run build && git add . && git commit -m 'changed personal info' && git push origin main"
   },

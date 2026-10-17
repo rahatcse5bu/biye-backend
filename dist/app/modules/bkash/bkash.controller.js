@@ -17,50 +17,33 @@ const createPayment_1 = __importDefault(require("../../../helpers/createPayment"
 const queryPayment_1 = __importDefault(require("../../../helpers/queryPayment"));
 const searchTransaction_1 = __importDefault(require("../../../helpers/searchTransaction"));
 const executePayment_1 = __importDefault(require("../../../helpers/executePayment"));
-const axios_1 = __importDefault(require("axios"));
-const url_1 = require("../../../shared/url");
 const user_info_model_1 = require("../user_info/user_info.model");
 const payment_model_1 = __importDefault(require("../payments/payment.model"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
 const notification_service_1 = require("../notifications/notification.service");
 const points_package_service_1 = require("../points_package/points_package.service");
 const bkash_refund_1 = require("./bkash.refund");
-// Function to call the bKash execute payment API
-function BkashExecutePaymentAPICall(paymentID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const response = yield axios_1.default.post(`${url_1.baseUrl}/bkash/execute`, {
-                paymentID,
-            });
-            return response.data;
-        }
-        catch (error) {
-            console.error("An error occurred during payment execution:", error);
-            throw error;
-        }
-    });
-}
-// Function to call the bKash query payment API
-function BkashQueryPaymentAPICall(paymentID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const response = yield axios_1.default.post(`${url_1.baseUrl}/bkash/query`, { paymentID });
-            return response.data;
-        }
-        catch (error) {
-            console.error("An error occurred during payment querying:", error);
-            throw error;
-        }
-    });
-}
+const bkash_intent_model_1 = __importDefault(require("./bkash_intent.model"));
+// TODO: every bKash handler must answer, otherwise the browser waits until it times out.
+const bkashFailed = (res, error) => {
+    console.error("bKash request failed:", error);
+    res.status(502).json({ success: false, message: "bKash request failed. Please try again." });
+};
 const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
         const createResult = yield (0, createPayment_1.default)(req.body); // pass amount & callbackURL from frontend
-        console.log("create payment~", createResult);
+        if (createResult === null || createResult === void 0 ? void 0 : createResult.paymentID) {
+            yield bkash_intent_model_1.default.create({
+                payment_id: createResult.paymentID,
+                user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+                amount: Number((_b = req.body) === null || _b === void 0 ? void 0 : _b.amount) || undefined,
+            });
+        }
         res.json(createResult);
     }
     catch (e) {
-        console.log(e);
+        bkashFailed(res, e);
     }
 });
 const execute = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -69,7 +52,7 @@ const execute = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.json(executeResponse);
     }
     catch (e) {
-        console.log(e);
+        bkashFailed(res, e);
     }
 });
 const query = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -78,7 +61,7 @@ const query = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.json(queryResponse);
     }
     catch (e) {
-        console.log(e);
+        bkashFailed(res, e);
     }
 });
 const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -86,29 +69,57 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.send(yield (0, searchTransaction_1.default)(req.body.trxID));
     }
     catch (e) {
-        console.log(e);
+        bkashFailed(res, e);
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let { paymentID, email, purpose } = req.body;
+    var _c, _d;
+    const { paymentID, purpose } = req.body;
     try {
-        // Execute payment
-        let response = yield BkashExecutePaymentAPICall(paymentID);
+        // TODO: points always go to the logged-in buyer, never to an email named in the request.
+        const buyer = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).select("email").lean();
+        const email = buyer === null || buyer === void 0 ? void 0 : buyer.email;
+        if (!email) {
+            return res.status(401).json({ success: false, message: "You are not authorized" });
+        }
+        // TODO: only the account that started the payment may confirm it; checked before execute, so a mismatch is never charged.
+        const notYours = {
+            success: false,
+            message: "এই পেমেন্টটি অন্য একটি অ্যাকাউন্ট থেকে শুরু করা হয়েছে। যে অ্যাকাউন্ট থেকে পেমেন্ট শুরু করেছিলেন সেটিতে লগইন করে আবার চেষ্টা করুন।",
+        };
+        if (typeof paymentID !== "string" || !paymentID) {
+            return res.status(400).json({ success: false, message: "paymentID is required" });
+        }
+        const recorded = yield payment_model_1.default.findOne({ payment_id: paymentID }).select("email").lean();
+        if (recorded && recorded.email !== email) {
+            return res.status(403).json(notYours);
+        }
+        if (!recorded) {
+            const intent = yield bkash_intent_model_1.default.findOne({ payment_id: paymentID }).select("user").lean();
+            if (!intent || String(intent.user) !== String((_d = req.user) === null || _d === void 0 ? void 0 : _d._id)) {
+                return res.status(403).json(notYours);
+            }
+        }
+        // Execute payment directly (no HTTP call back into this server)
+        let response = yield (0, executePayment_1.default)(paymentID);
         // Query payment if there is a message in the response
         if (response === null || response === void 0 ? void 0 : response.message) {
-            response = yield BkashQueryPaymentAPICall(paymentID);
+            response = yield (0, queryPayment_1.default)(paymentID);
         }
-        if ((response === null || response === void 0 ? void 0 : response.statusCode) && response.statusCode === "0000") {
+        // TODO: query returns 0000 for unpaid "Initiated" payments too; only a Completed transaction earns points.
+        if ((response === null || response === void 0 ? void 0 : response.statusCode) === "0000" && (response === null || response === void 0 ? void 0 : response.transactionStatus) === "Completed") {
             const singleUser = yield user_info_model_1.UserInfoModel.findOne({ email });
             let saveInDb = false;
             let points = 0;
+            // TODO: the buyer's balance after this payment, so the site can update it without refetching.
+            let pointsBalance = singleUser ? Number(singleUser.points) || 0 : null;
             if (singleUser) {
-                // TODO: admin pricing only for the points page; contact top-ups keep the fixed 1.2x.
+                // TODO: points page uses package/custom pricing; purchase top-ups use the same admin rate the frontend priced them with.
                 const paidAmount = Number(response === null || response === void 0 ? void 0 : response.amount);
                 points =
                     purpose === "buy_package"
                         ? yield points_package_service_1.PointsPackageService.pointsForAmount(paidAmount)
-                        : paidAmount * 1.2;
+                        : yield points_package_service_1.PointsPackageService.topUpPointsForAmount(paidAmount);
                 // TODO: insert-once by paymentID so a page refresh or repeat call never credits twice.
                 const existing = yield payment_model_1.default.findOneAndUpdate({ payment_id: paymentID }, {
                     $setOnInsert: {
@@ -130,11 +141,15 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                         paymentId: paymentID,
                         amount: existing.amount,
                         points: existing.points,
+                        points_balance: pointsBalance,
                         status: existing.status,
                         payment_create_time: existing.trnx_time,
                     });
                 }
-                yield user_info_model_1.UserInfoModel.updateOne({ _id: singleUser._id }, { $inc: { points } });
+                const credited = yield user_info_model_1.UserInfoModel.findOneAndUpdate({ _id: singleUser._id }, { $inc: { points } }, { new: true })
+                    .select("points")
+                    .lean();
+                pointsBalance = Number(credited === null || credited === void 0 ? void 0 : credited.points) || 0;
                 saveInDb = true;
                 notification_service_1.NotificationService.notify({
                     recipient: singleUser._id,
@@ -175,6 +190,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 paymentId: paymentID,
                 amount: response === null || response === void 0 ? void 0 : response.amount,
                 points,
+                points_balance: pointsBalance,
                 status: response === null || response === void 0 ? void 0 : response.transactionStatus,
                 payment_create_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
             });
@@ -190,7 +206,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         console.error("An error occurred:", error);
         res
             .status(500)
-            .json({ success: false, message: "An error occurred", error });
+            .json({ success: false, message: "Payment could not be confirmed. If money was deducted, contact support with your TrxID." });
     }
 });
 const refund = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

@@ -1,13 +1,23 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const admin_controller_1 = require("./admin.controller");
+const admin_engagement_1 = require("./admin.engagement");
+const admin_uploads_1 = require("./admin.uploads");
 const auth_1 = require("../../middlewares/auth");
+const accounts_route_1 = __importDefault(require("../accounts/accounts.route"));
 const router = (0, express_1.Router)();
+router.use('/accounts', accounts_route_1.default);
 // Apply admin auth middleware to all routes below
 router.use((0, auth_1.auth)("admin"));
 // Dashboard
 router.get('/dashboard/stats', admin_controller_1.AdminController.getDashboardStats);
+router.get('/engagement/:type', admin_engagement_1.EngagementController.getEngagement);
+router.get('/uploads', admin_uploads_1.UploadsController.listUploads);
+router.delete('/uploads', admin_uploads_1.UploadsController.deleteUpload);
 // User Management
 router.get('/users', admin_controller_1.AdminController.getAllUsers);
 router.get('/users/:id', admin_controller_1.AdminController.getUserById);

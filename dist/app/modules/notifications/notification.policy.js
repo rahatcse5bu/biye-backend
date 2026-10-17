@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.canReadNotification = void 0;
+exports.canReadNotification = exports.usesAdminFeed = void 0;
+const usesAdminFeed = (actor) => actor.scope === "admin" && actor.user_role === "admin";
+exports.usesAdminFeed = usesAdminFeed;
 const canReadNotification = (notification, actor) => {
     if (notification.audience === "admin") {
-        return actor.user_role === "admin";
+        return (0, exports.usesAdminFeed)(actor);
     }
     return (notification.audience === "user" &&
-        actor.user_role === "user" &&
+        !(0, exports.usesAdminFeed)(actor) &&
         notification.recipient != null &&
         String(notification.recipient) === String(actor._id));
 };

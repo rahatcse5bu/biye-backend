@@ -8,7 +8,7 @@ const auth_1 = require("../../middlewares/auth");
 const expected_lifepartner_controller_1 = require("./expected_lifepartner.controller");
 const ExpectedLifePartnerRouter = express_1.default.Router();
 ExpectedLifePartnerRouter.route("/")
-    .get(expected_lifepartner_controller_1.ExpectedPartnerController.getAllExpectedPartners)
+    .get((0, auth_1.auth)("admin"), expected_lifepartner_controller_1.ExpectedPartnerController.getAllExpectedPartners)
     .post((0, auth_1.auth)("user", "admin"), expected_lifepartner_controller_1.ExpectedPartnerController.createExpectedPartner)
     .put((0, auth_1.auth)("user", "admin"), expected_lifepartner_controller_1.ExpectedPartnerController.updateExpectedPartner);
 ExpectedLifePartnerRouter.route("/token").get((0, auth_1.auth)("admin", "user"), expected_lifepartner_controller_1.ExpectedPartnerController.getExpectedPartnerByToken);

@@ -17,6 +17,7 @@ const http_status_1 = __importDefault(require("http-status"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const upload_service_1 = require("./upload.service");
+const biodata_revision_service_1 = require("../biodata_revision/biodata_revision.service");
 const uploadImages = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -43,7 +44,13 @@ const deleteImage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
     if (typeof ((_c = req.body) === null || _c === void 0 ? void 0 : _c.url) !== "string" || !req.body.url.trim()) {
         throw new ApiError_1.default(http_status_1.default.BAD_REQUEST, "Image URL is required");
     }
-    yield upload_service_1.UploadService.deleteProfileImage(req.body.url, String(userId));
+    // TODO: a published photo stays on the live profile until the change is approved, which then deletes it.
+    const live = (yield biodata_revision_service_1.BiodataRevisionService.isPublished(userId))
+        ? yield biodata_revision_service_1.BiodataRevisionService.liveDoc("general_info", userId)
+        : null;
+    const isLivePhoto = Array.isArray(live === null || live === void 0 ? void 0 : live.photos) && live.photos.includes(req.body.url);
+    if (!isLivePhoto)
+        yield upload_service_1.UploadService.deleteProfileImage(req.body.url, String(userId));
     res.status(http_status_1.default.OK).json({
         success: true,
         message: "Image deleted successfully",

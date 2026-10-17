@@ -26,7 +26,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 // Step 2: Create the Mongoose Schema and Model
 const OngikarNamaSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     is_family_know: { type: String, required: true },
     isTrueData: { type: String, required: true },
     isAgree: { type: String, required: true },

@@ -26,10 +26,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 // Create a Schema corresponding to the document interface.
 const EducationalQualificationSchema = new mongoose_1.Schema({
+    // TODO: every biodata section is looked up by user, so it needs an index.
     user: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         required: true,
         ref: "User",
+        index: true,
     },
     education_medium: { type: String, required: false },
     highest_edu_level: { type: String, required: false },
@@ -37,11 +39,14 @@ const EducationalQualificationSchema = new mongoose_1.Schema({
     // Secondary School Certificate (SSC) Information
     before_ssc: { type: String, required: false },
     deeni_edu: [],
+    ssc_inst: { type: String, required: false },
+    after_ssc_inst: { type: String, required: false },
     ssc_year: { type: Number, required: false },
     ssc_group: { type: String, required: false },
     ssc_result: { type: String, required: false },
     // After SSC Information
-    after_ssc_running: { type: Boolean, required: false },
+    // TODO: holds the HSC year text (e.g. "HSC প্রথম বর্ষ"); as Boolean every such save failed to cast.
+    after_ssc_running: { type: String, required: false },
     after_ssc_result: { type: String, required: false },
     after_ssc_group: { type: String, required: false },
     after_ssc_year: { type: Number, required: false },
@@ -64,6 +69,24 @@ const EducationalQualificationSchema = new mongoose_1.Schema({
     phd_pass_year: { type: Number, required: false },
     phd_inst: { type: String, required: false },
     phd_sub: { type: String, required: false },
+    // TODO: running/professional levels (SSC/Masters/PhD running, BEd, MEd, MPhil, Post Doc).
+    ssc_exam_year: { type: Number, required: false },
+    msc_running_year: { type: String, required: false },
+    phd_running_year: { type: String, required: false },
+    bed_inst: { type: String, required: false },
+    bed_running_year: { type: String, required: false },
+    bed_pass_year: { type: Number, required: false },
+    med_inst: { type: String, required: false },
+    med_running_year: { type: String, required: false },
+    med_pass_year: { type: Number, required: false },
+    mphil_sub: { type: String, required: false },
+    mphil_inst: { type: String, required: false },
+    mphil_running_year: { type: String, required: false },
+    mphil_pass_year: { type: Number, required: false },
+    postdoc_sub: { type: String, required: false },
+    postdoc_inst: { type: String, required: false },
+    postdoc_running_year: { type: String, required: false },
+    postdoc_pass_year: { type: Number, required: false },
     // Additional Qualifications
     ibti_result: { type: String, required: false },
     ibti_pass_year: { type: Number, required: false },

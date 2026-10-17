@@ -122,4 +122,6 @@ const deleteProfileImage = (imageUrl, userId) => __awaiter(void 0, void 0, void 
 exports.UploadService = {
     uploadProfileImages,
     deleteProfileImage,
+    getCloudinary,
+    PROFILE_PHOTO_ROOT,
 };

@@ -18,6 +18,7 @@ const auth_1 = require("../../middlewares/auth");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
 const email_settings_service_1 = require("./email_settings.service");
+const email_log_service_1 = require("../email_log/email_log.service");
 const router = (0, express_1.Router)();
 router.use((0, auth_1.auth)("admin"));
 router.get("/", (0, catchAsync_1.default)((_req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -37,6 +38,26 @@ router.patch("/", (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void
         success: true,
         message: "Email settings updated successfully",
         data: yield email_settings_service_1.EmailSettingsService.update(data),
+    });
+})));
+router.get("/usage", (0, catchAsync_1.default)((_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.status(http_status_1.default.OK).json({
+        success: true,
+        message: "Email usage retrieved successfully",
+        data: yield email_log_service_1.EmailUsageService.getUsage(),
+    });
+})));
+router.patch("/daily-limit", (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const limit = Number((_a = req.body) === null || _a === void 0 ? void 0 : _a.daily_limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100000) {
+        res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: "Daily limit must be a whole number between 1 and 100000" });
+        return;
+    }
+    res.status(http_status_1.default.OK).json({
+        success: true,
+        message: "Daily email limit updated",
+        data: { daily_limit: yield email_log_service_1.EmailUsageService.setDailyLimit(limit) },
     });
 })));
 // TODO: renders a sample email from unsaved values so the admin can check before saving.

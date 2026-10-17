@@ -14,8 +14,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const auth_1 = require("../../middlewares/auth");
 const groqService_1 = require("../../../services/groqService");
 const AiBiodataRouter = express_1.default.Router();
+// TODO: these call the paid Groq API; only the admin panel may use them.
+AiBiodataRouter.use((0, auth_1.auth)("admin"));
 /**
  * POST /ai-biodata/search
  * AI-powered biodata search

@@ -25,7 +25,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const MaritalInfoSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     isFamilyAgree: { type: String, required: false },
     isPordaToWife: { type: String, required: false },
     permission_for_study: { type: String, required: false },

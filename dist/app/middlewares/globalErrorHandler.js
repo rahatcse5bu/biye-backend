@@ -29,6 +29,10 @@ const GlobalErrorHandler = (err, req, res, next) => {
             success: false,
         });
     }
+    else if ((err === null || err === void 0 ? void 0 : err.type) === "entity.too.large") {
+        // TODO: an oversized body is the client's problem; say so instead of a generic 500.
+        return res.status(413).json({ message: "Request is too large", success: false });
+    }
     else if (err instanceof SyntaxError) {
         // Handle JSON parsing errors
         return res.status(400).json({ error: "Invalid JSON" });

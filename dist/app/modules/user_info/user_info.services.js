@@ -27,6 +27,9 @@ const bibahoMail_1 = require("../../../shared/bibahoMail");
 const googleClient = new google_auth_library_1.OAuth2Client();
 const scryptAsync = (0, util_1.promisify)(crypto_1.scrypt);
 const invalidPasswordHash = `${"0".repeat(32)}:${"0".repeat(128)}`;
+const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+const RESET_RESEND_COOLDOWN_MS = 60 * 1000;
+const hashResetToken = (token) => (0, crypto_1.createHash)("sha256").update(token).digest("hex");
 const normalizeEmail = (email) => {
     if (typeof email !== "string") {
         throw new ApiError_1.default(400, "A valid email is required");
@@ -82,6 +85,11 @@ const hashPassword = (password) => __awaiter(void 0, void 0, void 0, function* (
     const salt = (0, crypto_1.randomBytes)(16).toString("hex");
     const derivedKey = (yield scryptAsync(password, salt, 64));
     return `${salt}:${derivedKey.toString("hex")}`;
+});
+// TODO: every password write goes through here so older sessions are revoked.
+const setPassword = (user, password) => __awaiter(void 0, void 0, void 0, function* () {
+    user.password_hash = yield hashPassword(password);
+    user.password_changed_at = new Date();
 });
 const verifyPassword = (password, storedPasswordHash) => __awaiter(void 0, void 0, void 0, function* () {
     const [salt, storedKeyHex, ...unexpectedParts] = storedPasswordHash.split(":");
@@ -288,7 +296,65 @@ exports.UserInfoService = {
         if (!passwordMatches) {
             throw new ApiError_1.default(401, "Current password is incorrect");
         }
-        user.password_hash = yield hashPassword(passwordInfo.newPassword);
+        yield setPassword(user, passwordInfo.newPassword);
+        yield user.save();
+        return { token: createAppToken(user) };
+    }),
+    // TODO: silent on unknown emails so the endpoint can't be used to probe registered accounts.
+    forgotPassword: (info) => __awaiter(void 0, void 0, void 0, function* () {
+        const email = normalizeEmail(info === null || info === void 0 ? void 0 : info.email);
+        const user = yield user_info_model_1.UserInfoModel.findOne({ email }).select("+reset_password_expires");
+        if (!user)
+            return;
+        const now = Date.now();
+        const lastIssuedAt = user.reset_password_expires
+            ? user.reset_password_expires.getTime() - RESET_TOKEN_TTL_MS
+            : 0;
+        if (now - lastIssuedAt < RESET_RESEND_COOLDOWN_MS)
+            return;
+        const token = (0, crypto_1.randomBytes)(32).toString("hex");
+        user.reset_password_token = hashResetToken(token);
+        user.reset_password_expires = new Date(now + RESET_TOKEN_TTL_MS);
+        yield user.save();
+        // TODO: awaited, because on Vercel a fire-and-forget send can be frozen before Gmail gets it.
+        const sent = yield (0, bibahoMail_1.mailUserNow)(user.email, "পাসওয়ার্ড রিসেট", {
+            title: "আপনার পাসওয়ার্ড রিসেট করুন",
+            greeting: `প্রিয় ${user.username || "সদস্য"},`,
+            paragraphs: [
+                "আপনার Bibaho অ্যাকাউন্টের পাসওয়ার্ড রিসেটের অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।",
+                "এই লিংকটি ৩০ মিনিট পর্যন্ত কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে।",
+                "আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন, আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।",
+            ],
+            action: { label: "নতুন পাসওয়ার্ড সেট করুন", path: `/forgot-password?token=${token}` },
+        }).then(() => true, (error) => {
+            console.error("Password reset email failed:", error);
+            return false;
+        });
+        if (!sent) {
+            // TODO: drop the unsent token so the resend cooldown doesn't block an immediate retry.
+            user.reset_password_token = undefined;
+            user.reset_password_expires = undefined;
+            yield user.save();
+            throw new ApiError_1.default(503, "Could not send the reset email. Please try again in a few minutes.");
+        }
+    }),
+    resetPassword: (info) => __awaiter(void 0, void 0, void 0, function* () {
+        if (typeof (info === null || info === void 0 ? void 0 : info.token) !== "string" || !/^[a-f0-9]{64}$/.test(info.token)) {
+            throw new ApiError_1.default(400, "Reset link is invalid or has expired");
+        }
+        if (typeof info.password !== "string" || info.password.length < 6) {
+            throw new ApiError_1.default(400, "Password must be at least 6 characters long");
+        }
+        const user = yield user_info_model_1.UserInfoModel.findOne({
+            reset_password_token: hashResetToken(info.token),
+            reset_password_expires: { $gt: new Date() },
+        });
+        if (!user) {
+            throw new ApiError_1.default(400, "Reset link is invalid or has expired");
+        }
+        yield setPassword(user, info.password);
+        user.reset_password_token = undefined;
+        user.reset_password_expires = undefined;
         yield user.save();
     }),
     getCurrentUser: (id) => __awaiter(void 0, void 0, void 0, function* () {

@@ -56,12 +56,27 @@ const points_package_route_1 = __importDefault(require("./app/modules/points_pac
 const refund_request_route_1 = __importDefault(require("./app/modules/refund_request/refund_request.route"));
 const email_settings_route_1 = __importDefault(require("./app/modules/email_settings/email_settings.route"));
 const account_route_1 = __importDefault(require("./app/modules/account/account.route"));
-const SendEmail_1 = __importDefault(require("./shared/SendEmail"));
-const address_model_1 = __importDefault(require("./app/modules/address/address.model"));
+const contact_message_route_1 = __importDefault(require("./app/modules/contact_message/contact_message.route"));
+const biodata_revision_route_1 = __importDefault(require("./app/modules/biodata_revision/biodata_revision.route"));
+const biodata_revision_gate_1 = require("./app/modules/biodata_revision/biodata_revision.gate");
+const sanitizeInput_1 = require("./app/middlewares/sanitizeInput");
 // import UnFavoritesRouter from "./app/modules/unfavorites/unfavorites.route";
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
+app.disable("x-powered-by");
+// TODO: Vercel sits in front, so req.ip is the real client instead of the proxy.
+app.set("trust proxy", 1);
+app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+    next();
+});
+// TODO: photocard SVGs can embed images, so their route gets a larger body limit than the 100kb default.
+app.use("/api/v1/photocard-templates", express_1.default.json({ limit: "2mb" }));
 app.use(express_1.default.json());
+app.use(sanitizeInput_1.sanitizeInput);
 if (config_1.default.node_env === "development") {
     app.use((0, morgan_1.default)("dev"));
 }
@@ -74,7 +89,17 @@ if (config_1.default.node_env === "development") {
 //     ],
 //   })
 // );
-const allowedOrigins = ["https://www.bibaho.org", "https://bibaho.org", "https://biye-admin-three.vercel.app"];
+// TODO: more origins (e.g. a custom admin domain) can be added via CORS_ORIGINS, comma-separated.
+const allowedOrigins = [
+    "https://www.bibaho.org",
+    "https://bibaho.org",
+    "https://biye-admin-three.vercel.app",
+    "https://bibaho-admin.vercel.app",
+    ...(process.env.CORS_ORIGINS || "")
+        .split(",")
+        .map((origin) => origin.trim().replace(/\/+$/, ""))
+        .filter(Boolean),
+];
 if (config_1.default.node_env === "development") {
     allowedOrigins.push("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001");
 }
@@ -93,15 +118,6 @@ app.use((0, cors_1.default)({
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("server is running!");
 }));
-app.get("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        (0, SendEmail_1.default)("anis.cse5.bu@gmail.com", "Test Eamil", "<strong>Hello, this is a test email!</strong>");
-        res.json("send");
-    }
-    catch (error) {
-        res.send(error);
-    }
-}));
 app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, mongo_1.connectMongo)();
@@ -115,22 +131,22 @@ app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
         });
     }
 }));
-app.put("/update-addresses", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const addresses = yield address_model_1.default.find({});
-        for (let address of addresses) {
-            const present_address = address.present_address.split(",");
-            address.present_zilla = present_address[1];
-            address.present_upzilla = present_address[2];
-            address.present_division = present_address[0]; // Copy division to present_division
-            yield address.save();
-        }
-        res.status(200).send("Addresses updated successfully");
-    }
-    catch (err) {
-        res.status(500).send("Error updating addresses: " + err.message);
-    }
-}));
+app.use([
+    "/api/v1/personal-info",
+    "/api/v1/ongikar-nama",
+    "/api/v1/occupation",
+    "/api/v1/marital-info",
+    "/api/v1/general-info",
+    "/api/v1/family-status",
+    "/api/v1/expected-life-partner",
+    "/api/v1/educational-qualification",
+    "/api/v1/address",
+    "/api/v1/contact",
+    "/api/v1/achievement",
+    "/api/v1/bio-questions",
+], sanitizeInput_1.stripOwnerFields);
+// TODO: must run before the section routers so saves to a published biodata are staged for review.
+app.use(biodata_revision_gate_1.biodataReviewGate);
 app.use("/api/v1/user-info", user_info_route_1.default);
 app.use("/api/v1/personal-info", personal_info_route_1.default);
 app.use("/api/v1/ongikar-nama", ongikar_nama_route_1.default);
@@ -166,6 +182,8 @@ app.use("/api/v1/points-packages", points_package_route_1.default);
 app.use("/api/v1/refund-requests", refund_request_route_1.default);
 app.use("/api/v1/email-settings", email_settings_route_1.default);
 app.use("/api/v1/account", account_route_1.default);
+app.use("/api/v1/contact-messages", contact_message_route_1.default);
+app.use("/api/v1/biodata-revisions", biodata_revision_route_1.default);
 app.use("/api/v1/unverified-biodatas", unverified_biodata_route_1.default);
 app.use("/api/v1/unverified-contact-purchase", unverified_contact_purchase_route_1.default);
 app.use(globalErrorHandler_1.default);

@@ -8,6 +8,7 @@ const auth_1 = require("../../middlewares/auth");
 const bio_choice_data_controller_1 = require("./bio_choice_data.controller");
 const validateRequest_1 = __importDefault(require("../../middlewares/validateRequest"));
 const bio_choice_data_validation_1 = require("./bio_choice_data.validation");
+const rateLimit_1 = require("../../../shared/rateLimit");
 const BioChoiceDataRouter = express_1.default.Router();
 BioChoiceDataRouter.route("/")
     .get((0, auth_1.auth)("admin"), bio_choice_data_controller_1.BioChoiceController.getAllBioChoices)
@@ -23,6 +24,10 @@ BioChoiceDataRouter.route("/second-step").get((0, auth_1.auth)("user", "admin"),
 BioChoiceDataRouter.route("/bio-share").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.getBioChoiceDataOfShare);
 BioChoiceDataRouter.route("/check-second-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.checkBioChoiceDataOfSecondStep);
 BioChoiceDataRouter.route("/check-first-step/:id").get((0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.checkBioChoiceDataOfFirstStep);
+BioChoiceDataRouter.route("/remind/:id").post((0, rateLimit_1.rateLimit)({ name: "proposal-reminder", windowMs: 60 * 60 * 1000, max: 20 }), (0, auth_1.auth)("user", "admin"), bio_choice_data_controller_1.BioChoiceController.sendReminderEmail);
+BioChoiceDataRouter.route("/reminder-settings")
+    .get((0, auth_1.auth)("admin"), bio_choice_data_controller_1.BioChoiceController.getReminderSettings)
+    .patch((0, auth_1.auth)("admin"), bio_choice_data_controller_1.BioChoiceController.updateReminderSettings);
 BioChoiceDataRouter.route("/statistics/:bio_user").get(bio_choice_data_controller_1.BioChoiceController.getBioChoiceStatisticsData);
 // BioChoiceDataRouter.route("/:id")
 //   .get(BioChoiceDataController.getSingleBioChoiceData)

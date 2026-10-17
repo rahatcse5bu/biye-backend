@@ -35,7 +35,8 @@ const WorkingHistorySchema = new mongoose_1.Schema({
 }, { _id: false });
 // Mongoose schema for Occupation
 const OccupationSchema = new mongoose_1.Schema({
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    // TODO: every biodata section is looked up by user, so it needs an index.
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     occupation: [],
     occupation_details: { type: String, required: true },
     monthly_income: { type: Number, required: true },

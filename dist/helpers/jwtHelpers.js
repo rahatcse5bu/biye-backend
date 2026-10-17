@@ -47,7 +47,7 @@ const createToken = (payload, secret, expireTime = "30d") => {
 const verifyToken = (token, secret) => {
     // return jwt.verify(token, secret) ;
     try {
-        return jsonwebtoken_1.default.verify(token, secret);
+        return jsonwebtoken_1.default.verify(token, secret, { algorithms: ["HS256"] });
     }
     catch (error) {
         if (error instanceof jsonwebtoken_1.TokenExpiredError) {
