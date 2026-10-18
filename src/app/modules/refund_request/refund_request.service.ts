@@ -23,7 +23,7 @@ export const RefundRequestService = {
     if (typeof paymentId !== "string" || !isValidObjectId(paymentId)) {
       throw new RefundError(400, "A valid payment is required");
     }
-    const user: any = await UserInfoModel.findById(userId).select("email points").lean();
+    const user: any = await UserInfoModel.findById(userId).select("email points username").lean();
     const payment: any = await Payment.findById(paymentId).lean();
     if (!user || !payment || payment.email !== user.email) {
       throw new RefundError(404, "Payment not found");
@@ -79,8 +79,11 @@ export const RefundRequestService = {
         link: "/refunds",
       });
       mailAdmins("নতুন রিফান্ড অনুরোধ", {
-        title: "নতুন রিফান্ড অনুরোধ এসেছে",
+        icon: "refund",
         tone: "warning",
+        eyebrow: "অ্যাডমিন · রিফান্ড",
+        title: "নতুন রিফান্ড অনুরোধ এসেছে",
+        detailsTitle: "অনুরোধের বিবরণ",
         paragraphs: ["একজন ব্যবহারকারী রিফান্ড অনুরোধ করেছেন। অ্যাডমিন প্যানেলের Refunds পেজ থেকে অনুমোদন বা বাতিল করুন।"],
         details: [
           { label: "ব্যবহারকারী", value: user.email },
@@ -92,7 +95,11 @@ export const RefundRequestService = {
         ],
       });
       mailUser(user.email, "রিফান্ড অনুরোধ পাওয়া গেছে", {
+        icon: "clock",
+        eyebrow: "রিফান্ড অনুরোধ",
         title: "আপনার রিফান্ড অনুরোধ পাওয়া গেছে",
+        name: user.username,
+        detailsTitle: "অনুরোধের বিবরণ",
         paragraphs: [
           "আপনার রিফান্ড অনুরোধটি আমরা পেয়েছি। অ্যাডমিন পর্যালোচনা করে সর্বোচ্চ ৩ কার্যদিবসের মধ্যে সিদ্ধান্ত জানাবেন।",
           `অনুরোধ চলাকালীন এই পেমেন্টের <strong>${pointsToHold} পয়েন্ট</strong> আটকে রাখা হয়েছে। অনুরোধ বাতিল হলে পয়েন্ট ফেরত দেওয়া হবে।`,
@@ -167,8 +174,10 @@ export const RefundRequestService = {
       link: "/user/account/payment-and-refund",
     });
     mailUser(request.email, "রিফান্ড অনুরোধ বাতিল হয়েছে", {
+      icon: "edit",
+      eyebrow: "রিফান্ড অনুরোধ",
       title: "আপনার রিফান্ড অনুরোধ বাতিল হয়েছে",
-      tone: "warning",
+      detailsTitle: "অনুরোধের বিবরণ",
       paragraphs: [
         `আপনার রিফান্ড অনুরোধটি অনুমোদিত হয়নি। আটকে রাখা <strong>${escapeHtml(request.points_held)} পয়েন্ট</strong> আপনার অ্যাকাউন্টে ফেরত দেওয়া হয়েছে।`,
       ],

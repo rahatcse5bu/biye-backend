@@ -8,9 +8,8 @@ import { UserInfoModel } from "./user_info.model";
 import GeneralInfo from "../general_info/general_info.model";
 import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
-import sendEmail from "../../../shared/SendEmail";
-import { escapeHtml, mailAdmins, mailUser } from "../../../shared/bibahoMail";
-import generateEmailTemplate from "../../../utils/generateEmailTemplate";
+import { EmailIcon, escapeHtml, mailAdmins, mailUser, mailUserNow } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 
 const statusLabels: Record<string, string> = {
   active: "সক্রিয়",
@@ -27,27 +26,37 @@ const statusNotes: Record<string, string> = {
   "in review": "আমাদের টিম আপনার বায়োডাটা যাচাই করছে। স্ট্যাটাস পরিবর্তন হলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
 };
 
+const statusIcons: Record<string, EmailIcon> = { active: "check", inactive: "clock", banned: "edit" };
+
 // TODO: branded user + admin emails for a biodata status change; replaces the old raw-HTML ones that dumped the request body.
 const mailStatusChange = (user: any, status: string, byAdmin: boolean) => {
   if (!user?.email || !status) return;
   const label = statusLabels[status] || status;
   const inReview = status === "in review";
 
-  mailUser(user.email, inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
-    title: inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
-    tone: status === "active" ? "success" : status === "banned" ? "warning" : "brand",
-    paragraphs: [
-      inReview
-        ? "ধন্যবাদ! আপনার বায়োডাটা আমাদের কাছে পৌঁছেছে।"
-        : `${byAdmin ? "Bibaho অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${escapeHtml(label)}</strong>।`,
-      ...(statusNotes[status] ? [statusNotes[status]] : []),
-    ],
-    details: [
-      { label: "বায়োডাটা নং", value: user.user_id },
-      { label: "স্ট্যাটাস", value: label },
-    ],
-    action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
-  });
+  if (inReview || (status === "active" && byAdmin)) {
+    const mail = inReview
+      ? emailTemplates.biodataInReview({ name: user.username, biodataNo: user.user_id })
+      : emailTemplates.biodataApproved({ name: user.username, biodataNo: user.user_id });
+    mailUser(user.email, mail.subject, mail.content);
+  } else {
+    mailUser(user.email, "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
+      icon: statusIcons[status] || "bell",
+      eyebrow: label,
+      title: "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
+      name: user.username,
+      paragraphs: [
+        `${byAdmin ? "বিয়ে অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${escapeHtml(label)}</strong>।`,
+        ...(statusNotes[status] ? [statusNotes[status]] : []),
+      ],
+      detailsTitle: "সংক্ষিপ্ত তথ্য",
+      details: [
+        { label: "বায়োডাটা নং", value: user.user_id },
+        { label: "স্ট্যাটাস", value: label },
+      ],
+      action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+    });
+  }
 
   if (byAdmin) return;
   mailAdmins(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
@@ -79,7 +88,8 @@ export const UserInfoController = {
   sendUserEmail: catchAsync(async (req: Request, res: Response) => {
     const email = req.params.email;
     const { subject, body } = req.body;
-    await sendEmail(email, subject, generateEmailTemplate(subject, body));
+    // TODO: admin-written HTML body, sent in the standard branded layout.
+    await mailUserNow(email, String(subject ?? ""), { title: String(subject ?? ""), icon: "support", paragraphs: [String(body ?? "")] });
     res.status(httpStatus.OK).json({
       success: true,
       message: "email is sent",

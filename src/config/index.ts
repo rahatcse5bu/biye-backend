@@ -25,6 +25,8 @@ export default {
   smtp_pass: process.env.SMTP_PASS,
   email_from: process.env.EMAIL_FROM,
   email_reply_to: process.env.EMAIL_REPLY_TO,
+  // TODO: public base URL of the email icons in biye-front/public/email; must be reachable from inboxes.
+  email_asset_url: process.env.EMAIL_ASSET_URL || "https://www.bibaho.org/email",
   groq_api_key: process.env.GROQ_API_KEY,
   google_client_id: process.env.GOOGLE_CLIENT_ID,
   ably_api_key: process.env.ABLY_API_KEY,

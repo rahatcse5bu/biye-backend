@@ -21,6 +21,7 @@ const user_info_model_1 = require("../user_info/user_info.model");
 const refund_request_model_1 = __importDefault(require("../refund_request/refund_request.model"));
 const notification_service_1 = require("../notifications/notification.service");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 class RefundError extends Error {
     constructor(statusCode, message) {
         super(message);
@@ -114,21 +115,14 @@ const processRefund = (input) => __awaiter(void 0, void 0, void 0, function* () 
     }
     // TODO: one email per refund, sent only by the request that actually settled it.
     if (settledRequest || claimed) {
-        (0, bibahoMail_1.mailUser)(payment.email, "রিফান্ড সম্পন্ন হয়েছে", {
-            title: "আপনার রিফান্ড সম্পন্ন হয়েছে",
-            tone: "success",
-            paragraphs: [
-                "আপনার পেমেন্টের রিফান্ড বিকাশের মাধ্যমে পাঠানো হয়েছে। টাকা আপনার বিকাশ অ্যাকাউন্টে পৌঁছাতে কিছু সময় লাগতে পারে।",
-                `এই পেমেন্টের <strong>${pointsRemoved} পয়েন্ট</strong> আপনার অ্যাকাউন্ট থেকে সরিয়ে নেওয়া হয়েছে।`,
-            ],
-            details: [
-                { label: "রিফান্ডের পরিমাণ", value: (0, bibahoMail_1.formatTaka)(amount) },
-                { label: "রিফান্ড ট্রানজেকশন আইডি", value: result.refundTrxID },
-                { label: "মূল ট্রানজেকশন আইডি", value: result.originalTrxID || trxID },
-                { label: "বর্তমান পয়েন্ট", value: pointsBalance },
-            ],
-            action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+        const refunded = emailTemplates_1.emailTemplates.refundCompleted({
+            amount,
+            refundTrxId: result.refundTrxID,
+            originalTrxId: result.originalTrxID || trxID,
+            pointsRemoved,
+            balance: pointsBalance,
         });
+        (0, bibahoMail_1.mailUser)(payment.email, refunded.subject, refunded.content);
     }
     return {
         refundTrxID: result.refundTrxID,

@@ -5,7 +5,8 @@ import Payment from "../payments/payment.model";
 import { UserInfoModel } from "../user_info/user_info.model";
 import RefundRequest from "../refund_request/refund_request.model";
 import { NotificationService } from "../notifications/notification.service";
-import { formatTaka, mailUser } from "../../../shared/bibahoMail";
+import { mailUser } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 
 export class RefundError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -132,21 +133,14 @@ export const processRefund = async (input: RefundInput) => {
 
   // TODO: one email per refund, sent only by the request that actually settled it.
   if (settledRequest || claimed) {
-    mailUser(payment.email, "রিফান্ড সম্পন্ন হয়েছে", {
-      title: "আপনার রিফান্ড সম্পন্ন হয়েছে",
-      tone: "success",
-      paragraphs: [
-        "আপনার পেমেন্টের রিফান্ড বিকাশের মাধ্যমে পাঠানো হয়েছে। টাকা আপনার বিকাশ অ্যাকাউন্টে পৌঁছাতে কিছু সময় লাগতে পারে।",
-        `এই পেমেন্টের <strong>${pointsRemoved} পয়েন্ট</strong> আপনার অ্যাকাউন্ট থেকে সরিয়ে নেওয়া হয়েছে।`,
-      ],
-      details: [
-        { label: "রিফান্ডের পরিমাণ", value: formatTaka(amount) },
-        { label: "রিফান্ড ট্রানজেকশন আইডি", value: result.refundTrxID },
-        { label: "মূল ট্রানজেকশন আইডি", value: result.originalTrxID || trxID },
-        { label: "বর্তমান পয়েন্ট", value: pointsBalance },
-      ],
-      action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+    const refunded = emailTemplates.refundCompleted({
+      amount,
+      refundTrxId: result.refundTrxID,
+      originalTrxId: result.originalTrxID || trxID,
+      pointsRemoved,
+      balance: pointsBalance,
     });
+    mailUser(payment.email, refunded.subject, refunded.content);
   }
 
   return {

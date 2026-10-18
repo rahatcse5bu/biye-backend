@@ -24,6 +24,7 @@ const mongoose_1 = require("mongoose");
 const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
 const notification_service_1 = require("../notifications/notification.service");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const googleClient = new google_auth_library_1.OAuth2Client();
 const scryptAsync = (0, util_1.promisify)(crypto_1.scrypt);
 const invalidPasswordHash = `${"0".repeat(32)}:${"0".repeat(128)}`;
@@ -62,16 +63,8 @@ const sanitizeUser = (user) => {
 };
 const addAppToken = (user) => (Object.assign(Object.assign({}, sanitizeUser(user)), { token: createAppToken(user) }));
 const sendWelcomeNotification = (user) => {
-    (0, bibahoMail_1.mailUser)(user.email, "Bibaho-তে স্বাগতম", {
-        title: "Bibaho-তে আপনাকে স্বাগতম!",
-        greeting: `প্রিয় ${user.username || "সদস্য"},`,
-        paragraphs: [
-            "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। এখন আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করতে পারেন।",
-            "বায়োডাটা সম্পূর্ণ করলে অন্যরা আপনার প্রোফাইল দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
-        ],
-        details: [{ label: "অ্যাকাউন্ট ইমেইল", value: user.email }],
-        action: { label: "বায়োডাটা তৈরি করুন", path: "/user/account/edit-biodata" },
-    });
+    const welcome = emailTemplates_1.emailTemplates.welcome({ name: user.username });
+    (0, bibahoMail_1.mailUser)(user.email, welcome.subject, welcome.content);
     notification_service_1.NotificationService.notify({
         recipient: String(user._id),
         audience: "user",
@@ -317,16 +310,8 @@ exports.UserInfoService = {
         user.reset_password_expires = new Date(now + RESET_TOKEN_TTL_MS);
         yield user.save();
         // TODO: awaited, because on Vercel a fire-and-forget send can be frozen before Gmail gets it.
-        const sent = yield (0, bibahoMail_1.mailUserNow)(user.email, "পাসওয়ার্ড রিসেট", {
-            title: "আপনার পাসওয়ার্ড রিসেট করুন",
-            greeting: `প্রিয় ${user.username || "সদস্য"},`,
-            paragraphs: [
-                "আপনার Bibaho অ্যাকাউন্টের পাসওয়ার্ড রিসেটের অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।",
-                "এই লিংকটি ৩০ মিনিট পর্যন্ত কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে।",
-                "আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন, আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।",
-            ],
-            action: { label: "নতুন পাসওয়ার্ড সেট করুন", path: `/forgot-password?token=${token}` },
-        }).then(() => true, (error) => {
+        const reset = emailTemplates_1.emailTemplates.passwordReset({ name: user.username, resetPath: `/forgot-password?token=${token}` });
+        const sent = yield (0, bibahoMail_1.mailUserNow)(user.email, reset.subject, reset.content).then(() => true, (error) => {
             console.error("Password reset email failed:", error);
             return false;
         });

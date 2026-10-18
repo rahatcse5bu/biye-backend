@@ -48,10 +48,12 @@ const isHttpUrl = (value) => {
     }
 };
 const fetchSettings = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const doc = yield email_settings_model_1.default.findOneAndUpdate({ key: "default" }, { $setOnInsert: { key: "default" } }, { upsert: true, new: true, setDefaultsOnInsert: true }).lean();
     return {
-        logo_url: (doc === null || doc === void 0 ? void 0 : doc.logo_url) || email_settings_model_1.DEFAULT_EMAIL_SETTINGS.logo_url,
+        logo_url: !(doc === null || doc === void 0 ? void 0 : doc.logo_url) || doc.logo_url === email_settings_model_1.LEGACY_LOGO_URL ? email_settings_model_1.DEFAULT_EMAIL_SETTINGS.logo_url : doc.logo_url,
         support_email: (doc === null || doc === void 0 ? void 0 : doc.support_email) || email_settings_model_1.DEFAULT_EMAIL_SETTINGS.support_email,
+        support_phone: (_a = doc === null || doc === void 0 ? void 0 : doc.support_phone) !== null && _a !== void 0 ? _a : email_settings_model_1.DEFAULT_EMAIL_SETTINGS.support_phone,
         social_links: (doc === null || doc === void 0 ? void 0 : doc.social_links) || [],
     };
 });
@@ -72,11 +74,16 @@ exports.EmailSettingsService = {
     }),
     // TODO: returns cleaned settings, or an error message for the admin.
     parse: (body) => {
-        if (!isHttpUrl(body === null || body === void 0 ? void 0 : body.logo_url))
-            return { error: "Logo URL must be a valid http(s) link" };
+        const logoUrl = typeof (body === null || body === void 0 ? void 0 : body.logo_url) === "string" ? body.logo_url.trim() : "";
+        if (logoUrl && !isHttpUrl(logoUrl))
+            return { error: "Logo URL must be a valid http(s) link, or empty for the default logo" };
         const supportEmail = typeof (body === null || body === void 0 ? void 0 : body.support_email) === "string" ? body.support_email.trim() : "";
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) {
             return { error: "Support email is not valid" };
+        }
+        const supportPhone = typeof (body === null || body === void 0 ? void 0 : body.support_phone) === "string" ? body.support_phone.trim() : "";
+        if (supportPhone.length > 30 || /[^\d+\-\s()]/.test(supportPhone)) {
+            return { error: "Support phone may contain only digits, spaces, +, - and brackets (up to 30)" };
         }
         const links = Array.isArray(body === null || body === void 0 ? void 0 : body.social_links) ? body.social_links : [];
         if (links.length > 8)
@@ -91,7 +98,7 @@ exports.EmailSettingsService = {
             socialLinks.push({ label, url: link.url.trim() });
         }
         return {
-            data: { logo_url: body.logo_url.trim(), support_email: supportEmail, social_links: socialLinks },
+            data: { logo_url: logoUrl, support_email: supportEmail, support_phone: supportPhone, social_links: socialLinks },
         };
     },
     update: (data) => __awaiter(void 0, void 0, void 0, function* () {

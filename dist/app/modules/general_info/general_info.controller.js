@@ -36,6 +36,7 @@ const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const notification_service_1 = require("../notifications/notification.service");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", sortOrder = "desc", 
@@ -983,13 +984,7 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
         message: "আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত ও প্রকাশিত হয়েছে।",
         link: "/user/account/dashboard",
     });
-    (0, bibahoMail_1.mailUserById)(generalInfo.user, "আপনার বায়োডাটা অনুমোদিত হয়েছে", {
-        title: "আপনার বায়োডাটা অনুমোদিত হয়েছে",
-        tone: "success",
-        paragraphs: ["অভিনন্দন! আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত হয়েছে এবং এখন সবার কাছে প্রকাশিত।"],
-        details: [{ label: "সংস্করণ", value: generalInfo.version }],
-        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
-    });
+    (0, bibahoMail_1.mailUserByIdWith)(generalInfo.user, (user) => emailTemplates_1.emailTemplates.biodataApproved({ name: user.username, biodataNo: user.user_id, changesOnly: true }));
     res.status(200).json({
         success: true,
         message: `Biodata version ${generalInfo.version} approved and published`,
@@ -1039,16 +1034,7 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
             : "আপনার বায়োডাটার পরিবর্তন বাতিল হয়েছে। আগের সংস্করণটি প্রকাশিত আছে।",
         link: "/user/account/edit-biodata",
     });
-    (0, bibahoMail_1.mailUserById)(generalInfo.user, "বায়োডাটার পরিবর্তন বাতিল হয়েছে", {
-        title: "বায়োডাটার পরিবর্তন বাতিল হয়েছে",
-        tone: "warning",
-        paragraphs: [
-            "আপনার বায়োডাটার সাম্প্রতিক পরিবর্তনগুলো অনুমোদিত হয়নি। আগের অনুমোদিত সংস্করণটি প্রকাশিত আছে।",
-            "প্রয়োজনীয় সংশোধন করে আবার জমা দিতে পারেন।",
-        ],
-        details: [{ label: "কারণ", value: reason }],
-        action: { label: "বায়োডাটা সংশোধন করুন", path: "/user/account/edit-biodata" },
-    });
+    (0, bibahoMail_1.mailUserByIdWith)(generalInfo.user, (user) => emailTemplates_1.emailTemplates.biodataRejected({ name: user.username, biodataNo: user.user_id, reason, changesOnly: true }));
     res.status(200).json({
         success: true,
         message: "Biodata changes rejected. Previous approved version remains live.",
@@ -1077,19 +1063,7 @@ const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
     generalInfo.admin_note = "";
     generalInfo.last_approved_at = new Date();
     yield generalInfo.save();
-    (0, bibahoMail_1.mailUserById)(userId, "আপনার বায়োডাটা জমা হয়েছে", {
-        title: "আপনার বায়োডাটা সফলভাবে জমা হয়েছে",
-        tone: "success",
-        paragraphs: [
-            "ধন্যবাদ! আপনার বায়োডাটা জমা ও প্রকাশিত হয়েছে। এখন অন্য সদস্যরা আপনার বায়োডাটা দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
-            "যেকোনো সময় আপনার বায়োডাটা আপডেট করতে পারবেন।",
-        ],
-        details: [
-            { label: "বায়োডাটা ধরন", value: generalInfo.bio_type },
-            { label: "সংস্করণ", value: generalInfo.version },
-        ],
-        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
-    });
+    (0, bibahoMail_1.mailUserByIdWith)(userId, (user) => emailTemplates_1.emailTemplates.biodataApproved({ name: user.username, biodataNo: user.user_id }));
     res.status(200).json({
         success: true,
         message: "Biodata approved and published automatically.",

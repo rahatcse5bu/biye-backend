@@ -20,9 +20,8 @@ const user_info_model_1 = require("./user_info.model");
 const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
 const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const user_info_constant_1 = require("./user_info.constant");
-const SendEmail_1 = __importDefault(require("../../../shared/SendEmail"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
-const generateEmailTemplate_1 = __importDefault(require("../../../utils/generateEmailTemplate"));
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const statusLabels = {
     active: "সক্রিয়",
     inactive: "নিষ্ক্রিয়",
@@ -36,27 +35,37 @@ const statusNotes = {
     banned: "নীতিমালা লঙ্ঘনের কারণে আপনার অ্যাকাউন্ট নিষিদ্ধ করা হয়েছে। ভুল মনে হলে এই ইমেইলের উত্তর দিয়ে আমাদের জানান।",
     "in review": "আমাদের টিম আপনার বায়োডাটা যাচাই করছে। স্ট্যাটাস পরিবর্তন হলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
 };
+const statusIcons = { active: "check", inactive: "clock", banned: "edit" };
 // TODO: branded user + admin emails for a biodata status change; replaces the old raw-HTML ones that dumped the request body.
 const mailStatusChange = (user, status, byAdmin) => {
     if (!(user === null || user === void 0 ? void 0 : user.email) || !status)
         return;
     const label = statusLabels[status] || status;
     const inReview = status === "in review";
-    (0, bibahoMail_1.mailUser)(user.email, inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
-        title: inReview ? "আপনার বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
-        tone: status === "active" ? "success" : status === "banned" ? "warning" : "brand",
-        paragraphs: [
-            inReview
-                ? "ধন্যবাদ! আপনার বায়োডাটা আমাদের কাছে পৌঁছেছে।"
-                : `${byAdmin ? "Bibaho অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong>।`,
-            ...(statusNotes[status] ? [statusNotes[status]] : []),
-        ],
-        details: [
-            { label: "বায়োডাটা নং", value: user.user_id },
-            { label: "স্ট্যাটাস", value: label },
-        ],
-        action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
-    });
+    if (inReview || (status === "active" && byAdmin)) {
+        const mail = inReview
+            ? emailTemplates_1.emailTemplates.biodataInReview({ name: user.username, biodataNo: user.user_id })
+            : emailTemplates_1.emailTemplates.biodataApproved({ name: user.username, biodataNo: user.user_id });
+        (0, bibahoMail_1.mailUser)(user.email, mail.subject, mail.content);
+    }
+    else {
+        (0, bibahoMail_1.mailUser)(user.email, "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে", {
+            icon: statusIcons[status] || "bell",
+            eyebrow: label,
+            title: "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
+            name: user.username,
+            paragraphs: [
+                `${byAdmin ? "বিয়ে অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong>।`,
+                ...(statusNotes[status] ? [statusNotes[status]] : []),
+            ],
+            detailsTitle: "সংক্ষিপ্ত তথ্য",
+            details: [
+                { label: "বায়োডাটা নং", value: user.user_id },
+                { label: "স্ট্যাটাস", value: label },
+            ],
+            action: { label: "ড্যাশবোর্ড দেখুন", path: "/user/account/dashboard" },
+        });
+    }
     if (byAdmin)
         return;
     (0, bibahoMail_1.mailAdmins)(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
@@ -86,7 +95,8 @@ exports.UserInfoController = {
     sendUserEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const email = req.params.email;
         const { subject, body } = req.body;
-        yield (0, SendEmail_1.default)(email, subject, (0, generateEmailTemplate_1.default)(subject, body));
+        // TODO: admin-written HTML body, sent in the standard branded layout.
+        yield (0, bibahoMail_1.mailUserNow)(email, String(subject !== null && subject !== void 0 ? subject : ""), { title: String(subject !== null && subject !== void 0 ? subject : ""), icon: "support", paragraphs: [String(body !== null && body !== void 0 ? body : "")] });
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "email is sent",

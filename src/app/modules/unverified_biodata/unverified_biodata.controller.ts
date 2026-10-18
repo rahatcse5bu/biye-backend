@@ -51,14 +51,18 @@ const createUnverifiedBiodata = catchAsync(
       // TODO: branded welcome email with the biodata link; mailUser never throws or delays the response.
       if (biodata.contact_email) {
         mailUser(biodata.contact_email, "আপনার বায়োডাটা প্রোফাইল তৈরি হয়েছে", {
-          title: "স্বাগতম! আপনার বায়োডাটা প্রোফাইল তৈরি হয়েছে",
-          tone: "success",
+          icon: "welcome",
+          eyebrow: "স্বাগতম",
+          title: "আপনার বায়োডাটা প্রোফাইল তৈরি হয়েছে",
+          name: biodata.contact_name || undefined,
           paragraphs: [
             "আপনার তথ্য সফলভাবে Bibaho-তে যোগ করা হয়েছে। আপনার বায়োডাটা প্রোফাইল এখন লাইভ এবং সম্ভাব্য পাত্র/পাত্রীরা দেখতে পাবেন।",
             "প্রোফাইল লিংকটি পরিবার ও বন্ধুদের সাথে শেয়ার করলে আরও ভালো সাড়া পাবেন।",
           ],
-          details: [{ label: "প্রোফাইল লিংক", value: `${SITE_URL}/biodata/unverified/${biodata._id}` }],
-          action: { label: "আপনার প্রোফাইল দেখুন", path: `/biodata/unverified/${biodata._id}` },
+          blocks: [
+            { type: "buttons", actions: [{ label: "আপনার প্রোফাইল দেখুন", path: `/biodata/unverified/${biodata._id}` }] },
+            { type: "link", label: "প্রোফাইল লিংক:", url: `${SITE_URL}/biodata/unverified/${biodata._id}` },
+          ],
         });
       }
 
@@ -549,8 +553,11 @@ const purchaseUnverifiedBiodataContact = catchAsync(
 
       // TODO: email only after the purchase is saved, without delaying the response.
       mailUser(userInfo.email, "যোগাযোগ তথ্য", {
+        icon: "check",
+        eyebrow: "যোগাযোগ উন্মুক্ত",
         title: "আপনার কেনা যোগাযোগ তথ্য",
-        tone: "success",
+        name: userInfo.username,
+        detailsTitle: "যোগাযোগ তথ্য",
         paragraphs: [
           "ধন্যবাদ! নিচে বায়োডাটার যোগাযোগ তথ্য দেওয়া হলো। এই তথ্য আপনার অ্যাকাউন্টের \"ক্রয়কৃত\" অংশেও দেখতে পাবেন।",
           "অনুগ্রহ করে শালীনতা বজায় রেখে যোগাযোগ করুন।",

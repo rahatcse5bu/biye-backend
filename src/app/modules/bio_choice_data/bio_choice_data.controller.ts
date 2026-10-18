@@ -9,6 +9,7 @@ import ApiError from "../../middlewares/ApiError";
 import BioChoice from "./bio_choice_data.model";
 import ContactPurchase from "../contact_purchase_data/contact_purchase_data.model";
 import { mailUser, mailUserNow } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 import { ReminderSettingsService, reminderStatus } from "./bio_choice_reminder";
 import { NotificationService } from "../notifications/notification.service";
 import { UserInfoService } from "../user_info/user_info.services";
@@ -680,28 +681,10 @@ export const BioChoiceController = {
       await session.commitTransaction();
 
       // TODO: emails go out only after the request is saved, and never delay the response.
-      mailUser(userInfo.email, "আপনার প্রস্তাব পাঠানো হয়েছে", {
-        title: "আপনার প্রস্তাব সফলভাবে পাঠানো হয়েছে",
-        tone: "success",
-        paragraphs: [
-          "আপনার বায়োডাটা ও প্রস্তাব পাত্র/পাত্রীর কাছে পাঠানো হয়েছে। তিনি সাড়া দিলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
-        ],
-        details: [
-          { label: "বায়োডাটা নং", value: bioUserInfo.user_id },
-          { label: "খরচ হওয়া পয়েন্ট", value: 30 },
-          { label: "অবশিষ্ট পয়েন্ট", value: points },
-        ],
-        action: { label: "আমার অনুরোধগুলো দেখুন", path: "/user/account/purchases" },
-      });
-      mailUser(bioUserInfo.email, "আপনি একটি নতুন প্রস্তাব পেয়েছেন", {
-        title: "আপনি একটি নতুন প্রস্তাব পেয়েছেন",
-        paragraphs: [
-          "একজন সদস্য আপনার বায়োডাটা দেখে আগ্রহ প্রকাশ করেছেন এবং তার বায়োডাটা আপনার কাছে পাঠিয়েছেন।",
-          "বায়োডাটাটি দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
-        ],
-        details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userInfo.user_id }],
-        action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
-      });
+      const sentMail = emailTemplates.requestSent({ name: userInfo.username, biodataNo: bioUserInfo.user_id, spent: 30, balance: points });
+      mailUser(userInfo.email, sentMail.subject, sentMail.content);
+      const receivedMail = emailTemplates.requestReceived({ name: bioUserInfo.username, senderNo: userInfo.user_id });
+      mailUser(bioUserInfo.email, receivedMail.subject, receivedMail.content);
       NotificationService.notify({
         recipient: String(bioUserInfo._id),
         audience: "user",
@@ -826,7 +809,7 @@ export const BioChoiceController = {
 
     const [sender, owner]: any[] = await Promise.all([
       UserInfoModel.findById(user).select("user_id").lean(),
-      UserInfoModel.findById(bio_user).select("email user_id").lean(),
+      UserInfoModel.findById(bio_user).select("email user_id username").lean(),
     ]);
     if (!owner?.email) {
       return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
@@ -858,18 +841,8 @@ export const BioChoiceController = {
     }
 
     try {
-      await mailUserNow(owner.email, "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায়", {
-        title: "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায় আছে",
-        paragraphs: [
-          `বায়োডাটা নং ${sender?.user_id ?? ""} আপনাকে প্রস্তাব পাঠিয়েছেন এবং আপনার উত্তরের অপেক্ষায় আছেন।`,
-          "অনুগ্রহ করে তার বায়োডাটা দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
-        ],
-        details: [
-          { label: "প্রস্তাবকারীর বায়োডাটা নং", value: sender?.user_id },
-          { label: "প্রস্তাব পাঠানোর তারিখ", value: new Date(choice.createdAt).toLocaleDateString("en-GB") },
-        ],
-        action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
-      });
+      const reminder = emailTemplates.requestReminder({ name: owner.username, senderNo: sender?.user_id, sentAt: choice.createdAt });
+      await mailUserNow(owner.email, reminder.subject, reminder.content);
     } catch (error: any) {
       console.error("Reminder email failed:", error?.message);
       // TODO: give the slot back so a failed send doesn't use up the sender's quota.
@@ -1030,7 +1003,10 @@ export const BioChoiceController = {
         link: "/user/account/purchases",
       });
       mailUser(userData?.email, "আপনি একটি মতামত পেয়েছেন", {
+        icon: "request",
+        eyebrow: "নতুন মতামত",
         title: "আপনার প্রস্তাবে মতামত এসেছে",
+        name: userData?.username,
         paragraphs: ["আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তার পক্ষ থেকে একটি মতামত এসেছে।"],
         details: [
           { label: "বায়োডাটা নং", value: bioUser?.user_id },
@@ -1039,7 +1015,10 @@ export const BioChoiceController = {
         action: { label: "বিস্তারিত দেখুন", path: "/user/account/purchases" },
       });
       mailUser(bioUser?.email, "আপনার মতামত পাঠানো হয়েছে", {
+        icon: "check",
+        eyebrow: "মতামত পাঠানো হয়েছে",
         title: "আপনার মতামত পাঠানো হয়েছে",
+        name: bioUser?.username,
         paragraphs: ["আপনার মতামত প্রস্তাবকারীর কাছে পৌঁছে দেওয়া হয়েছে।"],
         details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userData?.user_id }],
         action: { label: "অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
@@ -1062,21 +1041,15 @@ export const BioChoiceController = {
         message: `বায়োডাটা নং ${bioUser?.user_id} ${accepted ? "গ্রহণ করেছেন" : "প্রত্যাখ্যান করেছেন"} বায়োডাটা নং ${userData?.user_id}-এর প্রস্তাব।`,
         link: "/contact-requests",
       });
-      mailUser(userData?.email, accepted ? "আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে", {
-        title: accepted ? "অভিনন্দন! আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে",
-        tone: accepted ? "success" : "warning",
-        paragraphs: [
-          accepted
-            ? "আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি আপনার প্রস্তাবে সম্মতি দিয়েছেন। এখন পরবর্তী ধাপে অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"
-            : "দুঃখিত, আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি এই মুহূর্তে আগ্রহী নন। আরও বায়োডাটা দেখে নতুন প্রস্তাব পাঠাতে পারেন।",
-        ],
-        details: [{ label: "বায়োডাটা নং", value: bioUser?.user_id }],
-        action: accepted
-          ? { label: "পরবর্তী ধাপে যান", path: "/user/account/purchases" }
-          : { label: "আরও বায়োডাটা দেখুন", path: "/biodatas" },
-      });
+      const answerMail = accepted
+        ? emailTemplates.requestAccepted({ name: userData?.username, biodataNo: bioUser?.user_id })
+        : emailTemplates.requestDeclined({ name: userData?.username, biodataNo: bioUser?.user_id });
+      mailUser(userData?.email, answerMail.subject, answerMail.content);
       mailUser(bioUser?.email, accepted ? "আপনি একটি প্রস্তাব গ্রহণ করেছেন" : "আপনি একটি প্রস্তাব প্রত্যাখ্যান করেছেন", {
+        icon: accepted ? "check" : "heart",
+        eyebrow: accepted ? "প্রস্তাব গৃহীত" : "সিদ্ধান্ত জানানো হয়েছে",
         title: accepted ? "আপনি প্রস্তাবটি গ্রহণ করেছেন" : "আপনি প্রস্তাবটি প্রত্যাখ্যান করেছেন",
+        name: bioUser?.username,
         paragraphs: [
           accepted
             ? "আপনার সম্মতি প্রস্তাবকারীকে জানানো হয়েছে। তিনি পরবর্তী ধাপে আপনার অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"

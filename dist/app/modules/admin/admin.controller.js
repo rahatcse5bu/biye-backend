@@ -348,8 +348,10 @@ exports.AdminController = {
             link: '/user/account/dashboard',
         });
         (0, bibahoMail_1.mailUser)(user.email, 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে', {
+            icon: status === 'active' ? 'check' : status === 'inactive' ? 'clock' : 'edit',
+            eyebrow: statusLabels[status],
             title: 'আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে',
-            tone: status === 'active' ? 'success' : 'warning',
+            name: user.username,
             paragraphs: [`Bibaho অ্যাডমিন আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন। আপনার বায়োডাটা এখন <strong>${statusLabels[status]}</strong>।`],
             details: [{ label: 'কারণ', value: reason }],
             action: { label: 'ড্যাশবোর্ড দেখুন', path: '/user/account/dashboard' },

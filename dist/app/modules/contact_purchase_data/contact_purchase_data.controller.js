@@ -21,6 +21,7 @@ const contact_purchase_data_services_1 = require("./contact_purchase_data.servic
 const bio_choice_data_model_1 = __importDefault(require("../bio_choice_data/bio_choice_data.model"));
 const contact_model_1 = __importDefault(require("../contact/contact.model"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const notification_service_1 = require("../notifications/notification.service");
 const contact_purchase_data_model_1 = __importDefault(require("./contact_purchase_data.model"));
 exports.ContactPurchaseController = {
@@ -333,26 +334,24 @@ exports.ContactPurchaseController = {
             yield session.commitTransaction();
             session.endSession();
             // TODO: emails only after the purchase is saved; buyer gets the contact, owner gets a heads-up.
-            (0, bibahoMail_1.mailUser)(userInfo.email, "অভিভাবকের যোগাযোগ তথ্য", {
-                title: "আপনার কেনা যোগাযোগ তথ্য",
-                tone: "success",
-                paragraphs: [
-                    "ধন্যবাদ! নিচে পাত্র/পাত্রীর অভিভাবকের যোগাযোগ তথ্য দেওয়া হলো। এই তথ্য আপনার অ্যাকাউন্টের \"ক্রয়কৃত\" অংশেও সবসময় দেখতে পাবেন।",
-                    "অনুগ্রহ করে শালীনতা বজায় রেখে যোগাযোগ করুন।",
-                ],
-                details: [
-                    { label: "বায়োডাটা নং", value: bioUser.user_id },
-                    { label: "অভিভাবকের নাম", value: bioContact.full_name },
-                    { label: "সম্পর্ক", value: bioContact.relation },
-                    { label: "মোবাইল নম্বর", value: bioContact.family_number },
-                    { label: "ইমেইল", value: bioContact.bio_receiving_email },
-                    { label: "খরচ হওয়া পয়েন্ট", value: 70 },
-                    { label: "অবশিষ্ট পয়েন্ট", value: points },
-                ],
-                action: { label: "ক্রয়কৃত বায়োডাটা দেখুন", path: "/user/account/purchases" },
+            const unlocked = emailTemplates_1.emailTemplates.contactUnlocked({
+                name: userInfo.username,
+                biodataNo: bioUser.user_id,
+                guardian: {
+                    name: bioContact.full_name,
+                    relation: bioContact.relation,
+                    phone: bioContact.family_number,
+                    email: bioContact.bio_receiving_email,
+                },
+                spent: 70,
+                balance: points,
             });
+            (0, bibahoMail_1.mailUser)(userInfo.email, unlocked.subject, unlocked.content);
             (0, bibahoMail_1.mailUser)(bioUser.email, "আপনার অভিভাবকের যোগাযোগ তথ্য নেওয়া হয়েছে", {
+                icon: "bell",
+                eyebrow: "যোগাযোগ তথ্য নেওয়া হয়েছে",
                 title: "একজন সদস্য আপনার অভিভাবকের যোগাযোগ তথ্য নিয়েছেন",
+                name: bioUser.username,
                 paragraphs: [
                     "আপনার প্রস্তাবে সম্মতির পর একজন সদস্য আপনার অভিভাবকের যোগাযোগ তথ্য নিয়েছেন। শীঘ্রই তিনি আপনার অভিভাবকের সাথে যোগাযোগ করতে পারেন।",
                 ],

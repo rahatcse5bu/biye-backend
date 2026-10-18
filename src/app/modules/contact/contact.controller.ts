@@ -4,7 +4,7 @@ import { ContactService } from "./contact.services";
 import catchAsync from "../../../shared/catchAsync";
 import { UserInfoModel } from "../user_info/user_info.model";
 import mongoose from "mongoose";
-import { escapeHtml, mailAdmins } from "../../../shared/bibahoMail";
+import { mailAdmins } from "../../../shared/bibahoMail";
 import ContactMessage from "../contact_message/contact_message.model";
 import { NotificationService } from "../notifications/notification.service";
 
@@ -124,10 +124,12 @@ export const ContactController = {
     // TODO: saved first so the admin site keeps every message even if the email fails.
     const saved = await ContactMessage.create(input);
     mailAdmins("ওয়েবসাইট থেকে নতুন বার্তা", {
+      icon: "support",
+      eyebrow: "অ্যাডমিন · সাপোর্ট",
       title: "যোগাযোগ ফর্ম থেকে নতুন বার্তা",
-      paragraphs: [
-        `<strong>বার্তা:</strong><br>${escapeHtml(input.message).replace(/\n/g, "<br>")}`,
-      ],
+      paragraphs: ["ওয়েবসাইটের যোগাযোগ ফর্ম থেকে একটি নতুন বার্তা এসেছে।"],
+      blocks: [{ type: "message", label: "বার্তা", text: input.message }],
+      detailsTitle: "প্রেরকের তথ্য",
       details: [
         { label: "নাম", value: input.name },
         { label: "ইমেইল", value: input.email },

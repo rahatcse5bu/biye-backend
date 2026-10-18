@@ -5,7 +5,8 @@ import searchTransaction from "../../../helpers/searchTransaction";
 import executePayment from "../../../helpers/executePayment";
 import { UserInfoModel } from "../user_info/user_info.model";
 import Payment from "../payments/payment.model";
-import { formatTaka, mailUser } from "../../../shared/bibahoMail";
+import { mailUser } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 import { NotificationService } from "../notifications/notification.service";
 import { PointsPackageService } from "../points_package/points_package.service";
 import { processRefund, RefundError } from "./bkash.refund";
@@ -165,21 +166,15 @@ const afterPay = async (req: Request, res: Response) => {
           message: `${email} ৳${response?.amount} পেমেন্ট করেছেন (TrxID: ${response?.trxID})।`,
           link: "/payments",
         });
-        mailUser(email, "পয়েন্ট কেনা সফল হয়েছে", {
-          title: "পয়েন্ট কেনা সফল হয়েছে",
-          tone: "success",
-          paragraphs: [
-            `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে এবং আপনার অ্যাকাউন্টে <strong>${points} পয়েন্ট</strong> যোগ হয়েছে।`,
-            "পেমেন্টের ৩ দিনের মধ্যে আপনার পেমেন্ট হিস্টোরি থেকে রিফান্ড অনুরোধ করা যাবে।",
-          ],
-          details: [
-            { label: "পরিমাণ", value: formatTaka(response?.amount) },
-            { label: "যোগ হওয়া পয়েন্ট", value: points },
-            { label: "ট্রানজেকশন আইডি", value: response?.trxID },
-            { label: "সময়", value: response?.paymentCreateTime || response?.paymentExecuteTime },
-          ],
-          action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+        const receipt = emailTemplates.paymentSuccess({
+          name: singleUser.username,
+          amount: response?.amount,
+          points,
+          balance: pointsBalance,
+          trxId: response?.trxID,
+          paidAt: response?.paymentExecuteTime || response?.paymentCreateTime,
         });
+        mailUser(email, receipt.subject, receipt.content);
       }
 
       res.json({

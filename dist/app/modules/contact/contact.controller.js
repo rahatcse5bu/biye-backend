@@ -139,10 +139,12 @@ exports.ContactController = {
         // TODO: saved first so the admin site keeps every message even if the email fails.
         const saved = yield contact_message_model_1.default.create(input);
         (0, bibahoMail_1.mailAdmins)("ওয়েবসাইট থেকে নতুন বার্তা", {
+            icon: "support",
+            eyebrow: "অ্যাডমিন · সাপোর্ট",
             title: "যোগাযোগ ফর্ম থেকে নতুন বার্তা",
-            paragraphs: [
-                `<strong>বার্তা:</strong><br>${(0, bibahoMail_1.escapeHtml)(input.message).replace(/\n/g, "<br>")}`,
-            ],
+            paragraphs: ["ওয়েবসাইটের যোগাযোগ ফর্ম থেকে একটি নতুন বার্তা এসেছে।"],
+            blocks: [{ type: "message", label: "বার্তা", text: input.message }],
+            detailsTitle: "প্রেরকের তথ্য",
             details: [
                 { label: "নাম", value: input.name },
                 { label: "ইমেইল", value: input.email },

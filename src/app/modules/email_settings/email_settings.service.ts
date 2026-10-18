@@ -1,8 +1,9 @@
-import EmailSettings, { DEFAULT_EMAIL_SETTINGS, SocialLink } from "./email_settings.model";
+import EmailSettings, { DEFAULT_EMAIL_SETTINGS, LEGACY_LOGO_URL, SocialLink } from "./email_settings.model";
 
 export type EmailBranding = {
   logo_url: string;
   support_email: string;
+  support_phone: string;
   social_links: SocialLink[];
 };
 
@@ -26,8 +27,9 @@ const fetchSettings = async (): Promise<EmailBranding> => {
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).lean();
   return {
-    logo_url: doc?.logo_url || DEFAULT_EMAIL_SETTINGS.logo_url,
+    logo_url: !doc?.logo_url || doc.logo_url === LEGACY_LOGO_URL ? DEFAULT_EMAIL_SETTINGS.logo_url : doc.logo_url,
     support_email: doc?.support_email || DEFAULT_EMAIL_SETTINGS.support_email,
+    support_phone: doc?.support_phone ?? DEFAULT_EMAIL_SETTINGS.support_phone,
     social_links: doc?.social_links || [],
   };
 };
@@ -48,10 +50,15 @@ export const EmailSettingsService = {
 
   // TODO: returns cleaned settings, or an error message for the admin.
   parse: (body: any): { data?: EmailBranding; error?: string } => {
-    if (!isHttpUrl(body?.logo_url)) return { error: "Logo URL must be a valid http(s) link" };
+    const logoUrl = typeof body?.logo_url === "string" ? body.logo_url.trim() : "";
+    if (logoUrl && !isHttpUrl(logoUrl)) return { error: "Logo URL must be a valid http(s) link, or empty for the default logo" };
     const supportEmail = typeof body?.support_email === "string" ? body.support_email.trim() : "";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) {
       return { error: "Support email is not valid" };
+    }
+    const supportPhone = typeof body?.support_phone === "string" ? body.support_phone.trim() : "";
+    if (supportPhone.length > 30 || /[^\d+\-\s()]/.test(supportPhone)) {
+      return { error: "Support phone may contain only digits, spaces, +, - and brackets (up to 30)" };
     }
     const links = Array.isArray(body?.social_links) ? body.social_links : [];
     if (links.length > 8) return { error: "At most 8 social links are allowed" };
@@ -63,7 +70,7 @@ export const EmailSettingsService = {
       socialLinks.push({ label, url: link.url.trim() });
     }
     return {
-      data: { logo_url: body.logo_url.trim(), support_email: supportEmail, social_links: socialLinks },
+      data: { logo_url: logoUrl, support_email: supportEmail, support_phone: supportPhone, social_links: socialLinks },
     };
   },
 

@@ -20,6 +20,7 @@ const executePayment_1 = __importDefault(require("../../../helpers/executePaymen
 const user_info_model_1 = require("../user_info/user_info.model");
 const payment_model_1 = __importDefault(require("../payments/payment.model"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const notification_service_1 = require("../notifications/notification.service");
 const points_package_service_1 = require("../points_package/points_package.service");
 const bkash_refund_1 = require("./bkash.refund");
@@ -166,21 +167,15 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     message: `${email} ৳${response === null || response === void 0 ? void 0 : response.amount} পেমেন্ট করেছেন (TrxID: ${response === null || response === void 0 ? void 0 : response.trxID})।`,
                     link: "/payments",
                 });
-                (0, bibahoMail_1.mailUser)(email, "পয়েন্ট কেনা সফল হয়েছে", {
-                    title: "পয়েন্ট কেনা সফল হয়েছে",
-                    tone: "success",
-                    paragraphs: [
-                        `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে এবং আপনার অ্যাকাউন্টে <strong>${points} পয়েন্ট</strong> যোগ হয়েছে।`,
-                        "পেমেন্টের ৩ দিনের মধ্যে আপনার পেমেন্ট হিস্টোরি থেকে রিফান্ড অনুরোধ করা যাবে।",
-                    ],
-                    details: [
-                        { label: "পরিমাণ", value: (0, bibahoMail_1.formatTaka)(response === null || response === void 0 ? void 0 : response.amount) },
-                        { label: "যোগ হওয়া পয়েন্ট", value: points },
-                        { label: "ট্রানজেকশন আইডি", value: response === null || response === void 0 ? void 0 : response.trxID },
-                        { label: "সময়", value: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime) },
-                    ],
-                    action: { label: "পেমেন্ট হিস্টোরি দেখুন", path: "/user/account/payment-and-refund" },
+                const receipt = emailTemplates_1.emailTemplates.paymentSuccess({
+                    name: singleUser.username,
+                    amount: response === null || response === void 0 ? void 0 : response.amount,
+                    points,
+                    balance: pointsBalance,
+                    trxId: response === null || response === void 0 ? void 0 : response.trxID,
+                    paidAt: (response === null || response === void 0 ? void 0 : response.paymentExecuteTime) || (response === null || response === void 0 ? void 0 : response.paymentCreateTime),
                 });
+                (0, bibahoMail_1.mailUser)(email, receipt.subject, receipt.content);
             }
             res.json({
                 success: true,

@@ -3,7 +3,8 @@ import ApiError from "../../middlewares/ApiError";
 import { UserInfoModel } from "../user_info/user_info.model";
 import { NotificationService } from "../notifications/notification.service";
 import { UploadService } from "../upload/upload.service";
-import { mailUserById } from "../../../shared/bibahoMail";
+import { mailUserByIdWith, toBanglaDigits } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 import BiodataRevision, { IBiodataRevision, OPEN_STATUSES, SectionChanges } from "./biodata_revision.model";
 import { BIODATA_SECTIONS, CONTACT_FIELDS, FIELD_LABELS, IGNORED_FIELDS, SENSITIVE_FIELDS, sectionByKey } from "./biodata_revision.sections";
 
@@ -390,12 +391,12 @@ export const BiodataRevisionService = {
       message: "আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত ও প্রকাশিত হয়েছে।",
       link: "/user/account/dashboard",
     });
-    mailUserById(revision.user, "আপনার বায়োডাটার পরিবর্তন অনুমোদিত হয়েছে", {
-      title: "পরিবর্তন অনুমোদিত হয়েছে",
-      tone: "success",
-      paragraphs: ["আপনার বায়োডাটার পরিবর্তনগুলো অনুমোদিত হয়েছে এবং এখন সবার কাছে প্রকাশিত।"],
-      details: [{ label: "পরিবর্তিত তথ্য", value: `${countFields(revision.changes)}টি` }],
-      action: { label: "বায়োডাটা দেখুন", path: "/user/account/dashboard" },
+    mailUserByIdWith(revision.user, (user) => {
+      const mail = emailTemplates.biodataApproved({ name: user.username, biodataNo: user.user_id, changesOnly: true });
+      mail.content.paragraphs = [
+        `আপনার বায়োডাটার <strong>${toBanglaDigits(countFields(revision.changes))}টি</strong> পরিবর্তন যাচাই করে অনুমোদন করা হয়েছে এবং এখন সবার কাছে প্রকাশিত।`,
+      ];
+      return mail;
     });
     return revision;
   },
@@ -434,16 +435,9 @@ export const BiodataRevisionService = {
         : "আপনার বায়োডাটার পরিবর্তন অনুমোদিত হয়নি। আগের সংস্করণটি প্রকাশিত আছে।",
       link: "/user/account/edit-biodata",
     });
-    mailUserById(revision.user, "বায়োডাটার পরিবর্তন অনুমোদিত হয়নি", {
-      title: "পরিবর্তন অনুমোদিত হয়নি",
-      tone: "warning",
-      paragraphs: [
-        "আপনার বায়োডাটার সাম্প্রতিক পরিবর্তনগুলো অনুমোদিত হয়নি। আগের অনুমোদিত সংস্করণটি প্রকাশিত আছে।",
-        "প্রয়োজনীয় সংশোধন করে আবার জমা দিতে পারেন।",
-      ],
-      details: [{ label: "কারণ", value: reason }],
-      action: { label: "বায়োডাটা সংশোধন করুন", path: "/user/account/edit-biodata" },
-    });
+    mailUserByIdWith(revision.user, (user) =>
+      emailTemplates.biodataRejected({ name: user.username, biodataNo: user.user_id, reason, changesOnly: true }),
+    );
     return revision;
   },
 };

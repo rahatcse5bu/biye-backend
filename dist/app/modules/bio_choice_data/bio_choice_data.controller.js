@@ -33,6 +33,7 @@ const bio_choice_data_services_1 = require("./bio_choice_data.services");
 const bio_choice_data_model_1 = __importDefault(require("./bio_choice_data.model"));
 const contact_purchase_data_model_1 = __importDefault(require("../contact_purchase_data/contact_purchase_data.model"));
 const bibahoMail_1 = require("../../../shared/bibahoMail");
+const emailTemplates_1 = require("../../../shared/emailTemplates");
 const bio_choice_reminder_1 = require("./bio_choice_reminder");
 const notification_service_1 = require("../notifications/notification.service");
 const user_info_services_1 = require("../user_info/user_info.services");
@@ -662,28 +663,10 @@ exports.BioChoiceController = {
             // Commit the transaction
             yield session.commitTransaction();
             // TODO: emails go out only after the request is saved, and never delay the response.
-            (0, bibahoMail_1.mailUser)(userInfo.email, "আপনার প্রস্তাব পাঠানো হয়েছে", {
-                title: "আপনার প্রস্তাব সফলভাবে পাঠানো হয়েছে",
-                tone: "success",
-                paragraphs: [
-                    "আপনার বায়োডাটা ও প্রস্তাব পাত্র/পাত্রীর কাছে পাঠানো হয়েছে। তিনি সাড়া দিলে আপনাকে ইমেইল ও নোটিফিকেশনে জানানো হবে।",
-                ],
-                details: [
-                    { label: "বায়োডাটা নং", value: bioUserInfo.user_id },
-                    { label: "খরচ হওয়া পয়েন্ট", value: 30 },
-                    { label: "অবশিষ্ট পয়েন্ট", value: points },
-                ],
-                action: { label: "আমার অনুরোধগুলো দেখুন", path: "/user/account/purchases" },
-            });
-            (0, bibahoMail_1.mailUser)(bioUserInfo.email, "আপনি একটি নতুন প্রস্তাব পেয়েছেন", {
-                title: "আপনি একটি নতুন প্রস্তাব পেয়েছেন",
-                paragraphs: [
-                    "একজন সদস্য আপনার বায়োডাটা দেখে আগ্রহ প্রকাশ করেছেন এবং তার বায়োডাটা আপনার কাছে পাঠিয়েছেন।",
-                    "বায়োডাটাটি দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
-                ],
-                details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userInfo.user_id }],
-                action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
-            });
+            const sentMail = emailTemplates_1.emailTemplates.requestSent({ name: userInfo.username, biodataNo: bioUserInfo.user_id, spent: 30, balance: points });
+            (0, bibahoMail_1.mailUser)(userInfo.email, sentMail.subject, sentMail.content);
+            const receivedMail = emailTemplates_1.emailTemplates.requestReceived({ name: bioUserInfo.username, senderNo: userInfo.user_id });
+            (0, bibahoMail_1.mailUser)(bioUserInfo.email, receivedMail.subject, receivedMail.content);
             notification_service_1.NotificationService.notify({
                 recipient: String(bioUserInfo._id),
                 audience: "user",
@@ -759,7 +742,7 @@ exports.BioChoiceController = {
     })),
     // TODO: the sender emails the biodata owner a reminder about a pending proposal, within the admin-set limits.
     sendReminderEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _h, _j, _k;
+        var _h, _j;
         const user = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
         const bio_user = req.params.id;
         if (!user) {
@@ -806,7 +789,7 @@ exports.BioChoiceController = {
         }
         const [sender, owner] = yield Promise.all([
             user_info_model_1.UserInfoModel.findById(user).select("user_id").lean(),
-            user_info_model_1.UserInfoModel.findById(bio_user).select("email user_id").lean(),
+            user_info_model_1.UserInfoModel.findById(bio_user).select("email user_id username").lean(),
         ]);
         if (!(owner === null || owner === void 0 ? void 0 : owner.email)) {
             return res.status(http_status_1.default.UNPROCESSABLE_ENTITY).json({
@@ -832,18 +815,8 @@ exports.BioChoiceController = {
             });
         }
         try {
-            yield (0, bibahoMail_1.mailUserNow)(owner.email, "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায়", {
-                title: "একটি প্রস্তাব আপনার উত্তরের অপেক্ষায় আছে",
-                paragraphs: [
-                    `বায়োডাটা নং ${(_j = sender === null || sender === void 0 ? void 0 : sender.user_id) !== null && _j !== void 0 ? _j : ""} আপনাকে প্রস্তাব পাঠিয়েছেন এবং আপনার উত্তরের অপেক্ষায় আছেন।`,
-                    "অনুগ্রহ করে তার বায়োডাটা দেখে প্রস্তাবটি গ্রহণ বা প্রত্যাখ্যান করুন।",
-                ],
-                details: [
-                    { label: "প্রস্তাবকারীর বায়োডাটা নং", value: sender === null || sender === void 0 ? void 0 : sender.user_id },
-                    { label: "প্রস্তাব পাঠানোর তারিখ", value: new Date(choice.createdAt).toLocaleDateString("en-GB") },
-                ],
-                action: { label: "প্রস্তাবটি দেখুন", path: "/user/account/bio-requests" },
-            });
+            const reminder = emailTemplates_1.emailTemplates.requestReminder({ name: owner.username, senderNo: sender === null || sender === void 0 ? void 0 : sender.user_id, sentAt: choice.createdAt });
+            yield (0, bibahoMail_1.mailUserNow)(owner.email, reminder.subject, reminder.content);
         }
         catch (error) {
             console.error("Reminder email failed:", error === null || error === void 0 ? void 0 : error.message);
@@ -861,7 +834,7 @@ exports.BioChoiceController = {
             audience: "user",
             type: "biodata",
             title: "প্রস্তাবের রিমাইন্ডার",
-            message: `বায়োডাটা নং ${(_k = sender === null || sender === void 0 ? void 0 : sender.user_id) !== null && _k !== void 0 ? _k : ""} আপনার উত্তরের অপেক্ষায় আছেন।`,
+            message: `বায়োডাটা নং ${(_j = sender === null || sender === void 0 ? void 0 : sender.user_id) !== null && _j !== void 0 ? _j : ""} আপনার উত্তরের অপেক্ষায় আছেন।`,
             link: "/user/account/bio-requests",
         });
         return res.status(http_status_1.default.OK).json({
@@ -889,8 +862,8 @@ exports.BioChoiceController = {
         });
     })),
     checkBioChoiceDataOfSecondStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _l;
-        const user = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+        var _k;
+        const user = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
         const bio_user = req.params.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -951,10 +924,10 @@ exports.BioChoiceController = {
         });
     })),
     updateBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _m;
-        const bio_user = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
+        var _l;
+        const bio_user = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
         const { type } = req.query;
-        const _o = req.body, { user } = _o, others = __rest(_o, ["user"]);
+        const _m = req.body, { user } = _m, others = __rest(_m, ["user"]);
         // TODO: "approved" is the one accepted status; step 2 only checks for it.
         if (others.status === "accepted")
             others.status = "approved";
@@ -987,7 +960,10 @@ exports.BioChoiceController = {
                 link: "/user/account/purchases",
             });
             (0, bibahoMail_1.mailUser)(userData === null || userData === void 0 ? void 0 : userData.email, "আপনি একটি মতামত পেয়েছেন", {
+                icon: "request",
+                eyebrow: "নতুন মতামত",
                 title: "আপনার প্রস্তাবে মতামত এসেছে",
+                name: userData === null || userData === void 0 ? void 0 : userData.username,
                 paragraphs: ["আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তার পক্ষ থেকে একটি মতামত এসেছে।"],
                 details: [
                     { label: "বায়োডাটা নং", value: bioUser === null || bioUser === void 0 ? void 0 : bioUser.user_id },
@@ -996,7 +972,10 @@ exports.BioChoiceController = {
                 action: { label: "বিস্তারিত দেখুন", path: "/user/account/purchases" },
             });
             (0, bibahoMail_1.mailUser)(bioUser === null || bioUser === void 0 ? void 0 : bioUser.email, "আপনার মতামত পাঠানো হয়েছে", {
+                icon: "check",
+                eyebrow: "মতামত পাঠানো হয়েছে",
                 title: "আপনার মতামত পাঠানো হয়েছে",
+                name: bioUser === null || bioUser === void 0 ? void 0 : bioUser.username,
                 paragraphs: ["আপনার মতামত প্রস্তাবকারীর কাছে পৌঁছে দেওয়া হয়েছে।"],
                 details: [{ label: "প্রস্তাবকারীর বায়োডাটা নং", value: userData === null || userData === void 0 ? void 0 : userData.user_id }],
                 action: { label: "অনুরোধগুলো দেখুন", path: "/user/account/bio-requests" },
@@ -1020,21 +999,15 @@ exports.BioChoiceController = {
                 message: `বায়োডাটা নং ${bioUser === null || bioUser === void 0 ? void 0 : bioUser.user_id} ${accepted ? "গ্রহণ করেছেন" : "প্রত্যাখ্যান করেছেন"} বায়োডাটা নং ${userData === null || userData === void 0 ? void 0 : userData.user_id}-এর প্রস্তাব।`,
                 link: "/contact-requests",
             });
-            (0, bibahoMail_1.mailUser)(userData === null || userData === void 0 ? void 0 : userData.email, accepted ? "আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে", {
-                title: accepted ? "অভিনন্দন! আপনার প্রস্তাব গৃহীত হয়েছে" : "আপনার প্রস্তাব প্রত্যাখ্যাত হয়েছে",
-                tone: accepted ? "success" : "warning",
-                paragraphs: [
-                    accepted
-                        ? "আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি আপনার প্রস্তাবে সম্মতি দিয়েছেন। এখন পরবর্তী ধাপে অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"
-                        : "দুঃখিত, আপনি যে বায়োডাটায় প্রস্তাব পাঠিয়েছিলেন, তিনি এই মুহূর্তে আগ্রহী নন। আরও বায়োডাটা দেখে নতুন প্রস্তাব পাঠাতে পারেন।",
-                ],
-                details: [{ label: "বায়োডাটা নং", value: bioUser === null || bioUser === void 0 ? void 0 : bioUser.user_id }],
-                action: accepted
-                    ? { label: "পরবর্তী ধাপে যান", path: "/user/account/purchases" }
-                    : { label: "আরও বায়োডাটা দেখুন", path: "/biodatas" },
-            });
+            const answerMail = accepted
+                ? emailTemplates_1.emailTemplates.requestAccepted({ name: userData === null || userData === void 0 ? void 0 : userData.username, biodataNo: bioUser === null || bioUser === void 0 ? void 0 : bioUser.user_id })
+                : emailTemplates_1.emailTemplates.requestDeclined({ name: userData === null || userData === void 0 ? void 0 : userData.username, biodataNo: bioUser === null || bioUser === void 0 ? void 0 : bioUser.user_id });
+            (0, bibahoMail_1.mailUser)(userData === null || userData === void 0 ? void 0 : userData.email, answerMail.subject, answerMail.content);
             (0, bibahoMail_1.mailUser)(bioUser === null || bioUser === void 0 ? void 0 : bioUser.email, accepted ? "আপনি একটি প্রস্তাব গ্রহণ করেছেন" : "আপনি একটি প্রস্তাব প্রত্যাখ্যান করেছেন", {
+                icon: accepted ? "check" : "heart",
+                eyebrow: accepted ? "প্রস্তাব গৃহীত" : "সিদ্ধান্ত জানানো হয়েছে",
                 title: accepted ? "আপনি প্রস্তাবটি গ্রহণ করেছেন" : "আপনি প্রস্তাবটি প্রত্যাখ্যান করেছেন",
+                name: bioUser === null || bioUser === void 0 ? void 0 : bioUser.username,
                 paragraphs: [
                     accepted
                         ? "আপনার সম্মতি প্রস্তাবকারীকে জানানো হয়েছে। তিনি পরবর্তী ধাপে আপনার অভিভাবকের যোগাযোগ তথ্য নিতে পারবেন।"

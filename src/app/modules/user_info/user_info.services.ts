@@ -11,6 +11,7 @@ import { isValidObjectId } from "mongoose";
 import GeneralInfo from "../general_info/general_info.model";
 import { NotificationService } from "../notifications/notification.service";
 import { mailUser, mailUserNow } from "../../../shared/bibahoMail";
+import { emailTemplates } from "../../../shared/emailTemplates";
 
 const googleClient = new OAuth2Client();
 const scryptAsync = promisify(scrypt);
@@ -70,16 +71,8 @@ const addAppToken = (user: IUserInfo): Record<string, any> => ({
 });
 
 const sendWelcomeNotification = (user: { _id?: unknown; username?: string; email?: string }) => {
-  mailUser(user.email, "Bibaho-তে স্বাগতম", {
-    title: "Bibaho-তে আপনাকে স্বাগতম!",
-    greeting: `প্রিয় ${user.username || "সদস্য"},`,
-    paragraphs: [
-      "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। এখন আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করতে পারেন।",
-      "বায়োডাটা সম্পূর্ণ করলে অন্যরা আপনার প্রোফাইল দেখতে ও আপনার সাথে যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
-    ],
-    details: [{ label: "অ্যাকাউন্ট ইমেইল", value: user.email }],
-    action: { label: "বায়োডাটা তৈরি করুন", path: "/user/account/edit-biodata" },
-  });
+  const welcome = emailTemplates.welcome({ name: user.username });
+  mailUser(user.email, welcome.subject, welcome.content);
   NotificationService.notify({
     recipient: String(user._id),
     audience: "user",
@@ -398,16 +391,8 @@ export const UserInfoService = {
     await user.save();
 
     // TODO: awaited, because on Vercel a fire-and-forget send can be frozen before Gmail gets it.
-    const sent = await mailUserNow(user.email, "পাসওয়ার্ড রিসেট", {
-      title: "আপনার পাসওয়ার্ড রিসেট করুন",
-      greeting: `প্রিয় ${user.username || "সদস্য"},`,
-      paragraphs: [
-        "আপনার Bibaho অ্যাকাউন্টের পাসওয়ার্ড রিসেটের অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।",
-        "এই লিংকটি ৩০ মিনিট পর্যন্ত কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে।",
-        "আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন, আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।",
-      ],
-      action: { label: "নতুন পাসওয়ার্ড সেট করুন", path: `/forgot-password?token=${token}` },
-    }).then(() => true, (error) => {
+    const reset = emailTemplates.passwordReset({ name: user.username, resetPath: `/forgot-password?token=${token}` });
+    const sent = await mailUserNow(user.email, reset.subject, reset.content).then(() => true, (error) => {
       console.error("Password reset email failed:", error);
       return false;
     });
