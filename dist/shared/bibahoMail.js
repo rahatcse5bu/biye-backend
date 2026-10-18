@@ -45,6 +45,9 @@ const config_1 = __importDefault(require("../config"));
 exports.SITE_URL = config_1.default.client_url.replace(/\/+$/, "");
 // TODO: icons are PNGs served by biye-front (public/email); Gmail does not render SVG.
 const ASSETS = config_1.default.email_asset_url.replace(/\/+$/, "");
+// TODO: bump when icons change; Gmail's image proxy caches each URL, including earlier 404s.
+const ASSET_VERSION = "2";
+const asset = (file) => `${ASSETS}/${file}.png?v=${ASSET_VERSION}`;
 const escapeHtml = (value) => String(value !== null && value !== void 0 ? value : "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -101,7 +104,7 @@ const TONES = {
 };
 const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিয়ে (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
 const ADMIN_REASON = "আপনি বিয়ে-র অ্যাডমিন হিসেবে এই ইমেইলটি পাচ্ছেন।";
-const img = (file, w, h, extra = "") => `<img src="${ASSETS}/${file}.png" width="${w}" height="${h}" alt="" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;${extra}">`;
+const img = (file, w, h, extra = "") => `<img src="${asset(file)}" width="${w}" height="${h}" alt="" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;${extra}">`;
 const strong = (html, color = C.ink900) => html.replace(/<strong>/g, `<strong style="color:${color};font-weight:600;">`);
 const hrefOf = (action) => (0, exports.escapeHtml)(action.url || `${exports.SITE_URL}${action.path || ""}`);
 const filled = (rows) => rows.filter((row) => row.value !== undefined && row.value !== null && row.value !== "");
@@ -134,7 +137,7 @@ const SOCIAL_ICONS = { facebook: "facebook", linkedin: "linkedin", whatsapp: "wh
 const footer = (branding, reason) => {
     const support = (0, exports.escapeHtml)(branding.support_email);
     const phone = (0, exports.escapeHtml)(branding.support_phone);
-    const inlineIcon = (file) => `<img src="${ASSETS}/${file}.png" width="16" height="16" alt="" style="display:inline-block;width:16px;height:16px;border:0;vertical-align:-3px;margin-right:6px;">`;
+    const inlineIcon = (file) => `<img src="${asset(file)}" width="16" height="16" alt="" style="display:inline-block;width:16px;height:16px;border:0;vertical-align:-3px;margin-right:6px;">`;
     // TODO: inline-blocks so phone and email stack on narrow screens instead of overflowing.
     const contact = [
         phone ? `<span style="display:inline-block;margin:0 10px;white-space:nowrap;">${inlineIcon("phone")}${phone}</span>` : "",
@@ -203,7 +206,7 @@ const button = (action) => {
         ? `background:#ffffff;border:1.5px solid ${C.teal};color:${C.teal};padding:12.5px 26.5px;`
         : `background:${C.teal};border:0;color:#ffffff;padding:14px 28px;`;
     const icon = arrow
-        ? `<img src="${ASSETS}/${outline ? "arrow-teal" : "arrow-white"}.png" width="18" height="18" alt="" style="display:inline-block;width:18px;height:18px;border:0;vertical-align:-3px;margin-left:8px;">`
+        ? `<img src="${asset(outline ? "arrow-teal" : "arrow-white")}" width="18" height="18" alt="" style="display:inline-block;width:18px;height:18px;border:0;vertical-align:-3px;margin-left:8px;">`
         : "";
     return `<a href="${hrefOf(action)}" style="display:inline-block;${style}border-radius:10px;font-family:${FONT};font-size:16px;line-height:24px;font-weight:600;text-decoration:none;margin:0 12px 12px 0;">${(0, exports.escapeHtml)(action.label)}${icon}</a>`;
 };
@@ -244,7 +247,7 @@ const biodataCard = (block) => {
         ${block.summary ? `<div style="font-size:14px;line-height:22px;color:${C.ink600};padding-top:2px;">${(0, exports.escapeHtml)(block.summary)}</div>` : ""}
         ${block.detail ? `<div style="font-size:12px;line-height:18px;font-weight:500;color:${C.ink400};padding-top:2px;">${(0, exports.escapeHtml)(block.detail)}</div>` : ""}
       </td>
-      <td align="right" valign="middle" style="padding-left:12px;white-space:nowrap;font-family:${FONT};font-size:14px;line-height:22px;font-weight:600;color:${C.teal};">দেখুন <img src="${ASSETS}/arrow-teal-sm.png" width="16" height="16" alt="" style="display:inline-block;width:16px;height:16px;border:0;vertical-align:-3px;margin-left:4px;"></td>
+      <td align="right" valign="middle" style="padding-left:12px;white-space:nowrap;font-family:${FONT};font-size:14px;line-height:22px;font-weight:600;color:${C.teal};">দেখুন <img src="${asset("arrow-teal-sm")}" width="16" height="16" alt="" style="display:inline-block;width:16px;height:16px;border:0;vertical-align:-3px;margin-left:4px;"></td>
     </tr></table>
   </a>`;
 };
