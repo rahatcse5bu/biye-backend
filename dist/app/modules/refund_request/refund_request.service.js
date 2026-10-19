@@ -45,6 +45,9 @@ exports.RefundRequestService = {
         if (payment.status !== "Completed") {
             throw new bkash_refund_1.RefundError(400, "Only completed payments can be refunded");
         }
+        if (payment.purpose === "featured") {
+            throw new bkash_refund_1.RefundError(400, "Featured biodata payments are refunded by the admin if the request is rejected");
+        }
         if (!payment.transaction_id || !payment.payment_id) {
             throw new bkash_refund_1.RefundError(400, "This payment cannot be refunded online. Please contact support");
         }

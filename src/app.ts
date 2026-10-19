@@ -40,10 +40,12 @@ import UploadRouter from "./app/modules/upload/upload.route";
 import NotificationRouter from "./app/modules/notifications/notification.route";
 import PointsPackageRouter from "./app/modules/points_package/points_package.route";
 import RefundRequestRouter from "./app/modules/refund_request/refund_request.route";
+import FeaturedRequestRouter from "./app/modules/featured_request/featured_request.route";
 import EmailSettingsRouter from "./app/modules/email_settings/email_settings.route";
 import AccountRouter from "./app/modules/account/account.route";
 import ContactMessageRouter from "./app/modules/contact_message/contact_message.route";
 import BiodataRevisionRouter from "./app/modules/biodata_revision/biodata_revision.route";
+import BlogRouter from "./app/modules/blog/blog.route";
 import { biodataReviewGate } from "./app/modules/biodata_revision/biodata_revision.gate";
 import {
   sanitizeInput,
@@ -69,6 +71,8 @@ app.use((_req, res, next) => {
 });
 // TODO: photocard SVGs can embed images, so their route gets a larger body limit than the 100kb default.
 app.use("/api/v1/photocard-templates", express.json({ limit: "2mb" }));
+// TODO: long Bangla blog posts as HTML exceed the 100kb default.
+app.use("/api/v1/blogs", express.json({ limit: "1mb" }));
 app.use(express.json());
 app.use(sanitizeInput);
 
@@ -190,10 +194,12 @@ app.use("/api/v1/uploads", UploadRouter);
 app.use("/api/v1/notifications", NotificationRouter);
 app.use("/api/v1/points-packages", PointsPackageRouter);
 app.use("/api/v1/refund-requests", RefundRequestRouter);
+app.use("/api/v1/featured-requests", FeaturedRequestRouter);
 app.use("/api/v1/email-settings", EmailSettingsRouter);
 app.use("/api/v1/account", AccountRouter);
 app.use("/api/v1/contact-messages", ContactMessageRouter);
 app.use("/api/v1/biodata-revisions", BiodataRevisionRouter);
+app.use("/api/v1/blogs", BlogRouter);
 app.use("/api/v1/unverified-biodatas", UnverifiedBiodataRouter);
 app.use("/api/v1/unverified-contact-purchase", UnverifiedContactPurchaseRouter);
 app.use(GlobalErrorHandler);

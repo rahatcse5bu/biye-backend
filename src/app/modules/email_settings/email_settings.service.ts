@@ -1,10 +1,13 @@
-import EmailSettings, { DEFAULT_EMAIL_SETTINGS, LEGACY_LOGO_URL, SocialLink } from "./email_settings.model";
+import EmailSettings, { DEFAULT_EMAIL_SETTINGS, LEGACY_LOGO_URL, LOCKED_TEMPLATES, SocialLink } from "./email_settings.model";
 
 export type EmailBranding = {
   logo_url: string;
   support_email: string;
   support_phone: string;
   social_links: SocialLink[];
+  footer_links: SocialLink[];
+  sender_name: string;
+  disabled_templates: string[];
 };
 
 const CACHE_MS = 60 * 1000;
@@ -31,6 +34,10 @@ const fetchSettings = async (): Promise<EmailBranding> => {
     support_email: doc?.support_email || DEFAULT_EMAIL_SETTINGS.support_email,
     support_phone: doc?.support_phone ?? DEFAULT_EMAIL_SETTINGS.support_phone,
     social_links: doc?.social_links || [],
+    // TODO: docs saved before footer_links existed have no field; an emptied list stays empty.
+    footer_links: doc?.footer_links ?? DEFAULT_EMAIL_SETTINGS.footer_links,
+    sender_name: doc?.sender_name || DEFAULT_EMAIL_SETTINGS.sender_name,
+    disabled_templates: (doc?.disabled_templates || []).filter((id: string) => !LOCKED_TEMPLATES.includes(id)),
   };
 };
 
@@ -69,8 +76,36 @@ export const EmailSettingsService = {
       if (!isHttpUrl(link?.url)) return { error: `"${label}" needs a valid http(s) link` };
       socialLinks.push({ label, url: link.url.trim() });
     }
+    const footer = Array.isArray(body?.footer_links) ? body.footer_links : [];
+    if (footer.length > 8) return { error: "At most 8 footer links are allowed" };
+    const footerLinks: SocialLink[] = [];
+    for (const link of footer) {
+      const label = typeof link?.label === "string" ? link.label.trim() : "";
+      if (!label || label.length > 40) return { error: "Each footer link needs a name (up to 40 characters)" };
+      const url = typeof link?.url === "string" ? link.url.trim() : "";
+      if (!/^\/[^\s/]/.test(url) && !isHttpUrl(url)) {
+        return { error: `"${label}" needs a site path like /privacy-policy or a valid http(s) link` };
+      }
+      footerLinks.push({ label, url });
+    }
+    const senderName = typeof body?.sender_name === "string" ? body.sender_name.trim() : "";
+    if (!senderName || senderName.length > 60 || /["<>\\\r\n]/.test(senderName)) {
+      return { error: "Sender name is required (up to 60 characters, no quotes or < >)" };
+    }
+    const disabled = Array.isArray(body?.disabled_templates) ? body.disabled_templates : [];
+    const disabledTemplates = [
+      ...new Set<string>(disabled.filter((id: unknown) => typeof id === "string" && /^[A-Za-z]{1,40}$/.test(id))),
+    ].filter((id) => !LOCKED_TEMPLATES.includes(id));
     return {
-      data: { logo_url: logoUrl, support_email: supportEmail, support_phone: supportPhone, social_links: socialLinks },
+      data: {
+        logo_url: logoUrl,
+        support_email: supportEmail,
+        support_phone: supportPhone,
+        social_links: socialLinks,
+        footer_links: footerLinks,
+        sender_name: senderName,
+        disabled_templates: disabledTemplates,
+      },
     };
   },
 

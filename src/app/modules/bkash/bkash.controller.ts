@@ -11,6 +11,7 @@ import { NotificationService } from "../notifications/notification.service";
 import { PointsPackageService } from "../points_package/points_package.service";
 import { processRefund, RefundError } from "./bkash.refund";
 import BkashIntent from "./bkash_intent.model";
+import { FEATURED_PURPOSE, FeaturedRequestService } from "../featured_request/featured_request.service";
 
 // TODO: every bKash handler must answer, otherwise the browser waits until it times out.
 const bkashFailed = (res: Response, error: unknown) => {
@@ -78,16 +79,16 @@ const afterPay = async (req: Request, res: Response) => {
     if (typeof paymentID !== "string" || !paymentID) {
       return res.status(400).json({ success: false, message: "paymentID is required" });
     }
-    const recorded: any = await Payment.findOne({ payment_id: paymentID }).select("email").lean();
+    const recorded: any = await Payment.findOne({ payment_id: paymentID }).select("email purpose").lean();
     if (recorded && recorded.email !== email) {
       return res.status(403).json(notYours);
     }
-    if (!recorded) {
-      const intent: any = await BkashIntent.findOne({ payment_id: paymentID }).select("user").lean();
-      if (!intent || String(intent.user) !== String(req.user?._id)) {
-        return res.status(403).json(notYours);
-      }
+    const intent: any = await BkashIntent.findOne({ payment_id: paymentID }).select("user purpose").lean();
+    if (!recorded && (!intent || String(intent.user) !== String(req.user?._id))) {
+      return res.status(403).json(notYours);
     }
+    // TODO: the server decides a payment is for featuring (set at checkout), never the purpose sent by the browser.
+    const isFeatured = intent?.purpose === FEATURED_PURPOSE || recorded?.purpose === FEATURED_PURPOSE;
 
     // Execute payment directly (no HTTP call back into this server)
     let response = await executePayment(paymentID);
@@ -98,6 +99,21 @@ const afterPay = async (req: Request, res: Response) => {
     }
 
     // TODO: query returns 0000 for unpaid "Initiated" payments too; only a Completed transaction earns points.
+    if (isFeatured && response?.statusCode === "0000" && response?.transactionStatus === "Completed") {
+      const result: any = await FeaturedRequestService.recordPayment(String(req.user?._id), email, paymentID, response);
+      return res.json({
+        success: true,
+        alreadyRecorded: result.alreadyRecorded,
+        purpose: FEATURED_PURPOSE,
+        trxID: response?.trxID,
+        paymentId: paymentID,
+        amount: response?.amount,
+        points: 0,
+        status: response?.transactionStatus,
+        payment_create_time: response?.paymentCreateTime || response?.paymentExecuteTime,
+      });
+    }
+
     if (response?.statusCode === "0000" && response?.transactionStatus === "Completed") {
       const singleUser = await UserInfoModel.findOne({ email });
       let saveInDb = false;

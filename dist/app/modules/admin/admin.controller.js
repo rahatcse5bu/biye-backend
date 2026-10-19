@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -112,11 +123,23 @@ exports.AdminController = {
             .lean();
         const total = yield user_info_model_1.UserInfoModel.countDocuments(filter);
         const totalPages = Math.ceil(total / limitNum);
+        // TODO: counts ignore the status filter so stat cards stay stable while filtering
+        const { user_status: _ignored } = filter, countFilter = __rest(filter, ["user_status"]);
+        const statusAgg = yield user_info_model_1.UserInfoModel.aggregate([
+            { $match: countFilter },
+            { $group: { _id: '$user_status', count: { $sum: 1 } } },
+        ]);
+        const statusCounts = { all: 0 };
+        for (const s of statusAgg) {
+            statusCounts[s._id] = s.count;
+            statusCounts.all += s.count;
+        }
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Users retrieved successfully",
             data: {
                 users,
+                statusCounts,
                 pagination: {
                     currentPage: pageNum,
                     totalPages,
@@ -237,12 +260,18 @@ exports.AdminController = {
             matchConditions.user = { $in: matchingUserIds };
         if (bio_type && bio_type !== 'all')
             matchConditions.bio_type = bio_type;
+        // TODO: 'approved' is a biodata_status (verified); every other value is a user_status
+        const statusMatch = !status || status === 'all'
+            ? null
+            : status === 'approved'
+                ? { biodata_status: 'approved' }
+                : { 'userDoc.user_status': status };
         const countPipeline = [
             { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
             { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
             { $match: { userDoc: { $ne: null } } },
             ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
-            ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+            ...(statusMatch ? [{ $match: statusMatch }] : []),
             { $count: 'totalCount' },
         ];
         const countResult = yield general_info_model_1.default.aggregate(countPipeline);
@@ -254,7 +283,7 @@ exports.AdminController = {
             { $lookup: { from: 'addresses', localField: 'user', foreignField: 'user', as: 'addressDoc' } },
             { $addFields: { addressDoc: { $first: '$addressDoc' } } },
             ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
-            ...(status && status !== 'all' ? [{ $match: { 'userDoc.user_status': status } }] : []),
+            ...(statusMatch ? [{ $match: statusMatch }] : []),
             { $sort: { createdAt: -1, _id: -1 } },
             { $skip: limitNum * (pageNum - 1) },
             { $limit: limitNum },
@@ -278,11 +307,24 @@ exports.AdminController = {
             },
         ];
         const biodatas = yield general_info_model_1.default.aggregate(dataPipeline);
+        // TODO: counts ignore the status filter so stat cards stay stable while filtering
+        const statusAgg = yield general_info_model_1.default.aggregate([
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+            { $unwind: '$userDoc' },
+            ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+            { $group: { _id: '$userDoc.user_status', count: { $sum: 1 } } },
+        ]);
+        const statusCounts = { all: 0 };
+        for (const s of statusAgg) {
+            statusCounts[s._id] = s.count;
+            statusCounts.all += s.count;
+        }
         res.status(http_status_1.default.OK).json({
             success: true,
             message: 'Biodatas retrieved successfully',
             data: {
                 biodatas,
+                statusCounts,
                 pagination: {
                     currentPage: pageNum,
                     totalPages: Math.ceil(totalCount / limitNum),
@@ -379,6 +421,14 @@ exports.AdminController = {
                         ((_b = payment.transaction_id) === null || _b === void 0 ? void 0 : _b.toLowerCase().includes(search.toLowerCase()));
                 });
             }
+            // TODO: counts ignore the status filter so stat cards stay stable while filtering
+            const statusCounts = { all: filteredPayments.length };
+            let revenue = 0;
+            for (const p of filteredPayments) {
+                statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+                if (p.status === 'Completed')
+                    revenue += p.amount || 0;
+            }
             if (status && status !== 'all') {
                 filteredPayments = filteredPayments.filter((payment) => payment.status === status);
             }
@@ -392,6 +442,8 @@ exports.AdminController = {
                 message: "Payments retrieved successfully",
                 data: {
                     payments: paginatedPayments,
+                    statusCounts,
+                    revenue,
                     pagination: {
                         currentPage: pageNum,
                         totalPages,

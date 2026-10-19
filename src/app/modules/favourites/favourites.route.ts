@@ -11,6 +11,11 @@ FavouritesRouter.route("/check/:id").get(
   FavoriteController.checkLikes
 );
 
+FavouritesRouter.route("/likers/unlock").post(
+  auth("user", "admin"),
+  FavoriteController.unlockLikers
+);
+
 FavouritesRouter.route("/bio-user/:bio_user").get(
   auth("user", "admin"),
   FavoriteController.getFavouritesListByUser

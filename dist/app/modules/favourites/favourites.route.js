@@ -11,6 +11,7 @@ FavouritesRouter.route("/")
     .post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.createFavorite)
     .get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.getMyFavouritesList);
 FavouritesRouter.route("/check/:id").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.checkLikes);
+FavouritesRouter.route("/likers/unlock").post((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.unlockLikers);
 FavouritesRouter.route("/bio-user/:bio_user").get((0, auth_1.auth)("user", "admin"), favourites_controller_1.FavoriteController.getFavouritesListByUser);
 // FavouritesRouter.route("/user-data/:userId/:bioId").get(
 // 	FavoriteController.getFavouritesByUserId

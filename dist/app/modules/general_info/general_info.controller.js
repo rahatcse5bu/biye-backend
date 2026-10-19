@@ -37,6 +37,8 @@ const contact_purchase_data_model_1 = __importDefault(require("../contact_purcha
 const notification_service_1 = require("../notifications/notification.service");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
 const emailTemplates_1 = require("../../../shared/emailTemplates");
+const general_info_constant_1 = require("./general_info.constant");
+const featured_request_service_1 = require("../featured_request/featured_request.service");
 const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     const { bio_type, marital_status, isFeatured, zilla, limit = 10, page = 1, user_status = "active", division, sortBy = "createdAt", sortOrder = "desc", 
@@ -299,6 +301,7 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     }
     // Parse isFeatured to boolean
     if (isFeatured) {
+        yield (0, featured_request_service_1.expireFeaturedBiodatas)();
         const isFeaturedBool = isFeatured === "true";
         andConditions.push({
             isFeatured: isFeaturedBool,
@@ -537,6 +540,7 @@ const getGeneralInfoByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(
     const pageNumber = Number(page);
     // Parse isFeatured to boolean
     if (isFeatured) {
+        yield (0, featured_request_service_1.expireFeaturedBiodatas)();
         // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
         const isFeaturedBool = isFeatured === "true";
         andConditions.push({
@@ -804,6 +808,7 @@ const getSingleGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(v
 const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _g;
     const _h = req.body, { user_form } = _h, data = __rest(_h, ["user_form"]);
+    general_info_constant_1.USER_PROTECTED_FIELDS.forEach((field) => delete data[field]);
     if (!((_g = req.user) === null || _g === void 0 ? void 0 : _g._id)) {
         return res.status(401).send({
             statusCode: http_status_1.default.UNAUTHORIZED,
@@ -886,6 +891,7 @@ const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
         "admin_note",
         "last_approved_at",
         "last_approved_by",
+        ...general_info_constant_1.USER_PROTECTED_FIELDS,
     ];
     const approvedChanges = {};
     Object.keys(data).forEach((key) => {

@@ -24,6 +24,7 @@ const transporter = nodemailer.createTransport(
 
 // TODO: with Gmail the From address must be the signed-in account (or a verified "Send mail as" alias), or Gmail rewrites it.
 const FROM = config.email_from || `"Bibaho" <${config.email_user}>`;
+const FROM_ADDRESS = (FROM.match(/<([^>]+)>/)?.[1] || FROM).trim();
 const DEFAULT_REPLY_TO = config.email_reply_to || config.email_user || "bibahosupport@gmail.com";
 
 const entities: Record<string, string> = {
@@ -58,12 +59,13 @@ export const htmlToText = (html: string) =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-type SendOptions = { replyTo?: string };
+// TODO: fromName swaps only the display name; nodemailer encodes it, so it cannot inject headers.
+type SendOptions = { replyTo?: string; fromName?: string };
 
 const buildMessage = (to: string, subject: string, html: string, options: SendOptions = {}) => {
   const replyTo = options.replyTo || DEFAULT_REPLY_TO;
   return {
-    from: FROM,
+    from: options.fromName ? { name: options.fromName, address: FROM_ADDRESS } : FROM,
     to,
     replyTo,
     subject: subject.trim(),

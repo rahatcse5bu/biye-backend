@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -15,10 +38,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FavoriteController = void 0;
 const http_status_1 = __importDefault(require("http-status"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
+const user_info_model_1 = require("../user_info/user_info.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const favourites_services_1 = require("./favourites.services");
 const favourites_model_1 = __importDefault(require("./favourites.model"));
 const general_info_model_1 = __importDefault(require("../general_info/general_info.model"));
+const likers_access_model_1 = __importStar(require("./likers_access.model"));
+const notification_service_1 = require("../notifications/notification.service");
 exports.FavoriteController = {
     getAllFavorites: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const favorites = yield favourites_services_1.FavoriteService.getAllFavorites();
@@ -97,6 +123,18 @@ exports.FavoriteController = {
             });
         }
         const user_mongo_bio_id = new mongoose_1.default.Types.ObjectId(String(bio_user));
+        // TODO: paid feature; until unlocked only the count is sent, so the list can't be read from the API for free.
+        const unlocked = yield likers_access_model_1.default.exists({ user: user_mongo_bio_id });
+        if (!unlocked) {
+            const count = yield favourites_model_1.default.countDocuments({ bio_user: user_mongo_bio_id, user: { $ne: user_mongo_bio_id } });
+            return res.status(http_status_1.default.OK).json({
+                success: true,
+                locked: true,
+                price: likers_access_model_1.LIKERS_VIEW_POINTS,
+                count,
+                data: [],
+            });
+        }
         // Perform aggregation to fetch the required data
         const results = yield favourites_model_1.default.aggregate([
             {
@@ -144,9 +182,59 @@ exports.FavoriteController = {
         ]);
         res.status(201).json({
             success: true,
+            locked: false,
+            price: likers_access_model_1.LIKERS_VIEW_POINTS,
+            count: results.length,
             message: "Favourites retrieved successfully",
             data: results,
         });
+    })),
+    // TODO: one-time unlock of "who favourited my biodata"; points are taken atomically and only once.
+    unlockLikers: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _c, _d, _e, _f;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        if (!userId) {
+            return res.status(http_status_1.default.UNAUTHORIZED).json({ success: false, message: "You are not authorized" });
+        }
+        if (yield likers_access_model_1.default.exists({ user: userId })) {
+            const user = yield user_info_model_1.UserInfoModel.findById(userId).select("points").lean();
+            return res.status(http_status_1.default.OK).json({ success: true, alreadyUnlocked: true, points_balance: (_d = user === null || user === void 0 ? void 0 : user.points) !== null && _d !== void 0 ? _d : null });
+        }
+        const charged = yield user_info_model_1.UserInfoModel.findOneAndUpdate({ _id: userId, points: { $gte: likers_access_model_1.LIKERS_VIEW_POINTS } }, { $inc: { points: -likers_access_model_1.LIKERS_VIEW_POINTS } }, { new: true })
+            .select("points")
+            .lean();
+        if (!charged) {
+            const user = yield user_info_model_1.UserInfoModel.findById(userId).select("points").lean();
+            return res.status(http_status_1.default.BAD_REQUEST).json({
+                success: false,
+                insufficient: true,
+                price: likers_access_model_1.LIKERS_VIEW_POINTS,
+                points_balance: (_e = user === null || user === void 0 ? void 0 : user.points) !== null && _e !== void 0 ? _e : 0,
+                message: `এই তালিকা দেখতে ${likers_access_model_1.LIKERS_VIEW_POINTS} পয়েন্ট প্রয়োজন। আপনার অ্যাকাউন্টে পর্যাপ্ত পয়েন্ট নেই।`,
+            });
+        }
+        try {
+            yield likers_access_model_1.default.create({ user: userId, points_spent: likers_access_model_1.LIKERS_VIEW_POINTS });
+        }
+        catch (error) {
+            // TODO: a parallel request unlocked it first; give these points back.
+            const refunded = yield user_info_model_1.UserInfoModel.findByIdAndUpdate(userId, { $inc: { points: likers_access_model_1.LIKERS_VIEW_POINTS } }, { new: true })
+                .select("points")
+                .lean();
+            if ((error === null || error === void 0 ? void 0 : error.code) === 11000) {
+                return res.status(http_status_1.default.OK).json({ success: true, alreadyUnlocked: true, points_balance: (_f = refunded === null || refunded === void 0 ? void 0 : refunded.points) !== null && _f !== void 0 ? _f : null });
+            }
+            throw error;
+        }
+        notification_service_1.NotificationService.notify({
+            recipient: String(userId),
+            audience: "user",
+            type: "payment",
+            title: "পছন্দকারীদের তালিকা আনলক হয়েছে",
+            message: `${likers_access_model_1.LIKERS_VIEW_POINTS} পয়েন্ট খরচ হয়েছে। এখন থেকে কারা আপনার বায়োডাটা পছন্দের তালিকায় রেখেছেন তা দেখতে পারবেন।`,
+            link: "/user/account/likes",
+        });
+        res.status(http_status_1.default.OK).json({ success: true, alreadyUnlocked: false, points_balance: charged.points });
     })),
     getFavoriteById: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const id = req.params.id;
@@ -166,8 +254,8 @@ exports.FavoriteController = {
         }
     })),
     getFavoriteByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _g;
+        const userId = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -191,10 +279,10 @@ exports.FavoriteController = {
         }
     })),
     createFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _h;
         const MAX_RETRIES = 3; // Maximum number of retries for transient errors
         const { bio_user } = req.body;
-        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        const user = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -341,8 +429,8 @@ exports.FavoriteController = {
     //   }
     // }),
     updateFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _j;
+        const id = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -367,9 +455,9 @@ exports.FavoriteController = {
         }
     })),
     checkLikes: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f, _g;
-        const user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
-        const bio_user = (_g = req.params) === null || _g === void 0 ? void 0 : _g.id;
+        var _k, _l;
+        const user = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        const bio_user = (_l = req.params) === null || _l === void 0 ? void 0 : _l.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

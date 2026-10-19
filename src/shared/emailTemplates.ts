@@ -21,7 +21,7 @@ export const formatDateBn = (value: unknown, withTime = false) => {
 
 const bold = (value: unknown) => `<strong>${escapeHtml(value)}</strong>`;
 
-export const emailTemplates = {
+const templates = {
   // TODO: A1 · account created.
   welcome: (d: { name?: string }): EmailMessage => ({
     subject: `বিয়ে-তে আপনাকে স্বাগতম${d.name ? `, ${d.name}` : ""}!`,
@@ -399,9 +399,92 @@ export const emailTemplates = {
       ],
     },
   }),
+
+  // TODO: featured biodata paid; waits for admin review.
+  featuredRequested: (d: { name?: string; biodataNo?: unknown; amount: unknown; days: number; trxId?: unknown; paidAt?: unknown }): EmailMessage => ({
+    subject: "আপনার ফিচার্ড বায়োডাটা অনুরোধ জমা হয়েছে",
+    content: {
+      icon: "clock",
+      eyebrow: "ফিচার্ড অনুরোধ",
+      title: "আপনার ফিচার্ড অনুরোধ আমরা পেয়েছি",
+      preheader: "অ্যাডমিন অনুমোদন দিলেই আপনার বায়োডাটা হোমপেজে ফিচার্ড হবে।",
+      name: d.name,
+      paragraphs: [
+        `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে। অ্যাডমিন অনুমোদন দিলে আপনার বায়োডাটা ${d.biodataNo ? `(নং ${bold(d.biodataNo)}) ` : ""}<strong>${toBanglaDigits(d.days)} দিনের</strong> জন্য হোমপেজের ফিচার্ড অংশে দেখানো হবে।`,
+      ],
+      blocks: [
+        { type: "progress", stages: ["পেমেন্ট সম্পন্ন", "অ্যাডমিন পর্যালোচনা", "ফিচার্ড"], current: 1 },
+        {
+          type: "info",
+          title: "পেমেন্ট রসিদ",
+          rows: [
+            { label: "সেবা", value: `ফিচার্ড বায়োডাটা — ${toBanglaDigits(d.days)} দিন` },
+            { label: "পেমেন্ট মাধ্যম", value: "বিকাশ" },
+            { label: "ট্রানজেকশন আইডি", value: d.trxId },
+            { label: "তারিখ", value: formatDateBn(d.paidAt || new Date(), true) },
+          ],
+          total: { label: "মোট পরিশোধিত", value: formatTaka(d.amount) },
+        },
+        { type: "notice", title: "অনুরোধ বাতিল হলে", text: "কোনো কারণে অনুরোধটি অনুমোদন না হলে অ্যাডমিন আপনার টাকা বিকাশে ফেরত পাঠাবেন।" },
+        { type: "buttons", actions: [{ label: "অনুরোধের অবস্থা দেখুন", path: "/user/account/featured" }] },
+      ],
+    },
+  }),
+
+  // TODO: admin approved; biodata is featured until the given date.
+  featuredApproved: (d: { name?: string; biodataNo?: unknown; until: Date }): EmailMessage => ({
+    subject: "অভিনন্দন! আপনার বায়োডাটা এখন ফিচার্ড",
+    content: {
+      icon: "check",
+      eyebrow: "ফিচার্ড",
+      title: "আপনার বায়োডাটা এখন হোমপেজে ফিচার্ড",
+      preheader: `${formatDateBn(d.until)} পর্যন্ত আপনার বায়োডাটা ফিচার্ড থাকবে।`,
+      name: d.name,
+      paragraphs: [
+        `অভিনন্দন! আপনার বায়োডাটা ${d.biodataNo ? `${bold(d.biodataNo)} ` : ""}এখন বিয়ে-র হোমপেজের ফিচার্ড অংশে দেখানো হচ্ছে, তাই আরও বেশি সদস্য আপনার বায়োডাটা দেখতে পাবেন।`,
+      ],
+      blocks: [
+        { type: "progress", stages: ["পেমেন্ট সম্পন্ন", "অ্যাডমিন পর্যালোচনা", "ফিচার্ড"], current: 3 },
+        { type: "info", title: "ফিচার্ড মেয়াদ", rows: [{ label: "ফিচার্ড থাকবে", value: `${formatDateBn(d.until)} পর্যন্ত` }] },
+        ...(d.biodataNo ? [{ type: "biodata" as const, id: d.biodataNo }] : []),
+        { type: "buttons", actions: [{ label: "হোমপেজে দেখুন", path: "/" }] },
+      ],
+    },
+  }),
+
+  // TODO: admin rejected; may include a bKash refund.
+  featuredRejected: (d: { name?: string; reason?: string; refunded?: boolean; amount?: unknown }): EmailMessage => ({
+    subject: "আপনার ফিচার্ড বায়োডাটা অনুরোধ অনুমোদন হয়নি",
+    content: {
+      icon: "edit",
+      eyebrow: "ফিচার্ড অনুরোধ",
+      title: "আপনার ফিচার্ড অনুরোধ অনুমোদন করা যায়নি",
+      name: d.name,
+      paragraphs: [
+        d.refunded
+          ? `দুঃখিত, এই মুহূর্তে আপনার ফিচার্ড অনুরোধটি অনুমোদন করা সম্ভব হয়নি। আপনার পরিশোধিত <strong>${escapeHtml(formatTaka(d.amount))}</strong> বিকাশে ফেরত পাঠানো হয়েছে।`
+          : "দুঃখিত, এই মুহূর্তে আপনার ফিচার্ড অনুরোধটি অনুমোদন করা সম্ভব হয়নি। পেমেন্ট সংক্রান্ত প্রশ্নে এই ইমেইলের উত্তর দিন।",
+      ],
+      blocks: [
+        ...(d.reason ? [{ type: "checklist" as const, title: "কারণ", mark: "cross" as const, items: [escapeHtml(d.reason)] }] : []),
+        { type: "buttons", actions: [{ label: "বিস্তারিত দেখুন", path: "/user/account/featured" }] },
+      ],
+    },
+  }),
 };
 
-export type EmailTemplateId = keyof typeof emailTemplates;
+export type EmailTemplateId = keyof typeof templates;
+
+// TODO: stamps each message with its template id so mailUser can honour the admin's on/off switches.
+export const emailTemplates = Object.fromEntries(
+  Object.entries(templates).map(([id, build]) => [
+    id,
+    (data: any): EmailMessage => {
+      const message = build(data);
+      return { ...message, content: { ...message.content, template: id } };
+    },
+  ]),
+) as typeof templates;
 
 // TODO: sample data for the admin template gallery; mirrors the Figma example values.
 const SAMPLE_NAME = "তানভীর আহমেদ";
@@ -449,4 +532,7 @@ export const EMAIL_TEMPLATE_CATALOG: { id: EmailTemplateId; code: string; name: 
     trigger: "Refund processed",
     sample: () => emailTemplates.refundCompleted({ name: SAMPLE_NAME, amount: 500, refundTrxId: "RF7Q2M1KZT", originalTrxId: "BKX7H2K9QP", pointsRemoved: 100, balance: 30 }),
   },
+  { id: "featuredRequested", code: "F1", name: "ফিচার্ড অনুরোধ জমা", trigger: "Featured biodata paid", sample: () => emailTemplates.featuredRequested({ name: SAMPLE_NAME, biodataNo: "10482", amount: 500, days: 30, trxId: "BKX7H2K9QP" }) },
+  { id: "featuredApproved", code: "F2", name: "বায়োডাটা ফিচার্ড হয়েছে", trigger: "Admin approved featured request", sample: () => emailTemplates.featuredApproved({ name: SAMPLE_NAME, biodataNo: "10482", until: new Date(Date.now() + 30 * 864e5) }) },
+  { id: "featuredRejected", code: "F3", name: "ফিচার্ড অনুরোধ বাতিল", trigger: "Admin rejected featured request", sample: () => emailTemplates.featuredRejected({ name: SAMPLE_NAME, reason: "বায়োডাটার ছবি নীতিমালা অনুযায়ী নয়", refunded: true, amount: 500 }) },
 ];

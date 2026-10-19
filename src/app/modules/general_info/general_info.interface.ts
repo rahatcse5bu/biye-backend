@@ -25,6 +25,7 @@ export interface IGeneralInfo {
   likes_count: number;
   isFbPosted: boolean;
   isFeatured: boolean;
+  featured_until?: Date | null;
   zilla?: string; // Add this if `zilla` is part of the schema in some cases
   biodata_status?: string;
   version?: number;

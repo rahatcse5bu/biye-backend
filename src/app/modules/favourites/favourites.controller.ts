@@ -6,6 +6,8 @@ import mongoose from "mongoose";
 import { FavoriteService } from "./favourites.services";
 import Favorite from "./favourites.model";
 import GeneralInfo from "../general_info/general_info.model";
+import LikersAccess, { LIKERS_VIEW_POINTS } from "./likers_access.model";
+import { NotificationService } from "../notifications/notification.service";
 
 export const FavoriteController = {
   getAllFavorites: catchAsync(async (req: Request, res: Response) => {
@@ -89,6 +91,19 @@ export const FavoriteController = {
 
     const user_mongo_bio_id = new mongoose.Types.ObjectId(String(bio_user));
 
+    // TODO: paid feature; until unlocked only the count is sent, so the list can't be read from the API for free.
+    const unlocked = await LikersAccess.exists({ user: user_mongo_bio_id });
+    if (!unlocked) {
+      const count = await Favorite.countDocuments({ bio_user: user_mongo_bio_id, user: { $ne: user_mongo_bio_id } });
+      return res.status(httpStatus.OK).json({
+        success: true,
+        locked: true,
+        price: LIKERS_VIEW_POINTS,
+        count,
+        data: [],
+      });
+    }
+
     // Perform aggregation to fetch the required data
     const results = await Favorite.aggregate([
       {
@@ -138,9 +153,69 @@ export const FavoriteController = {
 
     res.status(201).json({
       success: true,
+      locked: false,
+      price: LIKERS_VIEW_POINTS,
+      count: results.length,
       message: "Favourites retrieved successfully",
       data: results,
     });
+  }),
+
+  // TODO: one-time unlock of "who favourited my biodata"; points are taken atomically and only once.
+  unlockLikers: catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(httpStatus.UNAUTHORIZED).json({ success: false, message: "You are not authorized" });
+    }
+    if (await LikersAccess.exists({ user: userId })) {
+      const user: any = await UserInfoModel.findById(userId).select("points").lean();
+      return res.status(httpStatus.OK).json({ success: true, alreadyUnlocked: true, points_balance: user?.points ?? null });
+    }
+
+    const charged: any = await UserInfoModel.findOneAndUpdate(
+      { _id: userId, points: { $gte: LIKERS_VIEW_POINTS } },
+      { $inc: { points: -LIKERS_VIEW_POINTS } },
+      { new: true },
+    )
+      .select("points")
+      .lean();
+    if (!charged) {
+      const user: any = await UserInfoModel.findById(userId).select("points").lean();
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        insufficient: true,
+        price: LIKERS_VIEW_POINTS,
+        points_balance: user?.points ?? 0,
+        message: `এই তালিকা দেখতে ${LIKERS_VIEW_POINTS} পয়েন্ট প্রয়োজন। আপনার অ্যাকাউন্টে পর্যাপ্ত পয়েন্ট নেই।`,
+      });
+    }
+
+    try {
+      await LikersAccess.create({ user: userId, points_spent: LIKERS_VIEW_POINTS });
+    } catch (error: any) {
+      // TODO: a parallel request unlocked it first; give these points back.
+      const refunded: any = await UserInfoModel.findByIdAndUpdate(
+        userId,
+        { $inc: { points: LIKERS_VIEW_POINTS } },
+        { new: true },
+      )
+        .select("points")
+        .lean();
+      if (error?.code === 11000) {
+        return res.status(httpStatus.OK).json({ success: true, alreadyUnlocked: true, points_balance: refunded?.points ?? null });
+      }
+      throw error;
+    }
+
+    NotificationService.notify({
+      recipient: String(userId),
+      audience: "user",
+      type: "payment",
+      title: "পছন্দকারীদের তালিকা আনলক হয়েছে",
+      message: `${LIKERS_VIEW_POINTS} পয়েন্ট খরচ হয়েছে। এখন থেকে কারা আপনার বায়োডাটা পছন্দের তালিকায় রেখেছেন তা দেখতে পারবেন।`,
+      link: "/user/account/likes",
+    });
+    res.status(httpStatus.OK).json({ success: true, alreadyUnlocked: false, points_balance: charged.points });
   }),
   getFavoriteById: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;

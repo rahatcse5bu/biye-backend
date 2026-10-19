@@ -32,3 +32,14 @@ export const RELIGIOUS_TYPES = [
 	"general_christian",
 ] as const;
 export type ReligiousType = typeof RELIGIOUS_TYPES[number];
+
+// TODO: system-owned fields a member must never set through the biodata create/update endpoints.
+export const USER_PROTECTED_FIELDS = [
+  "isFeatured",
+  "featured_until",
+  "isFbPosted",
+  "views_count",
+  "likes_count",
+  "dislikes_count",
+  "purchases_count",
+];

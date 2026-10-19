@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RELIGIOUS_TYPES = exports.RELIGIONS = exports.GeneralInfoFields = void 0;
+exports.USER_PROTECTED_FIELDS = exports.RELIGIOUS_TYPES = exports.RELIGIONS = exports.GeneralInfoFields = void 0;
 exports.GeneralInfoFields = [
     "user_id",
     "bio_type",
@@ -30,4 +30,14 @@ exports.RELIGIOUS_TYPES = [
     "general_hindu",
     "practicing_christian",
     "general_christian",
+];
+// TODO: system-owned fields a member must never set through the biodata create/update endpoints.
+exports.USER_PROTECTED_FIELDS = [
+    "isFeatured",
+    "featured_until",
+    "isFbPosted",
+    "views_count",
+    "likes_count",
+    "dislikes_count",
+    "purchases_count",
 ];

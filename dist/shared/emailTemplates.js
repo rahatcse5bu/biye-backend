@@ -370,6 +370,75 @@ exports.emailTemplates = {
             ],
         },
     }),
+    // TODO: featured biodata paid; waits for admin review.
+    featuredRequested: (d) => ({
+        subject: "আপনার ফিচার্ড বায়োডাটা অনুরোধ জমা হয়েছে",
+        content: {
+            icon: "clock",
+            eyebrow: "ফিচার্ড অনুরোধ",
+            title: "আপনার ফিচার্ড অনুরোধ আমরা পেয়েছি",
+            preheader: "অ্যাডমিন অনুমোদন দিলেই আপনার বায়োডাটা হোমপেজে ফিচার্ড হবে।",
+            name: d.name,
+            paragraphs: [
+                `ধন্যবাদ! আপনার পেমেন্ট সম্পন্ন হয়েছে। অ্যাডমিন অনুমোদন দিলে আপনার বায়োডাটা ${d.biodataNo ? `(নং ${bold(d.biodataNo)}) ` : ""}<strong>${(0, bibahoMail_1.toBanglaDigits)(d.days)} দিনের</strong> জন্য হোমপেজের ফিচার্ড অংশে দেখানো হবে।`,
+            ],
+            blocks: [
+                { type: "progress", stages: ["পেমেন্ট সম্পন্ন", "অ্যাডমিন পর্যালোচনা", "ফিচার্ড"], current: 1 },
+                {
+                    type: "info",
+                    title: "পেমেন্ট রসিদ",
+                    rows: [
+                        { label: "সেবা", value: `ফিচার্ড বায়োডাটা — ${(0, bibahoMail_1.toBanglaDigits)(d.days)} দিন` },
+                        { label: "পেমেন্ট মাধ্যম", value: "বিকাশ" },
+                        { label: "ট্রানজেকশন আইডি", value: d.trxId },
+                        { label: "তারিখ", value: (0, exports.formatDateBn)(d.paidAt || new Date(), true) },
+                    ],
+                    total: { label: "মোট পরিশোধিত", value: (0, bibahoMail_1.formatTaka)(d.amount) },
+                },
+                { type: "notice", title: "অনুরোধ বাতিল হলে", text: "কোনো কারণে অনুরোধটি অনুমোদন না হলে অ্যাডমিন আপনার টাকা বিকাশে ফেরত পাঠাবেন।" },
+                { type: "buttons", actions: [{ label: "অনুরোধের অবস্থা দেখুন", path: "/user/account/featured" }] },
+            ],
+        },
+    }),
+    // TODO: admin approved; biodata is featured until the given date.
+    featuredApproved: (d) => ({
+        subject: "অভিনন্দন! আপনার বায়োডাটা এখন ফিচার্ড",
+        content: {
+            icon: "check",
+            eyebrow: "ফিচার্ড",
+            title: "আপনার বায়োডাটা এখন হোমপেজে ফিচার্ড",
+            preheader: `${(0, exports.formatDateBn)(d.until)} পর্যন্ত আপনার বায়োডাটা ফিচার্ড থাকবে।`,
+            name: d.name,
+            paragraphs: [
+                `অভিনন্দন! আপনার বায়োডাটা ${d.biodataNo ? `${bold(d.biodataNo)} ` : ""}এখন বিয়ে-র হোমপেজের ফিচার্ড অংশে দেখানো হচ্ছে, তাই আরও বেশি সদস্য আপনার বায়োডাটা দেখতে পাবেন।`,
+            ],
+            blocks: [
+                { type: "progress", stages: ["পেমেন্ট সম্পন্ন", "অ্যাডমিন পর্যালোচনা", "ফিচার্ড"], current: 3 },
+                { type: "info", title: "ফিচার্ড মেয়াদ", rows: [{ label: "ফিচার্ড থাকবে", value: `${(0, exports.formatDateBn)(d.until)} পর্যন্ত` }] },
+                ...(d.biodataNo ? [{ type: "biodata", id: d.biodataNo }] : []),
+                { type: "buttons", actions: [{ label: "হোমপেজে দেখুন", path: "/" }] },
+            ],
+        },
+    }),
+    // TODO: admin rejected; may include a bKash refund.
+    featuredRejected: (d) => ({
+        subject: "আপনার ফিচার্ড বায়োডাটা অনুরোধ অনুমোদন হয়নি",
+        content: {
+            icon: "edit",
+            eyebrow: "ফিচার্ড অনুরোধ",
+            title: "আপনার ফিচার্ড অনুরোধ অনুমোদন করা যায়নি",
+            name: d.name,
+            paragraphs: [
+                d.refunded
+                    ? `দুঃখিত, এই মুহূর্তে আপনার ফিচার্ড অনুরোধটি অনুমোদন করা সম্ভব হয়নি। আপনার পরিশোধিত <strong>${(0, bibahoMail_1.escapeHtml)((0, bibahoMail_1.formatTaka)(d.amount))}</strong> বিকাশে ফেরত পাঠানো হয়েছে।`
+                    : "দুঃখিত, এই মুহূর্তে আপনার ফিচার্ড অনুরোধটি অনুমোদন করা সম্ভব হয়নি। পেমেন্ট সংক্রান্ত প্রশ্নে এই ইমেইলের উত্তর দিন।",
+            ],
+            blocks: [
+                ...(d.reason ? [{ type: "checklist", title: "কারণ", mark: "cross", items: [(0, bibahoMail_1.escapeHtml)(d.reason)] }] : []),
+                { type: "buttons", actions: [{ label: "বিস্তারিত দেখুন", path: "/user/account/featured" }] },
+            ],
+        },
+    }),
 };
 // TODO: sample data for the admin template gallery; mirrors the Figma example values.
 const SAMPLE_NAME = "তানভীর আহমেদ";
@@ -415,4 +484,7 @@ exports.EMAIL_TEMPLATE_CATALOG = [
         trigger: "Refund processed",
         sample: () => exports.emailTemplates.refundCompleted({ name: SAMPLE_NAME, amount: 500, refundTrxId: "RF7Q2M1KZT", originalTrxId: "BKX7H2K9QP", pointsRemoved: 100, balance: 30 }),
     },
+    { id: "featuredRequested", code: "F1", name: "ফিচার্ড অনুরোধ জমা", trigger: "Featured biodata paid", sample: () => exports.emailTemplates.featuredRequested({ name: SAMPLE_NAME, biodataNo: "10482", amount: 500, days: 30, trxId: "BKX7H2K9QP" }) },
+    { id: "featuredApproved", code: "F2", name: "বায়োডাটা ফিচার্ড হয়েছে", trigger: "Admin approved featured request", sample: () => exports.emailTemplates.featuredApproved({ name: SAMPLE_NAME, biodataNo: "10482", until: new Date(Date.now() + 30 * 864e5) }) },
+    { id: "featuredRejected", code: "F3", name: "ফিচার্ড অনুরোধ বাতিল", trigger: "Admin rejected featured request", sample: () => exports.emailTemplates.featuredRejected({ name: SAMPLE_NAME, reason: "বায়োডাটার ছবি নীতিমালা অনুযায়ী নয়", refunded: true, amount: 500 }) },
 ];

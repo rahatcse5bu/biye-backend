@@ -12,7 +12,7 @@ export const SITE_URL = config.client_url.replace(/\/+$/, "");
 // TODO: icons are PNGs served by biye-front (public/email); Gmail does not render SVG.
 const ASSETS = config.email_asset_url.replace(/\/+$/, "");
 // TODO: bump when icons change; Gmail's image proxy caches each URL, including earlier 404s.
-const ASSET_VERSION = "2";
+const ASSET_VERSION = "3";
 const asset = (file: string) => `${ASSETS}/${file}.png?v=${ASSET_VERSION}`;
 
 export const escapeHtml = (value: unknown) =>
@@ -47,7 +47,6 @@ const C = {
   dangerBg: "#fcebe9",
 };
 const FONT = "'Hind Siliguri','Noto Sans Bengali',Arial,sans-serif";
-const SERIF = "'Noto Serif Bengali','Hind Siliguri',serif";
 const LATIN = "Montserrat,Arial,sans-serif";
 
 export type EmailTone = "brand" | "success" | "warning" | "danger" | "rose";
@@ -114,6 +113,8 @@ export type EmailContent = {
   action?: EmailAction;
   // TODO: footer "why you got this" line.
   reason?: string;
+  // TODO: set by emailTemplates; ad-hoc emails without it are always sent.
+  template?: string;
 };
 
 const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিয়ে (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
@@ -126,16 +127,10 @@ const strong = (html: string, color = C.ink900) =>
 const hrefOf = (action: EmailAction) => escapeHtml(action.url || `${SITE_URL}${action.path || ""}`);
 const filled = (rows: Row[]) => rows.filter((row) => row.value !== undefined && row.value !== null && row.value !== "");
 
-const logo = (onDark: boolean) => {
-  const color = onDark ? "#ffffff" : C.teal;
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-    <td style="padding:0 10px 0 0;vertical-align:middle;">${img(onDark ? "rings-dark" : "rings-light", 50, 32)}</td>
-    <td style="padding:0;vertical-align:middle;"><div style="width:1px;height:32px;background:${color};opacity:0.35;"></div></td>
-    <td style="padding:0 0 0 10px;vertical-align:middle;white-space:nowrap;">
-      <div style="font-family:${SERIF};font-size:26px;line-height:34px;font-weight:700;letter-spacing:0.52px;color:${color};">বিয়ে</div>
-      <div style="font-family:${LATIN};font-size:8px;line-height:10px;font-weight:600;letter-spacing:3.2px;color:${color};opacity:0.85;">MATRIMONY</div>
-    </td>
-  </tr></table>`;
+// TODO: the bibaho mark from biye-front/public/logo.png; white on the teal header, teal on the light footer.
+const logo = (onDark: boolean, h: number) => {
+  const w = Math.round((h * 589) / 231);
+  return `<img src="${asset(onDark ? "logo-dark" : "logo-light")}" width="${w}" height="${h}" alt="বিবাহ" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;">`;
 };
 
 const header = (branding: EmailBranding) => `
@@ -143,8 +138,8 @@ const header = (branding: EmailBranding) => `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:middle;"><a href="${SITE_URL}" style="text-decoration:none;">${
         branding.logo_url
-          ? `<img src="${escapeHtml(branding.logo_url)}" alt="বিয়ে" height="44" style="display:block;height:44px;width:auto;border:0;">`
-          : logo(true)
+          ? `<img src="${escapeHtml(branding.logo_url)}" alt="বিবাহ" height="44" style="display:block;height:44px;width:auto;border:0;">`
+          : logo(true, 44)
       }</a></td>
       <td align="right" style="vertical-align:middle;font-family:${FONT};font-size:12px;line-height:18px;font-weight:500;color:#ffffff;opacity:0.85;padding-left:12px;">বাংলাদেশের বিশ্বস্ত<br>অনলাইন ম্যাট্রিমনি</td>
     </tr></table>
@@ -176,18 +171,17 @@ const footer = (branding: EmailBranding, reason: string) => {
       return `<td style="padding:0 5px;">${body}</td>`;
     })
     .join("");
+  // TODO: admin-set footer links; site paths ("/privacy-policy") resolve against SITE_URL; unsubscribe always stays.
   const legal = [
-    ["গোপনীয়তা নীতিমালা", `${SITE_URL}/privacy-policy`],
-    ["শর্তাবলি", `${SITE_URL}/terms-and-condition`],
-    ["রিফান্ড নীতিমালা", `${SITE_URL}/refund-policy`],
-    ["আনসাবস্ক্রাইব", `mailto:${support}?subject=unsubscribe`],
+    ...branding.footer_links.map((link) => [link.label, link.url.startsWith("/") ? `${SITE_URL}${link.url}` : link.url]),
+    ["আনসাবস্ক্রাইব", `mailto:${branding.support_email}?subject=unsubscribe`],
   ]
-    .map(([label, href]) => `<a href="${href}" style="color:${C.teal};text-decoration:none;">${label}</a>`)
+    .map(([label, href]) => `<a href="${escapeHtml(href)}" style="color:${C.teal};text-decoration:none;">${escapeHtml(label)}</a>`)
     .join(" &nbsp;&nbsp;&bull;&nbsp;&nbsp; ");
   const caption = `font-family:${FONT};font-size:12px;line-height:18px;font-weight:500;`;
 
   return `<tr><td align="center" style="background:${C.surface};padding:32px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>${logo(false)}</td></tr></table>
+    <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>${logo(false, 40)}</td></tr></table>
     <div style="padding-top:16px;font-family:${FONT};font-size:14px;line-height:22px;font-weight:600;color:${C.ink900};">কোনো প্রশ্ন আছে? আমরা আপনার পাশে আছি</div>
     <div style="padding-top:12px;font-family:${FONT};font-size:14px;line-height:30px;color:${C.ink600};">${contact}</div>
     ${social ? `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin-top:16px;"><tr>${social}</tr></table>` : ""}
@@ -379,7 +373,7 @@ export const renderEmail = (content: EmailContent, branding: EmailBranding = DEF
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="x-apple-disable-message-reformatting">
 <title>${escapeHtml(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Montserrat:wght@600;700&family=Noto+Serif+Bengali:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
 <style>@media (max-width:620px){.bb-pad{padding:32px 20px!important}.bb-title{font-size:24px!important;line-height:34px!important}}</style>
 </head>
 <body style="margin:0;padding:0;background:#eef3f3;">
@@ -403,19 +397,26 @@ export const renderEmail = (content: EmailContent, branding: EmailBranding = DEF
 };
 
 // TODO: fire-and-forget so slow or failing Gmail never delays or breaks the request.
+const isDisabled = (branding: EmailBranding, content: EmailContent) =>
+  !!content.template && branding.disabled_templates.includes(content.template);
+
+const sendOptions = (branding: EmailBranding) => ({ replyTo: branding.support_email, fromName: branding.sender_name });
+
 export const mailUser = (to: string | undefined | null, subject: string, content: EmailContent) => {
   if (!to) return;
   EmailSettingsService.get()
-    .then((branding) =>
-      sendEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), { replyTo: branding.support_email }),
-    )
+    .then((branding) => {
+      if (isDisabled(branding, content)) return;
+      return sendEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), sendOptions(branding));
+    })
     .catch((error) => console.error("Email send failed:", error));
 };
 
-// TODO: awaited version of mailUser that rejects when the email could not be sent.
+// TODO: awaited version of mailUser that rejects when the email could not be sent, including when its type is switched off.
 export const mailUserNow = async (to: string, subject: string, content: EmailContent) => {
   const branding = await EmailSettingsService.get();
-  await deliverEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), { replyTo: branding.support_email });
+  if (isDisabled(branding, content)) throw new Error("This email type is turned off in the admin panel");
+  await deliverEmail(to, `${subject} | Bibaho`, renderEmail(content, branding), sendOptions(branding));
 };
 
 export const mailAdmins = (subject: string, content: EmailContent) => {

@@ -29,6 +29,8 @@ const GeneralInfoSchema: Schema<GeneralInfoDocument> = new Schema(
     purchases_count: { type: Number, default: 0 },
     isFbPosted: { type: Boolean, default: false, required: false },
     isFeatured: { type: Boolean, required: false, default: false },
+    // TODO: set by a paid featured request; empty means featured until an admin turns it off.
+    featured_until: { type: Date, required: false, default: null, index: true },
     zilla: { type: String, required: false },
     biodata_status: { type: String, enum: ['pending', 'approved', 'rejected', 'changes_requested'], default: 'pending' },
     version: { type: Number, default: 1 },

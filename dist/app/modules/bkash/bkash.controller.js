@@ -25,6 +25,7 @@ const notification_service_1 = require("../notifications/notification.service");
 const points_package_service_1 = require("../points_package/points_package.service");
 const bkash_refund_1 = require("./bkash.refund");
 const bkash_intent_model_1 = __importDefault(require("./bkash_intent.model"));
+const featured_request_service_1 = require("../featured_request/featured_request.service");
 // TODO: every bKash handler must answer, otherwise the browser waits until it times out.
 const bkashFailed = (res, error) => {
     console.error("bKash request failed:", error);
@@ -74,7 +75,7 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d;
+    var _c, _d, _e;
     const { paymentID, purpose } = req.body;
     try {
         // TODO: points always go to the logged-in buyer, never to an email named in the request.
@@ -91,16 +92,16 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (typeof paymentID !== "string" || !paymentID) {
             return res.status(400).json({ success: false, message: "paymentID is required" });
         }
-        const recorded = yield payment_model_1.default.findOne({ payment_id: paymentID }).select("email").lean();
+        const recorded = yield payment_model_1.default.findOne({ payment_id: paymentID }).select("email purpose").lean();
         if (recorded && recorded.email !== email) {
             return res.status(403).json(notYours);
         }
-        if (!recorded) {
-            const intent = yield bkash_intent_model_1.default.findOne({ payment_id: paymentID }).select("user").lean();
-            if (!intent || String(intent.user) !== String((_d = req.user) === null || _d === void 0 ? void 0 : _d._id)) {
-                return res.status(403).json(notYours);
-            }
+        const intent = yield bkash_intent_model_1.default.findOne({ payment_id: paymentID }).select("user purpose").lean();
+        if (!recorded && (!intent || String(intent.user) !== String((_d = req.user) === null || _d === void 0 ? void 0 : _d._id))) {
+            return res.status(403).json(notYours);
         }
+        // TODO: the server decides a payment is for featuring (set at checkout), never the purpose sent by the browser.
+        const isFeatured = (intent === null || intent === void 0 ? void 0 : intent.purpose) === featured_request_service_1.FEATURED_PURPOSE || (recorded === null || recorded === void 0 ? void 0 : recorded.purpose) === featured_request_service_1.FEATURED_PURPOSE;
         // Execute payment directly (no HTTP call back into this server)
         let response = yield (0, executePayment_1.default)(paymentID);
         // Query payment if there is a message in the response
@@ -108,6 +109,20 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             response = yield (0, queryPayment_1.default)(paymentID);
         }
         // TODO: query returns 0000 for unpaid "Initiated" payments too; only a Completed transaction earns points.
+        if (isFeatured && (response === null || response === void 0 ? void 0 : response.statusCode) === "0000" && (response === null || response === void 0 ? void 0 : response.transactionStatus) === "Completed") {
+            const result = yield featured_request_service_1.FeaturedRequestService.recordPayment(String((_e = req.user) === null || _e === void 0 ? void 0 : _e._id), email, paymentID, response);
+            return res.json({
+                success: true,
+                alreadyRecorded: result.alreadyRecorded,
+                purpose: featured_request_service_1.FEATURED_PURPOSE,
+                trxID: response === null || response === void 0 ? void 0 : response.trxID,
+                paymentId: paymentID,
+                amount: response === null || response === void 0 ? void 0 : response.amount,
+                points: 0,
+                status: response === null || response === void 0 ? void 0 : response.transactionStatus,
+                payment_create_time: (response === null || response === void 0 ? void 0 : response.paymentCreateTime) || (response === null || response === void 0 ? void 0 : response.paymentExecuteTime),
+            });
+        }
         if ((response === null || response === void 0 ? void 0 : response.statusCode) === "0000" && (response === null || response === void 0 ? void 0 : response.transactionStatus) === "Completed") {
             const singleUser = yield user_info_model_1.UserInfoModel.findOne({ email });
             let saveInDb = false;

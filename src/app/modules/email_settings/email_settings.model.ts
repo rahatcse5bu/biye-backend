@@ -8,6 +8,9 @@ export interface IEmailSettings extends Document {
   support_email: string;
   support_phone: string;
   social_links: SocialLink[];
+  footer_links: SocialLink[];
+  sender_name: string;
+  disabled_templates: string[];
   daily_limit: number;
 }
 
@@ -23,7 +26,19 @@ export const DEFAULT_EMAIL_SETTINGS = {
   support_email: "bibahosupport@gmail.com",
   support_phone: "+880 1793-278360",
   social_links: [] as SocialLink[],
+  // TODO: footer legal links; a leading "/" means a page on CLIENT_URL.
+  footer_links: [
+    { label: "গোপনীয়তা নীতিমালা", url: "/privacy-policy" },
+    { label: "শর্তাবলি", url: "/terms-and-condition" },
+    { label: "রিফান্ড নীতিমালা", url: "/refund-policy" },
+  ] as SocialLink[],
+  // TODO: display name only; the From address stays in .env so the admin panel never holds mail credentials.
+  sender_name: "Bibaho",
+  disabled_templates: [] as string[],
 };
+
+// TODO: account-recovery mail the admin must not be able to switch off.
+export const LOCKED_TEMPLATES = ["passwordReset"];
 
 // TODO: single document (key "default") with the branding every email uses.
 const EmailSettingsSchema = new Schema<IEmailSettings>(
@@ -36,6 +51,12 @@ const EmailSettingsSchema = new Schema<IEmailSettings>(
       type: [{ _id: false, label: { type: String, required: true }, url: { type: String, required: true } }],
       default: [],
     },
+    footer_links: {
+      type: [{ _id: false, label: { type: String, required: true }, url: { type: String, required: true } }],
+      default: () => DEFAULT_EMAIL_SETTINGS.footer_links,
+    },
+    sender_name: { type: String, default: DEFAULT_EMAIL_SETTINGS.sender_name },
+    disabled_templates: { type: [String], default: [] },
     daily_limit: { type: Number, default: DEFAULT_DAILY_EMAIL_LIMIT, min: 1 },
   },
   { timestamps: true },

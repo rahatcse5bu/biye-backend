@@ -13,6 +13,8 @@ import ContactPurchase from "../contact_purchase_data/contact_purchase_data.mode
 import { NotificationService } from "../notifications/notification.service";
 import { mailUserByIdWith } from "../../../shared/bibahoMail";
 import { emailTemplates } from "../../../shared/emailTemplates";
+import { USER_PROTECTED_FIELDS } from "./general_info.constant";
+import { expireFeaturedBiodatas } from "../featured_request/featured_request.service";
 
 const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const {
@@ -353,6 +355,7 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 
   // Parse isFeatured to boolean
   if (isFeatured) {
+    await expireFeaturedBiodatas();
     const isFeaturedBool = isFeatured === "true";
     andConditions.push({
       isFeatured: isFeaturedBool,
@@ -631,6 +634,7 @@ const getGeneralInfoByAdmin = catchAsync(
     // Parse isFeatured to boolean
 
     if (isFeatured) {
+      await expireFeaturedBiodatas();
       // console.log("isFeatured~~", isFeaturedBool, typeof isFeatured);
       const isFeaturedBool = isFeatured === "true";
       andConditions.push({
@@ -946,6 +950,7 @@ const getSingleGeneralInfo = catchAsync(async (req: Request, res: Response) => {
 
 const createGeneralInfo = catchAsync(async (req: Request, res: Response) => {
   const { user_form, ...data } = req.body;
+  USER_PROTECTED_FIELDS.forEach((field) => delete data[field]);
 
   if (!req.user?._id) {
     return res.status(401).send({
@@ -1047,6 +1052,7 @@ const updateGeneralInfo = catchAsync(async (req: Request, res: Response) => {
     "admin_note",
     "last_approved_at",
     "last_approved_by",
+    ...USER_PROTECTED_FIELDS,
   ];
   const approvedChanges: Record<string, unknown> = {};
 
