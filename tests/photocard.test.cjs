@@ -17,6 +17,9 @@ test('all photocard endpoints require an admin and enforce generation limits', a
   app.use((error, _req, res, _next) => res.status(500).json({ message: error.message }));
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
+  const originalNow = Date.now;
+  const now = originalNow();
+  Date.now = () => now;
   try {
     const users = await UserInfoModel.create([
       { user_id: 1, email: 'admin@photocard.test', user_role: 'admin' },
@@ -33,6 +36,7 @@ test('all photocard endpoints require an admin and enforce generation limits', a
     for (let i = 0; i < 5; i++) assert.equal((await request('', tokens[0])).status, 404);
     assert.equal((await request('', tokens[0])).status, 429);
   } finally {
+    Date.now = originalNow;
     await new Promise((resolve) => server.close(resolve));
     await mongoose.connection.dropDatabase();
     await mongoose.disconnect();
