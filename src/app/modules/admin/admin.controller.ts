@@ -15,6 +15,9 @@ import { NotificationService } from "../notifications/notification.service";
 import { mailUser } from "../../../shared/bibahoMail";
 import { processRefund, RefundError } from "../bkash/bkash.refund";
 
+// TODO: members submit as "in review"; older accounts sit in "pending". Both wait for an admin.
+const AWAITING_REVIEW_MATCH = { 'userDoc.user_status': { $in: ['pending', 'in review'] } };
+
 export const AdminController = {
   // Dashboard Statistics
   getDashboardStats: catchAsync(async (req: Request, res: Response) => {
@@ -274,13 +277,15 @@ export const AdminController = {
     if (matchingUserIds !== null) matchConditions.user = { $in: matchingUserIds };
     if (bio_type && bio_type !== 'all') matchConditions.bio_type = bio_type;
 
-    // TODO: 'approved' is a biodata_status (verified); every other value is a user_status
+    // TODO: 'approved' is a biodata_status (verified); 'pending' is the review queue; every other value is a user_status
     const statusMatch =
       !status || status === 'all'
         ? null
         : status === 'approved'
           ? { biodata_status: 'approved' }
-          : { 'userDoc.user_status': status };
+          : status === 'pending'
+            ? AWAITING_REVIEW_MATCH
+            : { 'userDoc.user_status': status };
 
     const countPipeline: any[] = [
       { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
@@ -361,7 +366,7 @@ export const AdminController = {
   getPendingBiodataCount: catchAsync(async (req: Request, res: Response) => {
     const [result] = await GeneralInfo.aggregate([
       { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
-      { $match: { 'userDoc.user_status': 'pending' } },
+      { $match: AWAITING_REVIEW_MATCH },
       { $count: 'count' },
     ]);
     res.status(httpStatus.OK).json({

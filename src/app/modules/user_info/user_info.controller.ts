@@ -10,6 +10,7 @@ import ApiError from "../../middlewares/ApiError";
 import { adminEmails, userRoleChangeByUser } from "./user_info.constant";
 import { EmailIcon, escapeHtml, mailAdmins, mailUser, mailUserNow } from "../../../shared/bibahoMail";
 import { emailTemplates } from "../../../shared/emailTemplates";
+import { NotificationService } from "../notifications/notification.service";
 
 const statusLabels: Record<string, string> = {
   active: "সক্রিয়",
@@ -46,7 +47,7 @@ const mailStatusChange = (user: any, status: string, byAdmin: boolean) => {
       title: "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
       name: user.username,
       paragraphs: [
-        `${byAdmin ? "বিয়ে অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${escapeHtml(label)}</strong>।`,
+        `${byAdmin ? "বিবাহ অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${escapeHtml(label)}</strong>।`,
         ...(statusNotes[status] ? [statusNotes[status]] : []),
       ],
       detailsTitle: "সংক্ষিপ্ত তথ্য",
@@ -59,6 +60,17 @@ const mailStatusChange = (user: any, status: string, byAdmin: boolean) => {
   }
 
   if (byAdmin) return;
+  // TODO: a member submitting for review is the main admin task, so it also pops up in the admin panel.
+  if (inReview) {
+    NotificationService.notify({
+      audience: "admin",
+      type: "biodata",
+      priority: "important",
+      title: "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়",
+      message: `বায়োডাটা নং ${user.user_id ?? ""} (${user.email}) রিভিউয়ের জন্য জমা দিয়েছেন।`,
+      link: "/biodatas?status=pending",
+    });
+  }
   mailAdmins(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
     title: inReview ? "একটি বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন",
     paragraphs: [

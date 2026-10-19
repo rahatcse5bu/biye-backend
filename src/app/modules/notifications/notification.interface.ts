@@ -7,11 +7,14 @@ export type NotificationType =
   | "refund"
   | "moderation"
   | "system";
+// TODO: "important" pops up as a modal in the admin panel; use it only for work an admin must act on.
+export type NotificationPriority = "normal" | "important";
 
 export interface INotification extends Document {
   recipient?: Types.ObjectId | null;
   audience: NotificationAudience;
   type: NotificationType;
+  priority: NotificationPriority;
   title: string;
   message: string;
   link?: string;

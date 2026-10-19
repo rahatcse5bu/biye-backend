@@ -196,6 +196,7 @@ export const BiodataRevisionService = {
       NotificationService.notify({
         audience: "admin",
         type: "moderation",
+        priority: "important",
         title: "বায়োডাটা পরিবর্তনের অনুরোধ",
         message: `বায়োডাটা #${user?.user_id ?? ""} এর ${countFields(revision.changes)}টি পরিবর্তন অনুমোদনের অপেক্ষায়।`,
         link: `/biodata-changes?id=${revision._id}`,

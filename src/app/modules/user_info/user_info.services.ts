@@ -77,7 +77,7 @@ const sendWelcomeNotification = (user: { _id?: unknown; username?: string; email
     recipient: String(user._id),
     audience: "user",
     type: "system",
-    title: "বিয়েতে স্বাগতম!",
+    title: "বিবাহ-তে স্বাগতম!",
     message: `${user.username ? `${user.username}, ` : ""}আপনার অ্যাকাউন্ট তৈরি হয়েছে। এখনই আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করুন।`,
     link: "/user/account/edit-biodata",
   });

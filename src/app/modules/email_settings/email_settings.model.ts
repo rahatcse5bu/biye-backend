@@ -21,7 +21,7 @@ export const DEFAULT_DAILY_EMAIL_LIMIT = 500;
 export const LEGACY_LOGO_URL = "https://res.cloudinary.com/dfcyydhfn/image/upload/v1791121207/logo_vmmj9g.png";
 
 export const DEFAULT_EMAIL_SETTINGS = {
-  // TODO: empty means the built-in rings + বিয়ে wordmark header.
+  // TODO: empty means the built-in বিবাহ logo header.
   logo_url: "",
   support_email: "bibahosupport@gmail.com",
   support_phone: "+880 1793-278360",

@@ -117,8 +117,8 @@ export type EmailContent = {
   template?: string;
 };
 
-const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিয়ে (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
-const ADMIN_REASON = "আপনি বিয়ে-র অ্যাডমিন হিসেবে এই ইমেইলটি পাচ্ছেন।";
+const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিবাহ (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
+const ADMIN_REASON = "আপনি বিবাহ-র অ্যাডমিন হিসেবে এই ইমেইলটি পাচ্ছেন।";
 
 const img = (file: string, w: number, h: number, extra = "") =>
   `<img src="${asset(file)}" width="${w}" height="${h}" alt="" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;${extra}">`;
@@ -188,7 +188,7 @@ const footer = (branding: EmailBranding, reason: string) => {
     <div style="margin-top:16px;height:1px;background:${C.line};font-size:0;line-height:1px;">&nbsp;</div>
     <div style="padding-top:16px;${caption}">${legal}</div>
     <div style="padding-top:16px;${caption}color:${C.ink400};">${escapeHtml(reason)}</div>
-    <div style="padding-top:16px;${caption}color:${C.ink400};">&copy; ২০২৩–${toBanglaDigits(new Date().getFullYear())} বিয়ে &middot; বাংলাদেশী ম্যাট্রিমনি প্ল্যাটফর্ম &middot; ঢাকা, বাংলাদেশ</div>
+    <div style="padding-top:16px;${caption}color:${C.ink400};">&copy; ২০২৩–${toBanglaDigits(new Date().getFullYear())} বিবাহ &middot; বাংলাদেশী ম্যাট্রিমনি প্ল্যাটফর্ম &middot; ঢাকা, বাংলাদেশ</div>
   </td></tr>`;
 };
 
@@ -365,7 +365,7 @@ export const renderEmail = (content: EmailContent, branding: EmailBranding = DEF
   const sections = [
     salutation && renderBlock({ type: "text", html: salutation }),
     ...body.map(renderBlock),
-    `<div style="font-family:${FONT};font-size:16px;line-height:28px;"><div style="color:${C.ink600};">শুভকামনায়,</div><div style="color:${C.ink900};font-weight:600;">টিম বিয়ে</div></div>`,
+    `<div style="font-family:${FONT};font-size:16px;line-height:28px;"><div style="color:${C.ink600};">শুভকামনায়,</div><div style="color:${C.ink900};font-weight:600;">টিম বিবাহ</div></div>`,
   ].filter(Boolean);
 
   return `<!DOCTYPE html>

@@ -5,6 +5,7 @@ import { NotificationModel } from "./notification.model";
 import {
   INotification,
   NotificationAudience,
+  NotificationPriority,
   NotificationType,
 } from "./notification.interface";
 import { NotificationActor, usesAdminFeed } from "./notification.policy";
@@ -15,6 +16,7 @@ export interface CreateNotificationInput {
   recipient?: string | Types.ObjectId | null;
   audience: NotificationAudience;
   type: NotificationType;
+  priority?: NotificationPriority;
   title: string;
   message: string;
   link?: string;
@@ -58,6 +60,7 @@ export const NotificationService = {
         _id: String((notification as INotification)._id || ""),
         audience: notification.audience,
         type: notification.type,
+        priority: notification.priority || "normal",
         title: notification.title,
         message: notification.message,
         link: notification.link,

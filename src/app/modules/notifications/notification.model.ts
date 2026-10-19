@@ -18,6 +18,7 @@ const notificationSchema = new Schema<INotification>(
       enum: ["biodata", "payment", "refund", "moderation", "system"],
       required: true,
     },
+    priority: { type: String, enum: ["normal", "important"], default: "normal" },
     title: { type: String, required: true, trim: true },
     message: { type: String, required: true, trim: true },
     link: { type: String, trim: true },

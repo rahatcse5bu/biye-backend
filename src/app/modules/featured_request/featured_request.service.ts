@@ -154,6 +154,7 @@ const recordPayment = async (userId: string, email: string, paymentID: string, r
   NotificationService.notify({
     audience: "admin",
     type: "payment",
+    priority: "important",
     title: "নতুন ফিচার্ড অনুরোধ",
     message: `বায়োডাটা নং ${user?.user_id ?? ""} ৳${request.amount} দিয়ে ফিচার্ড করার অনুরোধ করেছেন।`,
     link: "/featured-requests",

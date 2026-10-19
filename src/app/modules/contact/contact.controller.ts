@@ -140,6 +140,7 @@ export const ContactController = {
     NotificationService.notify({
       audience: "admin",
       type: "system",
+      priority: "important",
       title: "নতুন যোগাযোগ বার্তা",
       message: `${input.name} (${input.email}) একটি বার্তা পাঠিয়েছেন।`,
       link: "/contact-messages",
