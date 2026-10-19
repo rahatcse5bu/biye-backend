@@ -17,10 +17,13 @@ const http_status_1 = __importDefault(require("http-status"));
 const mongoose_1 = require("mongoose");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const blog_service_1 = require("./blog.service");
-const MAX_CONTENT_LENGTH = 100000;
+const blog_sanitize_1 = require("./blog.sanitize");
+const MAX_CONTENT_LENGTH = 300000;
 const optionalString = (value) => typeof value === "string" ? value.trim() : undefined;
 // TODO: returns cleaned fields or an error message; `partial` allows missing fields on update.
 const parseInput = (body, partial) => {
+    var _a, _b;
+    var _c, _d;
     const data = {};
     if (body.title !== undefined || !partial) {
         if (typeof body.title !== "string" || !body.title.trim()) {
@@ -29,13 +32,13 @@ const parseInput = (body, partial) => {
         data.title = body.title.trim();
     }
     if (body.content !== undefined || !partial) {
-        if (typeof body.content !== "string" || !body.content.trim()) {
+        if (typeof body.content !== "string" || body.content.length > MAX_CONTENT_LENGTH) {
+            return { error: "Content is missing or too long" };
+        }
+        const content = (0, blog_sanitize_1.sanitizeBlogHtml)(body.content);
+        if (!(0, blog_sanitize_1.hasText)(content))
             return { error: "Content is required" };
-        }
-        if (body.content.length > MAX_CONTENT_LENGTH) {
-            return { error: "Content is too long" };
-        }
-        data.content = body.content.trim();
+        data.content = content;
     }
     if (body.status !== undefined) {
         if (body.status !== "draft" && body.status !== "published") {
@@ -47,10 +50,26 @@ const parseInput = (body, partial) => {
     if (cover && !/^https:\/\//.test(cover)) {
         return { error: "Cover image must be an https URL" };
     }
-    for (const key of ["slug", "excerpt", "author", "cover_image"]) {
+    for (const key of ["slug", "excerpt", "author", "cover_image", "seo_title", "seo_description"]) {
         const value = optionalString(body[key]);
         if (value !== undefined)
             data[key] = value;
+    }
+    if (((_c = (_a = data.seo_title) === null || _a === void 0 ? void 0 : _a.length) !== null && _c !== void 0 ? _c : 0) > 120)
+        return { error: "SEO title must be 120 characters or fewer" };
+    if (((_d = (_b = data.seo_description) === null || _b === void 0 ? void 0 : _b.length) !== null && _d !== void 0 ? _d : 0) > 320)
+        return { error: "SEO description must be 320 characters or fewer" };
+    if (body.tags !== undefined) {
+        const raw = Array.isArray(body.tags) ? body.tags : typeof body.tags === "string" ? body.tags.split(",") : null;
+        if (!raw)
+            return { error: "Tags must be a list" };
+        // TODO: trimmed, de-duplicated case-insensitively, capped at 20 tags of 50 chars.
+        const seen = new Set();
+        data.tags = raw
+            .filter((tag) => typeof tag === "string")
+            .map((tag) => tag.trim().replace(/^#/, "").slice(0, 50))
+            .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()))
+            .slice(0, 20);
     }
     return { data };
 };

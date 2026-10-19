@@ -67,8 +67,8 @@ const STEP_SECTIONS = [
 ];
 // TODO: progress from what is actually saved, not edited_timeline_index (starts at 1, skipped by some sections, never decreases).
 router.get("/biodata-progress", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
-    const user = new mongoose_1.Types.ObjectId(String((_b = req.user) === null || _b === void 0 ? void 0 : _b._id));
+    var _a;
+    const user = new mongoose_1.Types.ObjectId(String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id));
     const [exists, revision] = yield Promise.all([
         Promise.all(STEP_SECTIONS.map((key) => (0, biodata_revision_sections_1.sectionByKey)(key).model.exists({ user }))),
         biodata_revision_model_1.default.findOne({ user, status: { $in: ["draft", "pending"] } }).select("changes").lean(),

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const http_status_1 = __importDefault(require("http-status"));
 const auth_1 = require("../../middlewares/auth");
+const authCheck_1 = __importDefault(require("../../middlewares/authCheck"));
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const featured_request_service_1 = require("./featured_request.service");
 const router = (0, express_1.Router)();
@@ -38,31 +39,38 @@ router.get("/me", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((
     var _a;
     res.status(http_status_1.default.OK).json({ success: true, data: yield featured_request_service_1.FeaturedRequestService.getMine(String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) });
 })));
-router.post("/checkout", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
+// TODO: authCheck loads the bKash base URL and token; without it a cold serverless instance calls "undefined/checkout/create".
+router.post("/checkout", (0, auth_1.auth)("user", "admin"), authCheck_1.default, (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     res.status(http_status_1.default.OK).json({
         success: true,
-        data: yield featured_request_service_1.FeaturedRequestService.startCheckout(String((_b = req.user) === null || _b === void 0 ? void 0 : _b._id), (_c = req.body) === null || _c === void 0 ? void 0 : _c.callbackURL),
+        data: yield featured_request_service_1.FeaturedRequestService.startCheckout(String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id), (_b = req.body) === null || _b === void 0 ? void 0 : _b.callbackURL),
     });
+})));
+// TODO: public so anonymous visitors count too; the service caps ids and only credits running paid periods.
+router.post("/track", (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    yield featured_request_service_1.FeaturedRequestService.track((_a = req.body) === null || _a === void 0 ? void 0 : _a.biodata_ids, (_b = req.body) === null || _b === void 0 ? void 0 : _b.event);
+    res.status(http_status_1.default.NO_CONTENT).end();
 })));
 router.get("/", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield featured_request_service_1.FeaturedRequestService.listAll(req.query.status, req.query.page, req.query.limit);
     res.status(http_status_1.default.OK).json(Object.assign({ success: true }, result));
 })));
 router.post("/:id/approve", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
+    var _a;
     res.status(http_status_1.default.OK).json({
         success: true,
         message: "Biodata featured",
-        data: yield featured_request_service_1.FeaturedRequestService.approve(req.params.id, (_d = req.body) === null || _d === void 0 ? void 0 : _d.note),
+        data: yield featured_request_service_1.FeaturedRequestService.approve(req.params.id, (_a = req.body) === null || _a === void 0 ? void 0 : _a.note),
     });
 })));
 router.post("/:id/reject", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e, _f;
+    var _a, _b;
     res.status(http_status_1.default.OK).json({
         success: true,
         message: "Request rejected",
-        data: yield featured_request_service_1.FeaturedRequestService.reject(req.params.id, (_e = req.body) === null || _e === void 0 ? void 0 : _e.note, (_f = req.body) === null || _f === void 0 ? void 0 : _f.refund),
+        data: yield featured_request_service_1.FeaturedRequestService.reject(req.params.id, (_a = req.body) === null || _a === void 0 ? void 0 : _a.note, (_b = req.body) === null || _b === void 0 ? void 0 : _b.refund),
     });
 })));
 exports.default = router;

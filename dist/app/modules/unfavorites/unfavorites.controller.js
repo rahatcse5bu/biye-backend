@@ -85,8 +85,8 @@ exports.UnFavoriteController = {
         });
     })),
     getUnFavouritesListByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const bio_user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const bio_user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         // console.log("bio_user~~", bio_user);
         if (!bio_user) {
             return res.status(401).send({
@@ -165,8 +165,8 @@ exports.UnFavoriteController = {
         }
     })),
     getUnFavoriteByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -239,9 +239,9 @@ exports.UnFavoriteController = {
     //   }
     // }),
     createUnFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _a;
         const { bio_user } = req.body;
-        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -287,8 +287,8 @@ exports.UnFavoriteController = {
         }
     })),
     updateUnFavorite: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -313,9 +313,9 @@ exports.UnFavoriteController = {
         }
     })),
     checkDisLikes: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f, _g;
-        const user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
-        const bio_user = (_g = req.params) === null || _g === void 0 ? void 0 : _g.id;
+        var _a, _b;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const bio_user = (_b = req.params) === null || _b === void 0 ? void 0 : _b.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

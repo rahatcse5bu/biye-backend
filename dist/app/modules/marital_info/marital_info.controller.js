@@ -81,18 +81,18 @@ exports.MaritalInfoController = {
         }
     })),
     createMaritalInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c;
+        var _a, _b;
         const session = yield mongoose_1.default.startSession();
         session.startTransaction();
         try {
-            let _d = req.body, { user_form } = _d, maritalInfoData = __rest(_d, ["user_form"]);
-            maritalInfoData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+            let _c = req.body, { user_form } = _c, maritalInfoData = __rest(_c, ["user_form"]);
+            maritalInfoData.user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
             // Create maritalInfo
             const createdMaritalInfo = yield marital_info_service_1.MaritalInfoService.createMaritalInfo(maritalInfoData, {
                 session,
             });
             // Find user and update the fields
-            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
+            const user = yield user_info_model_1.UserInfoModel.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id).session(session);
             user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
             user.last_edited_timeline_index = user_form;
             yield user.save({ session });
@@ -117,8 +117,8 @@ exports.MaritalInfoController = {
         }
     })),
     updateMaritalInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const id = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

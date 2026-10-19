@@ -19,7 +19,7 @@ exports.ContactPurchaseService = {
         const contactPurchases = yield contact_purchase_data_model_1.default.find();
         return contactPurchases.map((contactPurchase) => contactPurchase.toObject());
     }),
-    getContactPurchaseByUserAndBioUser: (user, bio_user, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    getContactPurchaseByUserAndBioUser: (user_1, bio_user_1, ...args_1) => __awaiter(void 0, [user_1, bio_user_1, ...args_1], void 0, function* (user, bio_user, options = {}) {
         const contactPurchase = yield contact_purchase_data_model_1.default.findOne({
             user,
             bio_user,
@@ -36,7 +36,7 @@ exports.ContactPurchaseService = {
         const contactPurchase = yield contact_purchase_data_model_1.default.findOne({ user }).lean();
         return contactPurchase;
     }),
-    createContactPurchase: (contactPurchaseData, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    createContactPurchase: (contactPurchaseData_1, ...args_1) => __awaiter(void 0, [contactPurchaseData_1, ...args_1], void 0, function* (contactPurchaseData, options = {}) {
         const createdContactPurchase = yield contact_purchase_data_model_1.default.create([contactPurchaseData], { session: options.session });
         return createdContactPurchase[0];
     }),

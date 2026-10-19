@@ -85,7 +85,7 @@ const getMine = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const requests = yield featured_request_model_1.FeaturedRequest.find({ user: userId })
         .sort({ createdAt: -1 })
         .limit(10)
-        .select("status amount duration_days transaction_id admin_note refunded reviewed_at featured_until createdAt")
+        .select("status amount duration_days transaction_id admin_note refunded reviewed_at featured_until impressions clicks createdAt")
         .lean();
     const reason = blockReason(settings, user, biodata, pending);
     return {
@@ -156,6 +156,7 @@ const recordPayment = (userId, email, paymentID, response) => __awaiter(void 0, 
     notification_service_1.NotificationService.notify({
         audience: "admin",
         type: "payment",
+        priority: "important",
         title: "নতুন ফিচার্ড অনুরোধ",
         message: `বায়োডাটা নং ${(_a = user === null || user === void 0 ? void 0 : user.user_id) !== null && _a !== void 0 ? _a : ""} ৳${request.amount} দিয়ে ফিচার্ড করার অনুরোধ করেছেন।`,
         link: "/featured-requests",
@@ -182,6 +183,17 @@ const recordPayment = (userId, email, paymentID, response) => __awaiter(void 0, 
         ],
     });
     return { alreadyRecorded: false, request };
+});
+// TODO: credits impressions/clicks to the running paid period of each biodata; admin-featured biodatas have none and are skipped.
+const track = (biodataIds, event) => __awaiter(void 0, void 0, void 0, function* () {
+    if (event !== "impression" && event !== "click")
+        throw new ApiError_1.default(400, "Invalid event");
+    const ids = [...new Set(Array.isArray(biodataIds) ? biodataIds : [])]
+        .filter((id) => typeof id === "string" && (0, mongoose_1.isValidObjectId)(id))
+        .slice(0, 24);
+    const field = event === "click" ? "clicks" : "impressions";
+    const now = new Date();
+    yield Promise.all(ids.map((id) => featured_request_model_1.FeaturedRequest.findOneAndUpdate({ biodata: id, status: "approved", featured_until: { $gt: now } }, { $inc: { [field]: 1 } }, { sort: { featured_until: 1 } })));
 });
 const listAll = (status, page, limit) => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, exports.expireFeaturedBiodatas)();
@@ -279,6 +291,7 @@ exports.FeaturedRequestService = {
     getMine,
     startCheckout,
     recordPayment,
+    track,
     listAll,
     approve,
     reject,

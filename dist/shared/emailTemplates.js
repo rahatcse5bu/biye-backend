@@ -19,10 +19,10 @@ const formatDateBn = (value, withTime = false) => {
 };
 exports.formatDateBn = formatDateBn;
 const bold = (value) => `<strong>${(0, bibahoMail_1.escapeHtml)(value)}</strong>`;
-exports.emailTemplates = {
+const templates = {
     // TODO: A1 · account created.
     welcome: (d) => ({
-        subject: `বিয়ে-তে আপনাকে স্বাগতম${d.name ? `, ${d.name}` : ""}!`,
+        subject: `বিবাহ-তে আপনাকে স্বাগতম${d.name ? `, ${d.name}` : ""}!`,
         content: {
             icon: "welcome",
             eyebrow: "স্বাগতম",
@@ -30,7 +30,7 @@ exports.emailTemplates = {
             preheader: "জীবনসঙ্গী খোঁজার যাত্রা শুরু হোক আজই — মাত্র ৩টি ধাপে।",
             name: d.name,
             paragraphs: [
-                "বাংলাদেশের বিশ্বস্ত অনলাইন ম্যাট্রিমনি <strong>বিয়ে</strong>-তে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। নিজের জন্য কিংবা অভিভাবক হিসেবে সন্তান বা আত্মীয়ের জন্য — এখন থেকে সহজেই উপযুক্ত পাত্র-পাত্রী খুঁজতে পারবেন।",
+                "বাংলাদেশের বিশ্বস্ত অনলাইন ম্যাট্রিমনি <strong>বিবাহ</strong>-তে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। নিজের জন্য কিংবা অভিভাবক হিসেবে সন্তান বা আত্মীয়ের জন্য — এখন থেকে সহজেই উপযুক্ত পাত্র-পাত্রী খুঁজতে পারবেন।",
             ],
             blocks: [
                 {
@@ -115,7 +115,7 @@ exports.emailTemplates = {
             paragraphs: [
                 d.changesOnly
                     ? "আপনার বায়োডাটার পরিবর্তনগুলো যাচাই করে অনুমোদন করা হয়েছে এবং এখন সবার কাছে প্রকাশিত।"
-                    : "আপনার বায়োডাটা প্রকাশিত হয়েছে। এখন থেকে বিয়ে-র সদস্যরা আপনার বায়োডাটা দেখতে ও যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
+                    : "আপনার বায়োডাটা প্রকাশিত হয়েছে। এখন থেকে বিবাহ-র সদস্যরা আপনার বায়োডাটা দেখতে ও যোগাযোগের অনুরোধ পাঠাতে পারবেন।",
             ],
             blocks: [
                 { type: "progress", stages: ["জমা দেওয়া হয়েছে", "যাচাই ও সম্মতি", "প্রকাশিত"], current: 3 },
@@ -410,7 +410,7 @@ exports.emailTemplates = {
             preheader: `${(0, exports.formatDateBn)(d.until)} পর্যন্ত আপনার বায়োডাটা ফিচার্ড থাকবে।`,
             name: d.name,
             paragraphs: [
-                `অভিনন্দন! আপনার বায়োডাটা ${d.biodataNo ? `${bold(d.biodataNo)} ` : ""}এখন বিয়ে-র হোমপেজের ফিচার্ড অংশে দেখানো হচ্ছে, তাই আরও বেশি সদস্য আপনার বায়োডাটা দেখতে পাবেন।`,
+                `অভিনন্দন! আপনার বায়োডাটা ${d.biodataNo ? `${bold(d.biodataNo)} ` : ""}এখন বিবাহ-র হোমপেজের ফিচার্ড অংশে দেখানো হচ্ছে, তাই আরও বেশি সদস্য আপনার বায়োডাটা দেখতে পাবেন।`,
             ],
             blocks: [
                 { type: "progress", stages: ["পেমেন্ট সম্পন্ন", "অ্যাডমিন পর্যালোচনা", "ফিচার্ড"], current: 3 },
@@ -440,6 +440,14 @@ exports.emailTemplates = {
         },
     }),
 };
+// TODO: stamps each message with its template id so mailUser can honour the admin's on/off switches.
+exports.emailTemplates = Object.fromEntries(Object.entries(templates).map(([id, build]) => [
+    id,
+    (data) => {
+        const message = build(data);
+        return Object.assign(Object.assign({}, message), { content: Object.assign(Object.assign({}, message.content), { template: id }) });
+    },
+]));
 // TODO: sample data for the admin template gallery; mirrors the Figma example values.
 const SAMPLE_NAME = "তানভীর আহমেদ";
 exports.EMAIL_TEMPLATE_CATALOG = [

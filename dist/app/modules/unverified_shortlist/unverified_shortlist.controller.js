@@ -36,8 +36,8 @@ exports.UnverifiedShortlistController = {
         return res.json({ success: true, message: "Shortlist added.", data: { shortlisted: true } });
     })),
     check: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { id } = req.params;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({ success: false, message: "Unauthorized" });
@@ -46,8 +46,8 @@ exports.UnverifiedShortlistController = {
         return res.json({ success: true, data: { shortlisted: !!exists } });
     })),
     getMyShortlist: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const user = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({ success: false, message: "Unauthorized" });
         }

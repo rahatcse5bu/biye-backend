@@ -84,18 +84,18 @@ exports.ContactController = {
         }
     })),
     createContact: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c;
+        var _a, _b;
         const session = yield mongoose_1.default.startSession();
         session.startTransaction();
         try {
-            let _d = req.body, { user_form } = _d, contactData = __rest(_d, ["user_form"]);
-            contactData.user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+            let _c = req.body, { user_form } = _c, contactData = __rest(_c, ["user_form"]);
+            contactData.user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
             // Create contact
             const createdContact = yield contact_services_1.ContactService.createContact(contactData, {
                 session,
             });
             // Find user and update the fields
-            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
+            const user = yield user_info_model_1.UserInfoModel.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id).session(session);
             user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
             user.last_edited_timeline_index = user_form;
             yield user.save({ session });
@@ -120,15 +120,15 @@ exports.ContactController = {
         }
     })),
     createContactUsByEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e, _f, _g, _h, _j;
+        var _a, _b, _c, _d, _e;
         // TODO: visitor input is escaped by the template; raw HTML here let anyone send links from our address.
         const text = (value, max) => String(value !== null && value !== void 0 ? value : "").trim().slice(0, max);
         const input = {
-            name: text((_e = req.body) === null || _e === void 0 ? void 0 : _e.name, 100),
-            email: text((_f = req.body) === null || _f === void 0 ? void 0 : _f.email, 200).toLowerCase(),
-            phone: text((_g = req.body) === null || _g === void 0 ? void 0 : _g.phone, 40),
-            bio: text((_h = req.body) === null || _h === void 0 ? void 0 : _h.bio, 40),
-            message: text((_j = req.body) === null || _j === void 0 ? void 0 : _j.message, 3000),
+            name: text((_a = req.body) === null || _a === void 0 ? void 0 : _a.name, 100),
+            email: text((_b = req.body) === null || _b === void 0 ? void 0 : _b.email, 200).toLowerCase(),
+            phone: text((_c = req.body) === null || _c === void 0 ? void 0 : _c.phone, 40),
+            bio: text((_d = req.body) === null || _d === void 0 ? void 0 : _d.bio, 40),
+            message: text((_e = req.body) === null || _e === void 0 ? void 0 : _e.message, 3000),
         };
         if (!input.name || !input.message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
             return res.status(http_status_1.default.BAD_REQUEST).json({
@@ -155,6 +155,7 @@ exports.ContactController = {
         notification_service_1.NotificationService.notify({
             audience: "admin",
             type: "system",
+            priority: "important",
             title: "নতুন যোগাযোগ বার্তা",
             message: `${input.name} (${input.email}) একটি বার্তা পাঠিয়েছেন।`,
             link: "/contact-messages",
@@ -162,8 +163,8 @@ exports.ContactController = {
         res.status(http_status_1.default.CREATED).json({ success: true, message: "Message sent successfully", data: { _id: saved._id } });
     })),
     updateContact: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _k;
-        const id = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

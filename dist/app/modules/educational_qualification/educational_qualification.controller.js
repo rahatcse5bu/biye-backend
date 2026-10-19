@@ -124,12 +124,12 @@ exports.EducationalQualificationController = {
         });
     })),
     createEducationalQualification: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c;
+        var _a, _b;
         const session = yield mongoose_1.default.startSession();
         session.startTransaction();
         try {
-            let _d = req.body, { user_form } = _d, data = __rest(_d, ["user_form"]);
-            if (!((_b = req.user) === null || _b === void 0 ? void 0 : _b._id)) {
+            let _c = req.body, { user_form } = _c, data = __rest(_c, ["user_form"]);
+            if (!((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
                 return res.status(http_status_1.default.UNAUTHORIZED).json({
                     success: false,
                     message: "You are not authorized",
@@ -139,7 +139,7 @@ exports.EducationalQualificationController = {
             // Create educational qualification
             const newQualification = yield educational_qualification_services_1.EducationalQualificationService.createEducationalQualification(data, { session });
             // Find user and update the fields
-            const user = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).session(session);
+            const user = yield user_info_model_1.UserInfoModel.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id).session(session);
             user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
             user.last_edited_timeline_index = user_form;
             yield user.save({ session });
@@ -164,9 +164,9 @@ exports.EducationalQualificationController = {
         }
     })),
     updateEducationalQualification: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
+        var _a;
         const data = req.body;
-        if (!((_e = req.user) === null || _e === void 0 ? void 0 : _e._id)) {
+        if (!((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,
                 message: "You are not authorized",

@@ -84,7 +84,8 @@ const createUnverifiedBiodata = (0, catchAsync_1.default)((req, res) => __awaite
     }
 }));
 const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    var _a, _b, _c;
+    var _d, _e, _f, _g, _h, _j;
     const { page = 1, limit = 12, bio_type, bio_gender, gender, marital_status, marital_status_en, religion, religious_type, zilla, division, upazila, upzilla, minAge, maxAge, minHeight, maxHeight, complexion, sortOrder = "desc", } = req.query;
     const getQueryValue = (value) => {
         if (typeof value === "string")
@@ -120,8 +121,8 @@ const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __await
         }
         return parsedValue;
     };
-    const pageNumber = Number((_b = getQueryValue(page)) !== null && _b !== void 0 ? _b : page);
-    const limitNumber = Number((_c = getQueryValue(limit)) !== null && _c !== void 0 ? _c : limit);
+    const pageNumber = Number((_d = getQueryValue(page)) !== null && _d !== void 0 ? _d : page);
+    const limitNumber = Number((_e = getQueryValue(limit)) !== null && _e !== void 0 ? _e : limit);
     if (!Number.isInteger(pageNumber) || pageNumber < 1) {
         return res.status(http_status_1.default.BAD_REQUEST).json({
             success: false,
@@ -147,14 +148,14 @@ const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __await
         "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
         "পাত্রীর বায়োডাটা": ["পাত্রীর বায়োডাটা", "পাত্রীর বায়োডাটা"],
     };
-    const bioGenderValue = (_d = getQueryValue(bio_gender)) === null || _d === void 0 ? void 0 : _d.toLowerCase();
+    const bioGenderValue = (_a = getQueryValue(bio_gender)) === null || _a === void 0 ? void 0 : _a.toLowerCase();
     const bioTypeValue = getQueryValue(bio_type);
     const resolvedBioTypes = bioGenderValue
-        ? ((_e = BIO_TYPE_VARIANTS[bioGenderValue]) !== null && _e !== void 0 ? _e : (bioTypeValue
-            ? ((_f = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _f !== void 0 ? _f : [bioTypeValue])
+        ? ((_f = BIO_TYPE_VARIANTS[bioGenderValue]) !== null && _f !== void 0 ? _f : (bioTypeValue
+            ? ((_g = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _g !== void 0 ? _g : [bioTypeValue])
             : []))
         : bioTypeValue
-            ? ((_g = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _g !== void 0 ? _g : [bioTypeValue])
+            ? ((_h = BIO_TYPE_VARIANTS[bioTypeValue]) !== null && _h !== void 0 ? _h : [bioTypeValue])
             : [];
     if (resolvedBioTypes.length > 0) {
         filter.bio_type = { $in: resolvedBioTypes };
@@ -171,7 +172,7 @@ const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __await
         widowed: "বিধবা",
         widower: "বিপত্নীক",
     };
-    const maritalStatusAlias = (_h = getQueryValue(marital_status_en)) === null || _h === void 0 ? void 0 : _h.toLowerCase();
+    const maritalStatusAlias = (_b = getQueryValue(marital_status_en)) === null || _b === void 0 ? void 0 : _b.toLowerCase();
     const maritalStatusValue = getQueryValue(marital_status);
     const resolvedMaritalStatus = maritalStatusAlias
         ? ((_j = MARITAL_STATUS_MAP[maritalStatusAlias]) !== null && _j !== void 0 ? _j : maritalStatusValue)
@@ -245,7 +246,7 @@ const getAllUnverifiedBiodatas = (0, catchAsync_1.default)((req, res) => __await
         filter.screen_color = { $in: complexionValues };
     }
     const skip = (pageNumber - 1) * limitNumber;
-    const sortDirection = ((_k = getQueryValue(sortOrder)) === null || _k === void 0 ? void 0 : _k.toLowerCase()) === "asc" ? 1 : -1;
+    const sortDirection = ((_c = getQueryValue(sortOrder)) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === "asc" ? 1 : -1;
     const sort = { createdAt: sortDirection, _id: sortDirection };
     const [biodatas, total] = yield Promise.all([
         unverified_biodata_model_1.default.find(filter)
@@ -337,8 +338,8 @@ const deleteUnverifiedBiodata = (0, catchAsync_1.default)((req, res) => __awaite
     res.status(200).json({ success: true, message: "Deleted successfully" });
 }));
 const purchaseUnverifiedBiodataContact = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _l;
-    const userId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!userId) {
         return res.status(http_status_1.default.UNAUTHORIZED).json({
             statusCode: http_status_1.default.UNAUTHORIZED,
@@ -466,7 +467,7 @@ const purchaseUnverifiedBiodataContact = (0, catchAsync_1.default)((req, res) =>
     }
 }));
 const parseCustomFieldsWithLLM = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _m, _o, _p, _q;
+    var _a, _b, _c, _d;
     const { biodata_text } = req.body;
     if (!biodata_text || typeof biodata_text !== "string") {
         return res.status(http_status_1.default.BAD_REQUEST).json({
@@ -509,7 +510,7 @@ Only return JSON array, no other text or markdown.`,
                 message: "Could not parse fields from response",
             });
         }
-        const content = (_m = response.choices[0].message) === null || _m === void 0 ? void 0 : _m.content;
+        const content = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content;
         if (!content) {
             console.warn("No content in Groq response");
             return res.status(200).json({
@@ -565,7 +566,7 @@ Only return JSON array, no other text or markdown.`,
         });
     }
     catch (error) {
-        const detail = ((_q = (_p = (_o = error.response) === null || _o === void 0 ? void 0 : _o.data) === null || _p === void 0 ? void 0 : _p.error) === null || _q === void 0 ? void 0 : _q.message) ||
+        const detail = ((_d = (_c = (_b = error.response) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c.error) === null || _d === void 0 ? void 0 : _d.message) ||
             error.message ||
             "Unknown error";
         console.error("LLM parsing error:", detail);

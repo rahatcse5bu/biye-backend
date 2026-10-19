@@ -48,12 +48,20 @@ export const auth =
         });
       }
 
-      req.user = verifiedUser; // user_role, token_id
+      if (account.user_status === "banned") {
+        return res.status(403).send({
+          statusCode: httpStatus.FORBIDDEN,
+          message: "Your account is banned",
+          success: false,
+        });
+      }
+
+      req.user = { ...verifiedUser, user_role: account.user_role };
 
       // Check if the user has one of the required roles
       if (
         requiredRoles.length &&
-        !requiredRoles.includes(verifiedUser.user_role)
+        !requiredRoles.includes(account.user_role)
       ) {
         return res.status(403).send({
           statusCode: httpStatus.FORBIDDEN,

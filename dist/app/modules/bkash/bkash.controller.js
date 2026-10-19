@@ -75,11 +75,11 @@ const search = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d, _e;
+    var _a, _b, _c;
     const { paymentID, purpose } = req.body;
     try {
         // TODO: points always go to the logged-in buyer, never to an email named in the request.
-        const buyer = yield user_info_model_1.UserInfoModel.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id).select("email").lean();
+        const buyer = yield user_info_model_1.UserInfoModel.findById((_a = req.user) === null || _a === void 0 ? void 0 : _a._id).select("email").lean();
         const email = buyer === null || buyer === void 0 ? void 0 : buyer.email;
         if (!email) {
             return res.status(401).json({ success: false, message: "You are not authorized" });
@@ -97,7 +97,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(403).json(notYours);
         }
         const intent = yield bkash_intent_model_1.default.findOne({ payment_id: paymentID }).select("user purpose").lean();
-        if (!recorded && (!intent || String(intent.user) !== String((_d = req.user) === null || _d === void 0 ? void 0 : _d._id))) {
+        if (!recorded && (!intent || String(intent.user) !== String((_b = req.user) === null || _b === void 0 ? void 0 : _b._id))) {
             return res.status(403).json(notYours);
         }
         // TODO: the server decides a payment is for featuring (set at checkout), never the purpose sent by the browser.
@@ -110,7 +110,7 @@ const afterPay = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // TODO: query returns 0000 for unpaid "Initiated" payments too; only a Completed transaction earns points.
         if (isFeatured && (response === null || response === void 0 ? void 0 : response.statusCode) === "0000" && (response === null || response === void 0 ? void 0 : response.transactionStatus) === "Completed") {
-            const result = yield featured_request_service_1.FeaturedRequestService.recordPayment(String((_e = req.user) === null || _e === void 0 ? void 0 : _e._id), email, paymentID, response);
+            const result = yield featured_request_service_1.FeaturedRequestService.recordPayment(String((_c = req.user) === null || _c === void 0 ? void 0 : _c._id), email, paymentID, response);
             return res.json({
                 success: true,
                 alreadyRecorded: result.alreadyRecorded,

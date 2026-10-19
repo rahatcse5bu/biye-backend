@@ -295,13 +295,14 @@ const getGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         ? requestedSortField
         : "createdAt";
     const sortDirection = ((_d = firstQueryValue(sortOrder)) === null || _d === void 0 ? void 0 : _d.toLowerCase()) === "asc" ? 1 : -1;
-    const sortSpec = { [sortField]: sortDirection };
+    // TODO: featured biodatas that match the filters lead the results, like a promoted listing.
+    const sortSpec = isFeatured ? {} : { isFeatured: -1 };
+    sortSpec[sortField] = sortDirection;
     if (sortField !== "_id") {
         sortSpec._id = sortDirection;
     }
-    // Parse isFeatured to boolean
+    yield (0, featured_request_service_1.expireFeaturedBiodatas)();
     if (isFeatured) {
-        yield (0, featured_request_service_1.expireFeaturedBiodatas)();
         const isFeaturedBool = isFeatured === "true";
         andConditions.push({
             isFeatured: isFeaturedBool,
@@ -551,7 +552,7 @@ const getGeneralInfoByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(
     const pipeline = [
         {
             $lookup: {
-                from: "users",
+                from: "users", // Collection name for User model
                 localField: "user",
                 foreignField: "_id",
                 as: "userDetails",
@@ -632,7 +633,7 @@ const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter
     const pipeline = [
         {
             $lookup: {
-                from: "users",
+                from: "users", // Collection name for User model
                 localField: "user",
                 foreignField: "_id",
                 as: "userDetails",
@@ -709,7 +710,7 @@ const getFeaturedGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter
     });
 }));
 const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
+    var _a;
     const userId = req.params.id;
     const generalInfo = yield general_info_model_1.default.findOne({ user_id: userId });
     if (!generalInfo) {
@@ -722,7 +723,7 @@ const getGeneralInfoByUserId = (0, catchAsync_1.default)((req, res) => __awaiter
     let publicData = generalInfo.toObject();
     if (publicData.approved_data) {
         const { approved_data, pending_changes, admin_note } = publicData, meta = __rest(publicData, ["approved_data", "pending_changes", "admin_note"]);
-        publicData = Object.assign(Object.assign(Object.assign({}, meta), approved_data), { photos: (_e = approved_data.photos) !== null && _e !== void 0 ? _e : meta.photos });
+        publicData = Object.assign(Object.assign(Object.assign({}, meta), approved_data), { photos: (_a = approved_data.photos) !== null && _a !== void 0 ? _a : meta.photos });
     }
     res.status(200).json({
         message: "General info retrieved successfully",
@@ -757,9 +758,9 @@ const getGeneralInfoDashboardByUser = (0, catchAsync_1.default)((req, res) => __
     });
 }));
 const getGeneralInfoByToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _f;
+    var _a;
     // console.log(req.user);
-    const generalInfo = yield general_info_model_1.default.findOne({ user: (_f = req.user) === null || _f === void 0 ? void 0 : _f._id });
+    const generalInfo = yield general_info_model_1.default.findOne({ user: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
     if (!generalInfo) {
         return res.status(404).json({
             message: "General info not found",
@@ -806,10 +807,10 @@ const getSingleGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(v
         .json((0, SendSuccess_1.sendSuccess)("General info retrieved", responseData, 200));
 }));
 const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _g;
-    const _h = req.body, { user_form } = _h, data = __rest(_h, ["user_form"]);
+    var _a;
+    const _b = req.body, { user_form } = _b, data = __rest(_b, ["user_form"]);
     general_info_constant_1.USER_PROTECTED_FIELDS.forEach((field) => delete data[field]);
-    if (!((_g = req.user) === null || _g === void 0 ? void 0 : _g._id)) {
+    if (!((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
         return res.status(401).send({
             statusCode: http_status_1.default.UNAUTHORIZED,
             message: "You are not authorized",
@@ -863,9 +864,9 @@ const createGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
     }
 }));
 const updateGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _j;
+    var _a;
     const data = req.body;
-    const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!userId) {
         return res.status(401).json({
             success: false,
@@ -949,9 +950,9 @@ const deleteGeneralInfo = (0, catchAsync_1.default)((req, res) => __awaiter(void
 }));
 // Admin approves pending biodata changes
 const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _k;
+    var _a;
     const biodataId = req.params.id;
-    const adminId = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+    const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!adminId) {
         return res.status(401).json({
             success: false,
@@ -999,9 +1000,9 @@ const approveBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(
 }));
 // Admin rejects pending biodata changes
 const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _l;
+    var _a;
     const biodataId = req.params.id;
-    const adminId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+    const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { reason = "" } = req.body;
     if (!adminId) {
         return res.status(401).json({
@@ -1049,8 +1050,8 @@ const rejectBiodataChanges = (0, catchAsync_1.default)((req, res) => __awaiter(v
 }));
 // Preserve the existing endpoint while publishing any legacy pending changes immediately.
 const submitForReview = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _m;
-    const userId = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }

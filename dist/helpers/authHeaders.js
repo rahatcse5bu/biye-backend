@@ -19,7 +19,7 @@ const authHeaders = () => __awaiter(void 0, void 0, void 0, function* () {
     return {
         "Content-Type": "application/json",
         Accept: "application/json",
-        authorization: (0, node_global_storage_1.get)("id_token"),
+        authorization: (0, node_global_storage_1.get)("id_token"), // Assuming 'id_token' is of type string
         "X-App-Key": config_1.default.bkash_app_key,
     };
 });

@@ -55,7 +55,7 @@ exports.ContactPurchaseController = {
         const contactPurchases = yield contact_purchase_data_model_1.default.aggregate([
             {
                 $lookup: {
-                    from: "contacts",
+                    from: "contacts", // The collection name for Contact model
                     localField: "user",
                     foreignField: "user",
                     as: "userContact",
@@ -63,7 +63,7 @@ exports.ContactPurchaseController = {
             },
             {
                 $lookup: {
-                    from: "contacts",
+                    from: "contacts", // The collection name for Contact model
                     localField: "bio_user",
                     foreignField: "user",
                     as: "bioUserContact",
@@ -71,7 +71,7 @@ exports.ContactPurchaseController = {
             },
             {
                 $lookup: {
-                    from: "users",
+                    from: "users", // The collection name for User model
                     localField: "user",
                     foreignField: "_id",
                     as: "userDetails",
@@ -79,7 +79,7 @@ exports.ContactPurchaseController = {
             },
             {
                 $lookup: {
-                    from: "users",
+                    from: "users", // The collection name for User model
                     localField: "bio_user",
                     foreignField: "_id",
                     as: "bioUserDetails",
@@ -242,9 +242,9 @@ exports.ContactPurchaseController = {
         }
     })),
     createContactPurchase: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
+        var _a;
         const { bio_user } = req.body;
-        if (!((_b = req === null || req === void 0 ? void 0 : req.user) === null || _b === void 0 ? void 0 : _b._id)) {
+        if (!((_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a._id)) {
             throw new Error("You are not authorized");
         }
         if (!bio_user) {
@@ -400,8 +400,8 @@ exports.ContactPurchaseController = {
         }
     })),
     updateContactPurchase: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

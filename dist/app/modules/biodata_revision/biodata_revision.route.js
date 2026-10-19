@@ -27,21 +27,21 @@ router.get("/me", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((
     res.status(http_status_1.default.OK).json({ success: true, data: yield biodata_revision_service_1.BiodataRevisionService.mine((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) });
 })));
 router.post("/me/submit", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
-    yield biodata_revision_service_1.BiodataRevisionService.submit((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+    var _a, _b;
+    yield biodata_revision_service_1.BiodataRevisionService.submit((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
     res.status(http_status_1.default.OK).json({
         success: true,
         message: "পরিবর্তনগুলো অনুমোদনের জন্য জমা দেওয়া হয়েছে",
-        data: yield biodata_revision_service_1.BiodataRevisionService.mine((_c = req.user) === null || _c === void 0 ? void 0 : _c._id),
+        data: yield biodata_revision_service_1.BiodataRevisionService.mine((_b = req.user) === null || _b === void 0 ? void 0 : _b._id),
     });
 })));
 router.delete("/me", (0, auth_1.auth)("user", "admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d, _e;
-    yield biodata_revision_service_1.BiodataRevisionService.withdraw((_d = req.user) === null || _d === void 0 ? void 0 : _d._id);
+    var _a, _b;
+    yield biodata_revision_service_1.BiodataRevisionService.withdraw((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
     res.status(http_status_1.default.OK).json({
         success: true,
         message: "পরিবর্তনগুলো বাতিল করা হয়েছে",
-        data: yield biodata_revision_service_1.BiodataRevisionService.mine((_e = req.user) === null || _e === void 0 ? void 0 : _e._id),
+        data: yield biodata_revision_service_1.BiodataRevisionService.mine((_b = req.user) === null || _b === void 0 ? void 0 : _b._id),
     });
 })));
 router.get("/pending-count", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((_req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -69,20 +69,20 @@ router.get("/:id", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, re
     res.status(http_status_1.default.OK).json({ success: true, data: yield biodata_revision_service_1.BiodataRevisionService.detail(req.params.id) });
 })));
 router.post("/:id/approve", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _f, _g;
+    var _a, _b;
     if (!(0, mongoose_1.isValidObjectId)(req.params.id)) {
         return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: "Invalid change request" });
     }
-    yield biodata_revision_service_1.BiodataRevisionService.approve(req.params.id, (_f = req.user) === null || _f === void 0 ? void 0 : _f._id, (_g = req.body) === null || _g === void 0 ? void 0 : _g.updatedAt);
+    yield biodata_revision_service_1.BiodataRevisionService.approve(req.params.id, (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, (_b = req.body) === null || _b === void 0 ? void 0 : _b.updatedAt);
     res.status(http_status_1.default.OK).json({ success: true, message: "Changes approved and published" });
 })));
 router.post("/:id/reject", (0, auth_1.auth)("admin"), (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j, _k;
+    var _a, _b, _c;
     if (!(0, mongoose_1.isValidObjectId)(req.params.id)) {
         return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: "Invalid change request" });
     }
-    const reason = String(((_h = req.body) === null || _h === void 0 ? void 0 : _h.reason) || "").trim().slice(0, 1000);
-    yield biodata_revision_service_1.BiodataRevisionService.reject(req.params.id, (_j = req.user) === null || _j === void 0 ? void 0 : _j._id, reason, (_k = req.body) === null || _k === void 0 ? void 0 : _k.updatedAt);
+    const reason = String(((_a = req.body) === null || _a === void 0 ? void 0 : _a.reason) || "").trim().slice(0, 1000);
+    yield biodata_revision_service_1.BiodataRevisionService.reject(req.params.id, (_b = req.user) === null || _b === void 0 ? void 0 : _b._id, reason, (_c = req.body) === null || _c === void 0 ? void 0 : _c.updatedAt);
     res.status(http_status_1.default.OK).json({ success: true, message: "Changes rejected" });
 })));
 exports.default = router;

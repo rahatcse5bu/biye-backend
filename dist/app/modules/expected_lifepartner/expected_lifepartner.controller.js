@@ -88,17 +88,17 @@ exports.ExpectedPartnerController = {
         }
     })),
     createExpectedPartner: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b, _c, _d, _e;
-        const user_form = (_b = req.body) === null || _b === void 0 ? void 0 : _b.user_form;
+        var _a, _b, _c, _d;
+        const user_form = (_a = req.body) === null || _a === void 0 ? void 0 : _a.user_form;
         const fields = stripProtected(req.body);
         // TODO: one attempt = upsert the record + update the form timeline, all-or-nothing.
         const attempt = () => __awaiter(void 0, void 0, void 0, function* () {
-            var _f, _g;
+            var _a, _b;
             const session = yield mongoose_1.default.startSession();
             session.startTransaction();
             try {
-                const result = yield expected_lifepartner_services_1.ExpectedPartnerService.upsertExpectedPartner(String((_f = req.user) === null || _f === void 0 ? void 0 : _f._id), fields, { session });
-                const user = yield user_info_model_1.UserInfoModel.findById((_g = req.user) === null || _g === void 0 ? void 0 : _g._id).session(session);
+                const result = yield expected_lifepartner_services_1.ExpectedPartnerService.upsertExpectedPartner(String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id), fields, { session });
+                const user = yield user_info_model_1.UserInfoModel.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id).session(session);
                 user.edited_timeline_index = Math.max(user.edited_timeline_index, user_form);
                 user.last_edited_timeline_index = user_form;
                 yield user.save({ session });
@@ -122,7 +122,7 @@ exports.ExpectedPartnerController = {
                     break;
                 }
                 catch (error) {
-                    const transient = ((_d = (_c = error === null || error === void 0 ? void 0 : error.errorLabels) === null || _c === void 0 ? void 0 : _c.includes) === null || _d === void 0 ? void 0 : _d.call(_c, "TransientTransactionError")) || ((_e = error === null || error === void 0 ? void 0 : error.hasErrorLabel) === null || _e === void 0 ? void 0 : _e.call(error, "TransientTransactionError"));
+                    const transient = ((_c = (_b = error === null || error === void 0 ? void 0 : error.errorLabels) === null || _b === void 0 ? void 0 : _b.includes) === null || _c === void 0 ? void 0 : _c.call(_b, "TransientTransactionError")) || ((_d = error === null || error === void 0 ? void 0 : error.hasErrorLabel) === null || _d === void 0 ? void 0 : _d.call(error, "TransientTransactionError"));
                     if (!transient || tries >= 5)
                         throw error;
                     // TODO: random backoff so simultaneous saves stop colliding on the retry.
@@ -147,8 +147,8 @@ exports.ExpectedPartnerController = {
         }
     })),
     updateExpectedPartner: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _h;
-        const id = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

@@ -38,6 +38,8 @@ const payments_service_1 = require("../payments/payments.service");
 const notification_service_1 = require("../notifications/notification.service");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
 const bkash_refund_1 = require("../bkash/bkash.refund");
+// TODO: members submit as "in review"; older accounts sit in "pending". Both wait for an admin.
+const AWAITING_REVIEW_MATCH = { 'userDoc.user_status': { $in: ['pending', 'in review'] } };
 exports.AdminController = {
     // Dashboard Statistics
     getDashboardStats: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -260,12 +262,14 @@ exports.AdminController = {
             matchConditions.user = { $in: matchingUserIds };
         if (bio_type && bio_type !== 'all')
             matchConditions.bio_type = bio_type;
-        // TODO: 'approved' is a biodata_status (verified); every other value is a user_status
+        // TODO: 'approved' is a biodata_status (verified); 'pending' is the review queue; every other value is a user_status
         const statusMatch = !status || status === 'all'
             ? null
             : status === 'approved'
                 ? { biodata_status: 'approved' }
-                : { 'userDoc.user_status': status };
+                : status === 'pending'
+                    ? AWAITING_REVIEW_MATCH
+                    : { 'userDoc.user_status': status };
         const countPipeline = [
             { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
             { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true } },
@@ -341,7 +345,7 @@ exports.AdminController = {
     getPendingBiodataCount: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const [result] = yield general_info_model_1.default.aggregate([
             { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
-            { $match: { 'userDoc.user_status': 'pending' } },
+            { $match: AWAITING_REVIEW_MATCH },
             { $count: 'count' },
         ]);
         res.status(http_status_1.default.OK).json({
@@ -415,11 +419,8 @@ exports.AdminController = {
             // Apply filters (this is a simplified version - you'd want to implement this in the service)
             let filteredPayments = payments;
             if (search) {
-                filteredPayments = payments.filter((payment) => {
-                    var _a, _b;
-                    return ((_a = payment.user_name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(search.toLowerCase())) ||
-                        ((_b = payment.transaction_id) === null || _b === void 0 ? void 0 : _b.toLowerCase().includes(search.toLowerCase()));
-                });
+                filteredPayments = payments.filter((payment) => { var _a, _b; return ((_a = payment.user_name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(search.toLowerCase())) ||
+                    ((_b = payment.transaction_id) === null || _b === void 0 ? void 0 : _b.toLowerCase().includes(search.toLowerCase())); });
             }
             // TODO: counts ignore the status filter so stat cards stay stable while filtering
             const statusCounts = { all: filteredPayments.length };

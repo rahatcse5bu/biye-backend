@@ -32,7 +32,8 @@ exports.RefundError = RefundError;
 const isRefunded = (result) => Boolean(result === null || result === void 0 ? void 0 : result.refundTrxID) && (result === null || result === void 0 ? void 0 : result.transactionStatus) === "Completed";
 // TODO: refunds the full amount, or a pending user request's amount; marks the payment Refunded and takes back its points.
 const processRefund = (input) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a;
+    var _b, _c, _d;
     const paymentID = typeof input.paymentID === "string" ? input.paymentID.trim() : "";
     const trxID = typeof input.trxID === "string" ? input.trxID.trim() : "";
     if (!paymentID || !trxID) {
@@ -50,7 +51,7 @@ const processRefund = (input) => __awaiter(void 0, void 0, void 0, function* () 
         ? yield refund_request_model_1.default.findOne({ payment: payment._id, status: "requested" }).lean()
         : null;
     const expectedAmount = request ? request.refund_amount : payment === null || payment === void 0 ? void 0 : payment.amount;
-    const amount = Number((_a = input.amount) !== null && _a !== void 0 ? _a : expectedAmount);
+    const amount = Number((_b = input.amount) !== null && _b !== void 0 ? _b : expectedAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new RefundError(400, "A valid refund amount is required");
     }
@@ -92,8 +93,7 @@ const processRefund = (input) => __awaiter(void 0, void 0, void 0, function* () 
         : null;
     if (settledRequest) {
         pointsRemoved = request.points_held;
-        pointsBalance =
-            (_c = (_b = ((yield user_info_model_1.UserInfoModel.findOne({ email: payment.email }).select("points").lean()))) === null || _b === void 0 ? void 0 : _b.points) !== null && _c !== void 0 ? _c : null;
+        pointsBalance = (_c = (_a = ((yield user_info_model_1.UserInfoModel.findOne({ email: payment.email }).select("points").lean()))) === null || _a === void 0 ? void 0 : _a.points) !== null && _c !== void 0 ? _c : null;
         notification_service_1.NotificationService.notify({
             recipient: String(request.user),
             audience: "user",

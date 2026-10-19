@@ -85,9 +85,9 @@ exports.FamilyStatusController = {
         });
     })),
     createFamilyStatus: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-        let _c = req.body, { user_form } = _c, others = __rest(_c, ["user_form"]);
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        let _b = req.body, { user_form } = _b, others = __rest(_b, ["user_form"]);
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,
@@ -124,9 +124,9 @@ exports.FamilyStatusController = {
         }
     })),
     updateFamilyStatus: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _a;
         const data = req.body;
-        if (!((_d = req.user) === null || _d === void 0 ? void 0 : _d._id)) {
+        if (!((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,
                 message: "You are not authorized",

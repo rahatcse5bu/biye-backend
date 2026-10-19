@@ -12,6 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// TODO: pulls in the req.user augmentation for any entry Vercel type-checks from (api/index.ts, src/server.ts, src/app.ts).
+/// <reference path="./interfaces/index.d.ts" />
 const express_1 = __importDefault(require("express"));
 const morgan_1 = __importDefault(require("morgan"));
 const user_info_route_1 = __importDefault(require("./app/modules/user_info/user_info.route"));
@@ -66,8 +68,8 @@ const sanitizeInput_1 = require("./app/middlewares/sanitizeInput");
 // import ContactPurchaseDataRouter from "./app/modules/contact_purchase_data/contact_purchase_data.route";
 const app = (0, express_1.default)();
 app.disable("x-powered-by");
-// TODO: Vercel sits in front, so req.ip is the real client instead of the proxy.
-app.set("trust proxy", 1);
+// TODO: only trust forwarded IPs behind Vercel's sanitizing proxy.
+app.set("trust proxy", process.env.VERCEL === "1" ? 1 : false);
 app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -77,6 +79,8 @@ app.use((_req, res, next) => {
 });
 // TODO: photocard SVGs can embed images, so their route gets a larger body limit than the 100kb default.
 app.use("/api/v1/photocard-templates", express_1.default.json({ limit: "2mb" }));
+// TODO: long Bangla blog posts as HTML exceed the 100kb default.
+app.use("/api/v1/blogs", express_1.default.json({ limit: "1mb" }));
 app.use(express_1.default.json());
 app.use(sanitizeInput_1.sanitizeInput);
 if (config_1.default.node_env === "development") {

@@ -54,7 +54,7 @@ exports.BioChoiceController = {
         const bioChoices = yield bio_choice_data_model_1.default.aggregate([
             {
                 $lookup: {
-                    from: "contacts",
+                    from: "contacts", // The collection name for Contact model
                     localField: "user",
                     foreignField: "user",
                     as: "userContact",
@@ -62,7 +62,7 @@ exports.BioChoiceController = {
             },
             {
                 $lookup: {
-                    from: "contacts",
+                    from: "contacts", // The collection name for Contact model
                     localField: "bio_user",
                     foreignField: "user",
                     as: "bioUserContact",
@@ -70,7 +70,7 @@ exports.BioChoiceController = {
             },
             {
                 $lookup: {
-                    from: "users",
+                    from: "users", // The collection name for User model
                     localField: "user",
                     foreignField: "_id",
                     as: "userDetails",
@@ -78,7 +78,7 @@ exports.BioChoiceController = {
             },
             {
                 $lookup: {
-                    from: "users",
+                    from: "users", // The collection name for User model
                     localField: "bio_user",
                     foreignField: "_id",
                     as: "bioUserDetails",
@@ -267,8 +267,8 @@ exports.BioChoiceController = {
         });
     })),
     getBioChoiceDataOfSecondStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const user_id = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const mongo_user_id = new mongoose_1.default.Types.ObjectId(String(user_id));
         const results = yield contact_purchase_data_model_1.default.aggregate([
             {
@@ -362,8 +362,8 @@ exports.BioChoiceController = {
         });
     })),
     getBioChoiceStatisticsData: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const bio_user = (_c = req.params) === null || _c === void 0 ? void 0 : _c.bio_user;
+        var _a;
+        const bio_user = (_a = req.params) === null || _a === void 0 ? void 0 : _a.bio_user;
         const mongoBioId = new mongoose_1.default.Types.ObjectId(bio_user);
         const results = yield bio_choice_data_model_1.default.aggregate([
             { $match: { bio_user: mongoBioId } },
@@ -432,8 +432,8 @@ exports.BioChoiceController = {
         });
     })),
     getBioChoiceByToken: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -457,8 +457,8 @@ exports.BioChoiceController = {
         }
     })),
     getBioChoiceDataOfShare: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const bio_user = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        var _a;
+        const bio_user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!bio_user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -604,9 +604,9 @@ exports.BioChoiceController = {
     //   });
     // }),
     createBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f;
+        var _a;
         const data = req.body;
-        const user = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         // for unauthorized check
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -706,8 +706,8 @@ exports.BioChoiceController = {
         }
     })),
     checkBioChoiceDataOfFirstStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _g;
-        const user = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const bio_user = req.params.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -742,8 +742,9 @@ exports.BioChoiceController = {
     })),
     // TODO: the sender emails the biodata owner a reminder about a pending proposal, within the admin-set limits.
     sendReminderEmail: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _h, _j;
-        const user = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+        var _a;
+        var _b;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const bio_user = req.params.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -834,7 +835,7 @@ exports.BioChoiceController = {
             audience: "user",
             type: "biodata",
             title: "প্রস্তাবের রিমাইন্ডার",
-            message: `বায়োডাটা নং ${(_j = sender === null || sender === void 0 ? void 0 : sender.user_id) !== null && _j !== void 0 ? _j : ""} আপনার উত্তরের অপেক্ষায় আছেন।`,
+            message: `বায়োডাটা নং ${(_b = sender === null || sender === void 0 ? void 0 : sender.user_id) !== null && _b !== void 0 ? _b : ""} আপনার উত্তরের অপেক্ষায় আছেন।`,
             link: "/user/account/bio-requests",
         });
         return res.status(http_status_1.default.OK).json({
@@ -862,8 +863,8 @@ exports.BioChoiceController = {
         });
     })),
     checkBioChoiceDataOfSecondStep: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _k;
-        const user = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const bio_user = req.params.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -885,7 +886,7 @@ exports.BioChoiceController = {
             },
             {
                 $lookup: {
-                    from: "contacts",
+                    from: "contacts", // The name of the contacts collection
                     localField: "bio_user",
                     foreignField: "user",
                     as: "contact_info",
@@ -924,10 +925,10 @@ exports.BioChoiceController = {
         });
     })),
     updateBioChoice: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _l;
-        const bio_user = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+        var _a;
+        const bio_user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { type } = req.query;
-        const _m = req.body, { user } = _m, others = __rest(_m, ["user"]);
+        const _b = req.body, { user } = _b, others = __rest(_b, ["user"]);
         // TODO: "approved" is the one accepted status; step 2 only checks for it.
         if (others.status === "accepted")
             others.status = "approved";

@@ -50,10 +50,17 @@ const auth = (...requiredRoles) => (req, res, next) => __awaiter(void 0, void 0,
                 success: false,
             });
         }
-        req.user = verifiedUser; // user_role, token_id
+        if (account.user_status === "banned") {
+            return res.status(403).send({
+                statusCode: http_status_1.default.FORBIDDEN,
+                message: "Your account is banned",
+                success: false,
+            });
+        }
+        req.user = Object.assign(Object.assign({}, verifiedUser), { user_role: account.user_role });
         // Check if the user has one of the required roles
         if (requiredRoles.length &&
-            !requiredRoles.includes(verifiedUser.user_role)) {
+            !requiredRoles.includes(account.user_role)) {
             return res.status(403).send({
                 statusCode: http_status_1.default.FORBIDDEN,
                 message: "Forbidden",

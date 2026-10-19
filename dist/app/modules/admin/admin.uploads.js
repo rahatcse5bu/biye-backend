@@ -80,12 +80,12 @@ const listUploads = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
 }));
 // TODO: removes the file and pulls it from the profile, so a moderated photo can't linger as a broken image.
 const deleteUpload = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
-    const publicId = String(((_b = req.body) === null || _b === void 0 ? void 0 : _b.public_id) || "");
+    var _a, _b;
+    const publicId = String(((_a = req.body) === null || _a === void 0 ? void 0 : _a.public_id) || "");
     if (!publicId.startsWith(ROOT) || publicId.includes("..")) {
         return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: "Not a profile photo" });
     }
-    const reason = String(((_c = req.body) === null || _c === void 0 ? void 0 : _c.reason) || "").trim().slice(0, 300);
+    const reason = String(((_b = req.body) === null || _b === void 0 ? void 0 : _b.reason) || "").trim().slice(0, 300);
     const owner = ownerOf(publicId);
     const pattern = new RegExp(`/${escapeRegex(publicId)}\\.`);
     let wasLive = false;

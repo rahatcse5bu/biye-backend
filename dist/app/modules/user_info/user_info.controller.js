@@ -22,6 +22,7 @@ const ApiError_1 = __importDefault(require("../../middlewares/ApiError"));
 const user_info_constant_1 = require("./user_info.constant");
 const bibahoMail_1 = require("../../../shared/bibahoMail");
 const emailTemplates_1 = require("../../../shared/emailTemplates");
+const notification_service_1 = require("../notifications/notification.service");
 const statusLabels = {
     active: "সক্রিয়",
     inactive: "নিষ্ক্রিয়",
@@ -38,6 +39,7 @@ const statusNotes = {
 const statusIcons = { active: "check", inactive: "clock", banned: "edit" };
 // TODO: branded user + admin emails for a biodata status change; replaces the old raw-HTML ones that dumped the request body.
 const mailStatusChange = (user, status, byAdmin) => {
+    var _a;
     if (!(user === null || user === void 0 ? void 0 : user.email) || !status)
         return;
     const label = statusLabels[status] || status;
@@ -55,7 +57,7 @@ const mailStatusChange = (user, status, byAdmin) => {
             title: "আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন হয়েছে",
             name: user.username,
             paragraphs: [
-                `${byAdmin ? "বিয়ে অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong>।`,
+                `${byAdmin ? "বিবাহ অ্যাডমিন" : "আপনার অনুরোধে"} আপনার বায়োডাটার স্ট্যাটাস পরিবর্তন করা হয়েছে। আপনার বায়োডাটা এখন <strong>${(0, bibahoMail_1.escapeHtml)(label)}</strong>।`,
                 ...(statusNotes[status] ? [statusNotes[status]] : []),
             ],
             detailsTitle: "সংক্ষিপ্ত তথ্য",
@@ -68,6 +70,17 @@ const mailStatusChange = (user, status, byAdmin) => {
     }
     if (byAdmin)
         return;
+    // TODO: a member submitting for review is the main admin task, so it also pops up in the admin panel.
+    if (inReview) {
+        notification_service_1.NotificationService.notify({
+            audience: "admin",
+            type: "biodata",
+            priority: "important",
+            title: "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়",
+            message: `বায়োডাটা নং ${(_a = user.user_id) !== null && _a !== void 0 ? _a : ""} (${user.email}) রিভিউয়ের জন্য জমা দিয়েছেন।`,
+            link: "/biodatas?status=pending",
+        });
+    }
     (0, bibahoMail_1.mailAdmins)(inReview ? "নতুন বায়োডাটা রিভিউয়ের অপেক্ষায়" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন", {
         title: inReview ? "একটি বায়োডাটা রিভিউয়ের জন্য জমা হয়েছে" : "একজন সদস্য বায়োডাটার স্ট্যাটাস পরিবর্তন করেছেন",
         paragraphs: [
@@ -210,8 +223,8 @@ exports.UserInfoController = {
         });
     })),
     changePassword: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const id = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
@@ -225,8 +238,8 @@ exports.UserInfoController = {
     })),
     // TODO: only whitelisted preference fields; nothing else on the account can change here.
     updateMyPreferences: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d, _e;
-        const religion = (_d = req.body) === null || _d === void 0 ? void 0 : _d.preferred_religion;
+        var _a, _b;
+        const religion = (_a = req.body) === null || _a === void 0 ? void 0 : _a.preferred_religion;
         const allowed = ["islam", "hinduism", "christianity", "all"];
         if (!allowed.includes(religion)) {
             return res.status(http_status_1.default.BAD_REQUEST).json({
@@ -234,7 +247,7 @@ exports.UserInfoController = {
                 message: `preferred_religion must be one of: ${allowed.join(", ")}`,
             });
         }
-        const updated = yield user_info_model_1.UserInfoModel.findByIdAndUpdate((_e = req.user) === null || _e === void 0 ? void 0 : _e._id, { preferred_religion: religion }, { new: true })
+        const updated = yield user_info_model_1.UserInfoModel.findByIdAndUpdate((_b = req.user) === null || _b === void 0 ? void 0 : _b._id, { preferred_religion: religion }, { new: true })
             .select("preferred_religion")
             .lean();
         if (!updated) {
@@ -247,8 +260,8 @@ exports.UserInfoController = {
         });
     })),
     getMe: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _f;
-        const id = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
         }
@@ -260,8 +273,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfo: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _g, _h;
-        const id = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+        var _a, _b;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -270,7 +283,7 @@ exports.UserInfoController = {
             });
         }
         // TODO: allowlist; passing the raw body let users set user_role/points/email (or $set them) on their own account.
-        const others = { user_status: (_h = req.body) === null || _h === void 0 ? void 0 : _h.user_status };
+        const others = { user_status: (_b = req.body) === null || _b === void 0 ? void 0 : _b.user_status };
         if (!user_info_constant_1.userRoleChangeByUser.includes(others.user_status)) {
             throw new ApiError_1.default(403, "You are not allowed to set this status");
         }
@@ -295,8 +308,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserStatusByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _j;
-        const id = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,
@@ -337,8 +350,8 @@ exports.UserInfoController = {
         });
     })),
     updateUserInfoByAdmin: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _k;
-        const id = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const bioId = req.params.bioId;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -364,8 +377,8 @@ exports.UserInfoController = {
         });
     })),
     verifyTokenByUser: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _l;
-        const id = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+        var _a;
+        const id = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!id) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

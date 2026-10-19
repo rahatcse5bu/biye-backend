@@ -1,39 +1,34 @@
 import { NextFunction, Request, Response } from "express";
+import { createHash } from "crypto";
+import { RateLimitBucket } from "./rateLimit.model";
 
 type Options = { name: string; windowMs: number; max: number; message?: string };
 
-const hitsByKey = new Map<string, number[]>();
-
-// TODO: the client's IP; Vercel and most proxies put it first in x-forwarded-for or in x-real-ip.
-const clientIp = (req: Request) =>
-  String(req.headers["x-real-ip"] || "").trim() ||
-  String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
-  req.ip ||
-  "unknown";
-
-// TODO: in-memory per-IP limit; on serverless each instance counts separately, which still blocks bursts and scripts.
 export const rateLimit = ({ name, windowMs, max, message }: Options) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
-    const key = `${name}:${clientIp(req)}`;
-    const recent = (hitsByKey.get(key) || []).filter((time) => now - time < windowMs);
-
-    if (recent.length >= max) {
-      res.setHeader("Retry-After", Math.ceil((windowMs - (now - recent[0])) / 1000));
-      return res.status(429).json({
-        success: false,
-        message: message || "Too many requests. Please try again later.",
+    const expiresAt = (Math.floor(now / windowMs) + 1) * windowMs;
+    const ip = createHash("sha256").update(req.ip || "unknown").digest("hex");
+    const key = `${name}:${ip}:${expiresAt}`;
+    try {
+      const increment = () => RateLimitBucket.findOneAndUpdate(
+        { _id: key },
+        { $inc: { hits: 1 }, $setOnInsert: { expires_at: new Date(expiresAt) } },
+        { upsert: true, new: true },
+      ).lean();
+      const bucket = await increment().catch((error) => {
+        if (error?.code !== 11000) throw error;
+        return increment();
       });
-    }
-
-    recent.push(now);
-    hitsByKey.set(key, recent);
-
-    // TODO: drop idle entries now and then so memory stays bounded.
-    if (hitsByKey.size > 5000) {
-      for (const [entryKey, times] of hitsByKey) {
-        if (!times.some((time) => now - time < windowMs)) hitsByKey.delete(entryKey);
+      if (!bucket || bucket.hits > max) {
+        res.setHeader("Retry-After", Math.max(1, Math.ceil((expiresAt - now) / 1000)));
+        return res.status(429).json({
+          success: false,
+          message: message || "Too many requests. Please try again later.",
+        });
       }
+      next();
+    } catch (error) {
+      next(error);
     }
-    next();
   };

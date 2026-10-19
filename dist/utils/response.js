@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rollbackAndRespond = void 0;
+exports.rollbackAndRespond = rollbackAndRespond;
 function rollbackAndRespond(res, db, err, responseObj) {
     db.rollback(() => {
         console.error("Transaction rolled back due to error:", err);
@@ -14,4 +14,3 @@ function rollbackAndRespond(res, db, err, responseObj) {
         }
     });
 }
-exports.rollbackAndRespond = rollbackAndRespond;

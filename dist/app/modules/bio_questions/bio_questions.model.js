@@ -5,7 +5,7 @@ const bioQuestionSchema = new mongoose_1.Schema({
     user: {
         type: String,
         required: true,
-        unique: true,
+        unique: true, // One question set per user
         ref: "User",
     },
     questions: {

@@ -76,8 +76,8 @@ exports.BioQuestionController = {
     })),
     // Create or update user's questions
     upsertQuestions: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { questions } = req.body;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
@@ -94,8 +94,8 @@ exports.BioQuestionController = {
     })),
     // Delete user's questions
     deleteQuestions: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,
@@ -123,12 +123,12 @@ exports.BioQuestionController = {
         });
     })),
     updateDefaults: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _a;
         const religion = req.params.religion;
         if (!bio_questions_defaults_1.RELIGIONS.includes(religion)) {
             return res.status(http_status_1.default.BAD_REQUEST).json({ success: false, message: "Unknown religion" });
         }
-        const raw = Array.isArray((_d = req.body) === null || _d === void 0 ? void 0 : _d.questions) ? req.body.questions : [];
+        const raw = Array.isArray((_a = req.body) === null || _a === void 0 ? void 0 : _a.questions) ? req.body.questions : [];
         const questions = raw
             .filter((q) => typeof q === "string")
             .map((q) => q.trim())

@@ -163,7 +163,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     // Admin view: merge pending_changes so admin sees the latest user edits for review
     let generalInfo = generalInfoRaw;
     if (generalInfoRaw && generalInfoRaw.pending_changes && typeof generalInfoRaw.pending_changes === 'object') {
-        const _b = generalInfoRaw, { pending_changes } = _b, rest = __rest(_b, ["pending_changes"]);
+        const _a = generalInfoRaw, { pending_changes } = _a, rest = __rest(_a, ["pending_changes"]);
         generalInfo = Object.assign(Object.assign(Object.assign({}, rest), pending_changes), { pending_changes, approved_data: generalInfoRaw.approved_data });
     }
     // Ensure religion defaults to 'islam' if not set
@@ -186,7 +186,7 @@ const getBioDataByAdmin = (0, catchAsync_1.default)((req, res) => __awaiter(void
     res.status(200).json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", data, 200));
 }));
 const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d;
+    var _a, _b;
     console.log("response data");
     const genderCounts = yield user_info_model_1.UserInfoModel.aggregate([
         {
@@ -194,7 +194,7 @@ const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         },
         {
             $lookup: {
-                from: "generalinfos",
+                from: "generalinfos", // MongoDB will pluralize the model name unless specified
                 localField: "_id",
                 foreignField: "user",
                 as: "generalInfo",
@@ -214,7 +214,7 @@ const getBioDataStat = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         acc[item._id] = item.count;
         return acc;
     }, {});
-    const total = ((_c = result["পুরুষ"]) !== null && _c !== void 0 ? _c : 0) + ((_d = result["মহিলা"]) !== null && _d !== void 0 ? _d : 0);
+    const total = ((_a = result["পুরুষ"]) !== null && _a !== void 0 ? _a : 0) + ((_b = result["মহিলা"]) !== null && _b !== void 0 ? _b : 0);
     res
         .status(200)
         .json((0, SendSuccess_1.sendSuccess)("Retrieve bio data", Object.assign(Object.assign({}, result), { total }), 200));

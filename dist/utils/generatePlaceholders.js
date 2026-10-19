@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generatePlaceholders = void 0;
+exports.generatePlaceholders = generatePlaceholders;
 function generatePlaceholders(count) {
     const placeholders = [];
     for (let i = 0; i < count; i++) {
@@ -8,4 +8,3 @@ function generatePlaceholders(count) {
     }
     return placeholders.join(", ");
 }
-exports.generatePlaceholders = generatePlaceholders;

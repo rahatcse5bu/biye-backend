@@ -50,8 +50,8 @@ exports.ReactionController = {
     })),
     // Get user's reaction for a biodata
     getUserReaction: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { bio_user } = req.params;
         if (!user) {
             return res.status(401).json({
@@ -68,8 +68,8 @@ exports.ReactionController = {
     })),
     // Get my reactions list (optionally filtered by type)
     getMyReactionsList: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const user = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { reaction_type } = req.query;
         if (!user) {
             return res.status(401).json({
@@ -86,8 +86,8 @@ exports.ReactionController = {
     })),
     // Get reactions to my biodata (optionally filtered by type)
     getReactionsToMyBiodata: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const bioUser = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        var _a;
+        const bioUser = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const { reaction_type } = req.query;
         if (!bioUser) {
             return res.status(401).json({

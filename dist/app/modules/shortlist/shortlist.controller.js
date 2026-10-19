@@ -91,8 +91,8 @@ exports.ShortlistController = {
     })),
     // Get my shortlist (biodatas I shortlisted)
     getMyShortlist: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const user = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!user) {
             return res.status(401).send({
                 statusCode: 401,
@@ -150,8 +150,8 @@ exports.ShortlistController = {
     })),
     // Get who shortlisted me (users who shortlisted my biodata)
     getWhoShortlistedMe: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const bio_user = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const bio_user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!bio_user) {
             return res.status(401).send({
                 statusCode: 401,
@@ -214,9 +214,9 @@ exports.ShortlistController = {
     })),
     // Check if a bio_user is shortlisted
     checkShortlist: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d, _e;
-        const user = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
-        const bio_user = (_e = req.params) === null || _e === void 0 ? void 0 : _e.id;
+        var _a, _b;
+        const user = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const bio_user = (_b = req.params) === null || _b === void 0 ? void 0 : _b.id;
         if (!user) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 statusCode: http_status_1.default.UNAUTHORIZED,

@@ -51,6 +51,7 @@ exports.NotificationService = {
                 _id: String(notification._id || ""),
                 audience: notification.audience,
                 type: notification.type,
+                priority: notification.priority || "normal",
                 title: notification.title,
                 message: notification.message,
                 link: notification.link,
@@ -74,7 +75,7 @@ exports.NotificationService = {
             ttl: 60 * 60 * 1000,
         });
     }),
-    listForActor: (actor, limit = 30) => __awaiter(void 0, void 0, void 0, function* () {
+    listForActor: (actor_1, ...args_1) => __awaiter(void 0, [actor_1, ...args_1], void 0, function* (actor, limit = 30) {
         const safeLimit = Math.min(Math.max(Number(limit) || 30, 1), 100);
         return notification_model_1.NotificationModel.find(getActorFilter(actor))
             .sort({ createdAt: -1 })

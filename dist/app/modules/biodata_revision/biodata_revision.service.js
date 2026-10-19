@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -183,13 +193,13 @@ exports.BiodataRevisionService = {
         return { live, staged: sectionChanges, revision };
     }),
     stagedFor: (userId, sectionKey) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
+        var _a;
         const revision = yield biodata_revision_model_1.default.findOne({ user: userId, status: { $in: biodata_revision_model_1.OPEN_STATUSES } })
             .select("changes")
             .lean();
-        return ((_b = revision === null || revision === void 0 ? void 0 : revision.changes) === null || _b === void 0 ? void 0 : _b[sectionKey]) || null;
+        return ((_a = revision === null || revision === void 0 ? void 0 : revision.changes) === null || _a === void 0 ? void 0 : _a[sectionKey]) || null;
     }),
-    hasOpenRevision: (userId, statuses = biodata_revision_model_1.OPEN_STATUSES) => __awaiter(void 0, void 0, void 0, function* () { return Boolean(yield biodata_revision_model_1.default.exists({ user: userId, status: { $in: statuses } })); }),
+    hasOpenRevision: (userId_1, ...args_1) => __awaiter(void 0, [userId_1, ...args_1], void 0, function* (userId, statuses = biodata_revision_model_1.OPEN_STATUSES) { return Boolean(yield biodata_revision_model_1.default.exists({ user: userId, status: { $in: statuses } })); }),
     // TODO: the user's open revision plus their latest decision, for the edit-biodata status banner.
     mine: (userId) => __awaiter(void 0, void 0, void 0, function* () {
         const [open, last] = yield Promise.all([
@@ -200,14 +210,11 @@ exports.BiodataRevisionService = {
                 .lean(),
         ]);
         const sections = open
-            ? Object.keys(open.changes || {}).map((key) => {
-                var _a;
-                return ({
-                    key,
-                    label: ((_a = (0, biodata_revision_sections_1.sectionByKey)(key)) === null || _a === void 0 ? void 0 : _a.label) || key,
-                    fields: Object.keys(open.changes[key] || {}).length,
-                });
-            })
+            ? Object.keys(open.changes || {}).map((key) => { var _a; return ({
+                key,
+                label: ((_a = (0, biodata_revision_sections_1.sectionByKey)(key)) === null || _a === void 0 ? void 0 : _a.label) || key,
+                fields: Object.keys(open.changes[key] || {}).length,
+            }); })
             : [];
         return {
             published: yield isPublished(userId),
@@ -218,7 +225,7 @@ exports.BiodataRevisionService = {
         };
     }),
     submit: (userId) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
+        var _a;
         const revision = yield openRevision(userId);
         if (!revision || !countFields(revision.changes)) {
             throw new ApiError_1.default(400, "জমা দেওয়ার মতো কোনো পরিবর্তন নেই");
@@ -232,8 +239,9 @@ exports.BiodataRevisionService = {
             notification_service_1.NotificationService.notify({
                 audience: "admin",
                 type: "moderation",
+                priority: "important",
                 title: "বায়োডাটা পরিবর্তনের অনুরোধ",
-                message: `বায়োডাটা #${(_c = user === null || user === void 0 ? void 0 : user.user_id) !== null && _c !== void 0 ? _c : ""} এর ${countFields(revision.changes)}টি পরিবর্তন অনুমোদনের অপেক্ষায়।`,
+                message: `বায়োডাটা #${(_a = user === null || user === void 0 ? void 0 : user.user_id) !== null && _a !== void 0 ? _a : ""} এর ${countFields(revision.changes)}টি পরিবর্তন অনুমোদনের অপেক্ষায়।`,
                 link: `/biodata-changes?id=${revision._id}`,
             });
         }
@@ -241,12 +249,12 @@ exports.BiodataRevisionService = {
     }),
     // TODO: drafts are dropped, pending ones are kept as "withdrawn" history; photos only this revision uploaded are deleted.
     withdraw: (userId) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
+        var _a;
         const revision = yield openRevision(userId);
         if (!revision)
             throw new ApiError_1.default(404, "কোনো খোলা পরিবর্তন নেই");
         const live = yield liveDoc("general_info", userId);
-        const stagedPhotos = photosOf((_d = revision.changes) === null || _d === void 0 ? void 0 : _d.general_info);
+        const stagedPhotos = photosOf((_a = revision.changes) === null || _a === void 0 ? void 0 : _a.general_info);
         destroyPhotos(stagedPhotos.filter((url) => !photosOf(live).includes(url)), userId);
         if (revision.status === "draft")
             yield revision.deleteOne();
@@ -257,21 +265,22 @@ exports.BiodataRevisionService = {
     }),
     // TODO: per-section rows of { field, before, after }; open revisions compare with the live biodata, decided ones with the frozen snapshot.
     diff: (revision) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e, _f;
+        var _a, _b;
         const decided = !biodata_revision_model_1.OPEN_STATUSES.includes(revision.status);
         const sections = [];
         for (const section of biodata_revision_sections_1.BIODATA_SECTIONS) {
-            const changed = (_e = revision.changes) === null || _e === void 0 ? void 0 : _e[section.key];
+            const changed = (_a = revision.changes) === null || _a === void 0 ? void 0 : _a[section.key];
             if (!changed || !Object.keys(changed).length)
                 continue;
-            const before = decided ? ((_f = revision.previous) === null || _f === void 0 ? void 0 : _f[section.key]) || {} : (yield liveDoc(section.key, revision.user)) || {};
+            const before = decided ? ((_b = revision.previous) === null || _b === void 0 ? void 0 : _b[section.key]) || {} : (yield liveDoc(section.key, revision.user)) || {};
             sections.push({
                 key: section.key,
                 label: section.label,
                 fields: Object.keys(changed).map((field) => {
-                    var _a, _b;
+                    var _a;
+                    var _b;
                     const path = `${section.key}.${field}`;
-                    const beforeValue = (_a = before[field]) !== null && _a !== void 0 ? _a : null;
+                    const beforeValue = (_b = before[field]) !== null && _b !== void 0 ? _b : null;
                     const afterValue = changed[field];
                     const warnings = [
                         ...(biodata_revision_sections_1.SENSITIVE_FIELDS[path] ? [biodata_revision_sections_1.SENSITIVE_FIELDS[path]] : []),
@@ -279,7 +288,7 @@ exports.BiodataRevisionService = {
                     ];
                     return {
                         field,
-                        label: ((_b = biodata_revision_sections_1.FIELD_LABELS[section.key]) === null || _b === void 0 ? void 0 : _b[field]) || field,
+                        label: ((_a = biodata_revision_sections_1.FIELD_LABELS[section.key]) === null || _a === void 0 ? void 0 : _a[field]) || field,
                         kind: normalize(beforeValue) === null ? "added" : normalize(afterValue) === null ? "removed" : "changed",
                         before: beforeValue,
                         after: afterValue,
@@ -290,7 +299,7 @@ exports.BiodataRevisionService = {
         }
         return sections;
     }),
-    list: ({ status, page, limit }) => __awaiter(void 0, void 0, void 0, function* () {
+    list: (_a) => __awaiter(void 0, [_a], void 0, function* ({ status, page, limit }) {
         const filter = status ? { status } : { status: { $ne: "draft" } };
         const [items, total] = yield Promise.all([
             biodata_revision_model_1.default.find(filter)
@@ -317,14 +326,14 @@ exports.BiodataRevisionService = {
         };
     }),
     detail: (id) => __awaiter(void 0, void 0, void 0, function* () {
-        var _g;
+        var _a;
         const revision = yield biodata_revision_model_1.default.findById(id)
             .populate("user", "user_id email username user_status")
             .populate("reviewed_by", "email username")
             .lean();
         if (!revision)
             throw new ApiError_1.default(404, "Change request not found");
-        const userId = ((_g = revision.user) === null || _g === void 0 ? void 0 : _g._id) || revision.user;
+        const userId = ((_a = revision.user) === null || _a === void 0 ? void 0 : _a._id) || revision.user;
         // TODO: context for the decision: who the member is and how their earlier requests went.
         const [sections, live, account, history] = yield Promise.all([
             exports.BiodataRevisionService.diff(Object.assign(Object.assign({}, revision), { user: userId })),
@@ -418,7 +427,7 @@ exports.BiodataRevisionService = {
         return revision;
     }),
     reject: (id, adminId, reason, expectedUpdatedAt) => __awaiter(void 0, void 0, void 0, function* () {
-        var _h;
+        var _a;
         const revision = yield biodata_revision_model_1.default.findById(id);
         if (!revision)
             throw new ApiError_1.default(404, "Change request not found");
@@ -433,7 +442,7 @@ exports.BiodataRevisionService = {
             previous[sectionKey] = Object.fromEntries(Object.keys(fields || {}).map((field) => { var _a; return [field, (_a = live[field]) !== null && _a !== void 0 ? _a : null]; }));
         }
         const live = yield liveDoc("general_info", revision.user);
-        destroyPhotos(photosOf((_h = revision.changes) === null || _h === void 0 ? void 0 : _h.general_info).filter((url) => !photosOf(live).includes(url)), revision.user);
+        destroyPhotos(photosOf((_a = revision.changes) === null || _a === void 0 ? void 0 : _a.general_info).filter((url) => !photosOf(live).includes(url)), revision.user);
         revision.previous = previous;
         revision.markModified("previous");
         revision.status = "rejected";

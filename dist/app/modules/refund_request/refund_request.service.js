@@ -81,6 +81,7 @@ exports.RefundRequestService = {
             notification_service_1.NotificationService.notify({
                 audience: "admin",
                 type: "refund",
+                priority: "important",
                 title: "নতুন রিফান্ড অনুরোধ",
                 message: `${user.email} ৳${refundAmount} রিফান্ড চেয়েছেন (TrxID: ${payment.transaction_id})।`,
                 link: "/refunds",

@@ -163,7 +163,7 @@ const generatePhotocardSVG = (rawBiodata, rawContent, uid) => {
   <rect x="${PADDING}" y="${PADDING}" width="${WIDTH - 2 * PADDING}" height="100" fill="rgba(255,255,255,0.1)" rx="10"/>
   <circle cx="${PADDING + 50}" cy="${PADDING + 50}" r="35" fill="white" opacity="0.3"/>
   <text x="${PADDING + 70}" y="${PADDING + 50}" class="bn-heavy" font-size="48" fill="white">
-    বিয়ে.ইনফো
+    bibaho.org
   </text>
   <text x="${PADDING + 70}" y="${PADDING + 75}" class="bn-text" font-size="18" fill="rgba(255,255,255,0.8)">
     Matrimony Platform
@@ -261,7 +261,7 @@ const generatePhotocardSVG = (rawBiodata, rawContent, uid) => {
 
   <!-- Bottom branding -->
   <text x="${WIDTH / 2}" y="${HEIGHT - PADDING - 10}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">
-    Made with ❤️ by বিয়ে.ইনফো
+    Made with ❤️ by bibaho.org
   </text>
 </svg>`;
     return svg;
@@ -290,7 +290,7 @@ exports.generatePhotocard = generatePhotocard;
  * Otherwise fall back to hard-coded SVG generation
  */
 const generatePhotocardWithTemplate = (biodata, uid, template) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d;
+    var _a, _b;
     try {
         // If no template provided, use the original method
         if (!template || !template.svgCode) {
@@ -311,7 +311,7 @@ const generatePhotocardWithTemplate = (biodata, uid, template) => __awaiter(void
             religion: biodata.religion,
             location: biodata.zilla || "—",
             complexion: biodata.screen_color,
-            profession: ((_d = (_c = biodata.extra_fields) === null || _c === void 0 ? void 0 : _c.find((f) => f.label.toLowerCase().includes("পেশা"))) === null || _d === void 0 ? void 0 : _d.value) || "—",
+            profession: ((_b = (_a = biodata.extra_fields) === null || _a === void 0 ? void 0 : _a.find((f) => f.label.toLowerCase().includes("পেশা"))) === null || _b === void 0 ? void 0 : _b.value) || "—",
             quote: photocardContent.profileText,
             url: `https://www.bibaho.org/biodata/unverified/${uid}`,
             gender: biodata.gender,

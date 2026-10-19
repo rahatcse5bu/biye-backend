@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmails = exports.deliverEmail = exports.htmlToText = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
@@ -32,6 +33,7 @@ const transporter = nodemailer_1.default.createTransport(config_1.default.smtp_h
     ? Object.assign({ host: config_1.default.smtp_host, port: smtpPort, secure: smtpPort === 465, auth }, pooling) : Object.assign({ service: "gmail", auth }, pooling));
 // TODO: with Gmail the From address must be the signed-in account (or a verified "Send mail as" alias), or Gmail rewrites it.
 const FROM = config_1.default.email_from || `"Bibaho" <${config_1.default.email_user}>`;
+const FROM_ADDRESS = (((_a = FROM.match(/<([^>]+)>/)) === null || _a === void 0 ? void 0 : _a[1]) || FROM).trim();
 const DEFAULT_REPLY_TO = config_1.default.email_reply_to || config_1.default.email_user || "bibahosupport@gmail.com";
 const entities = {
     "&nbsp;": " ",
@@ -67,7 +69,7 @@ exports.htmlToText = htmlToText;
 const buildMessage = (to, subject, html, options = {}) => {
     const replyTo = options.replyTo || DEFAULT_REPLY_TO;
     return {
-        from: FROM,
+        from: options.fromName ? { name: options.fromName, address: FROM_ADDRESS } : FROM,
         to,
         replyTo,
         subject: subject.trim(),

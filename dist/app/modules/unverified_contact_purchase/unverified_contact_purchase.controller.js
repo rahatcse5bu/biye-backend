@@ -35,9 +35,9 @@ const getMyPurchases = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
     });
 }));
 const getPurchaseById = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _a;
     const { id } = req.params;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!userId) {
         return res.status(http_status_1.default.UNAUTHORIZED).json({
             statusCode: http_status_1.default.UNAUTHORIZED,

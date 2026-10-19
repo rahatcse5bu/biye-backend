@@ -49,8 +49,11 @@ const getNextUserId = async (): Promise<number> => {
   return lastItem ? lastItem.user_id + 1 : 2000;
 };
 
-const createAppToken = (user: IUserInfo): string =>
-  jwtHelpers.createToken(
+const createAppToken = (user: IUserInfo): string => {
+  if (user.user_status === "banned") {
+    throw new ApiError(403, "Your account is banned");
+  }
+  return jwtHelpers.createToken(
     {
       _id: user._id,
       user_role: user.user_role,
@@ -58,6 +61,7 @@ const createAppToken = (user: IUserInfo): string =>
     config.jwt_secret as Secret,
     "30d"
   );
+};
 
 const sanitizeUser = (user: any): Record<string, any> => {
   const sanitizedUser = user?.toObject ? user.toObject() : { ...user };

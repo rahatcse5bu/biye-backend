@@ -59,8 +59,8 @@ import {
 const app = express();
 
 app.disable("x-powered-by");
-// TODO: Vercel sits in front, so req.ip is the real client instead of the proxy.
-app.set("trust proxy", 1);
+// TODO: only trust forwarded IPs behind Vercel's sanitizing proxy.
+app.set("trust proxy", process.env.VERCEL === "1" ? 1 : false);
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");

@@ -36,12 +36,12 @@ const uploadImages = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
     });
 }));
 const deleteImage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    var _a, _b;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     if (!userId) {
         throw new ApiError_1.default(http_status_1.default.UNAUTHORIZED, "You are not authorized");
     }
-    if (typeof ((_c = req.body) === null || _c === void 0 ? void 0 : _c.url) !== "string" || !req.body.url.trim()) {
+    if (typeof ((_b = req.body) === null || _b === void 0 ? void 0 : _b.url) !== "string" || !req.body.url.trim()) {
         throw new ApiError_1.default(http_status_1.default.BAD_REQUEST, "Image URL is required");
     }
     // TODO: a published photo stays on the live profile until the change is approved, which then deletes it.

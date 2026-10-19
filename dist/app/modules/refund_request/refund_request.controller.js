@@ -40,8 +40,8 @@ exports.RefundRequestController = {
         });
     })),
     listMine: handle((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d;
-        const requests = yield refund_request_service_1.RefundRequestService.listForUser(String((_d = req.user) === null || _d === void 0 ? void 0 : _d._id));
+        var _a;
+        const requests = yield refund_request_service_1.RefundRequestService.listForUser(String((_a = req.user) === null || _a === void 0 ? void 0 : _a._id));
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Refund requests retrieved successfully",
@@ -65,8 +65,8 @@ exports.RefundRequestController = {
         });
     })),
     reject: handle((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _e;
-        const request = yield refund_request_service_1.RefundRequestService.reject(req.params.id, (_e = req.body) === null || _e === void 0 ? void 0 : _e.note);
+        var _a;
+        const request = yield refund_request_service_1.RefundRequestService.reject(req.params.id, (_a = req.body) === null || _a === void 0 ? void 0 : _a.note);
         res.status(http_status_1.default.OK).json({
             success: true,
             message: "Refund request rejected and points returned",

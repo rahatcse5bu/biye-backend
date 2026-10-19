@@ -40,8 +40,8 @@ exports.AchievementController = {
         });
     })),
     createAchievement: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,
@@ -57,8 +57,8 @@ exports.AchievementController = {
         });
     })),
     updateAchievement: (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _c;
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        var _a;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         if (!userId) {
             return res.status(http_status_1.default.UNAUTHORIZED).json({
                 success: false,

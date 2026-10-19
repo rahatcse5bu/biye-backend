@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,7 +56,7 @@ exports.SITE_URL = config_1.default.client_url.replace(/\/+$/, "");
 // TODO: icons are PNGs served by biye-front (public/email); Gmail does not render SVG.
 const ASSETS = config_1.default.email_asset_url.replace(/\/+$/, "");
 // TODO: bump when icons change; Gmail's image proxy caches each URL, including earlier 404s.
-const ASSET_VERSION = "2";
+const ASSET_VERSION = "3";
 const asset = (file) => `${ASSETS}/${file}.png?v=${ASSET_VERSION}`;
 const escapeHtml = (value) => String(value !== null && value !== void 0 ? value : "")
     .replace(/&/g, "&amp;")
@@ -79,7 +89,6 @@ const C = {
     dangerBg: "#fcebe9",
 };
 const FONT = "'Hind Siliguri','Noto Sans Bengali',Arial,sans-serif";
-const SERIF = "'Noto Serif Bengali','Hind Siliguri',serif";
 const LATIN = "Montserrat,Arial,sans-serif";
 // TODO: hero badge presets; each icon is baked in its tone's colour.
 const HEROES = {
@@ -102,29 +111,23 @@ const TONES = {
     success: { bg: C.successBg, fg: C.success, icon: "check" },
     danger: { bg: C.dangerBg, fg: C.danger, icon: "edit" },
 };
-const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিয়ে (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
-const ADMIN_REASON = "আপনি বিয়ে-র অ্যাডমিন হিসেবে এই ইমেইলটি পাচ্ছেন।";
+const DEFAULT_REASON = "আপনি এই ইমেইলটি পাচ্ছেন কারণ আপনি বিবাহ (bibaho.org)-এ একটি অ্যাকাউন্ট খুলেছেন।";
+const ADMIN_REASON = "আপনি বিবাহ-র অ্যাডমিন হিসেবে এই ইমেইলটি পাচ্ছেন।";
 const img = (file, w, h, extra = "") => `<img src="${asset(file)}" width="${w}" height="${h}" alt="" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;${extra}">`;
 const strong = (html, color = C.ink900) => html.replace(/<strong>/g, `<strong style="color:${color};font-weight:600;">`);
 const hrefOf = (action) => (0, exports.escapeHtml)(action.url || `${exports.SITE_URL}${action.path || ""}`);
 const filled = (rows) => rows.filter((row) => row.value !== undefined && row.value !== null && row.value !== "");
-const logo = (onDark) => {
-    const color = onDark ? "#ffffff" : C.teal;
-    return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-    <td style="padding:0 10px 0 0;vertical-align:middle;">${img(onDark ? "rings-dark" : "rings-light", 50, 32)}</td>
-    <td style="padding:0;vertical-align:middle;"><div style="width:1px;height:32px;background:${color};opacity:0.35;"></div></td>
-    <td style="padding:0 0 0 10px;vertical-align:middle;white-space:nowrap;">
-      <div style="font-family:${SERIF};font-size:26px;line-height:34px;font-weight:700;letter-spacing:0.52px;color:${color};">বিয়ে</div>
-      <div style="font-family:${LATIN};font-size:8px;line-height:10px;font-weight:600;letter-spacing:3.2px;color:${color};opacity:0.85;">MATRIMONY</div>
-    </td>
-  </tr></table>`;
+// TODO: the bibaho mark from biye-front/public/logo.png; white on the teal header, teal on the light footer.
+const logo = (onDark, h) => {
+    const w = Math.round((h * 589) / 231);
+    return `<img src="${asset(onDark ? "logo-dark" : "logo-light")}" width="${w}" height="${h}" alt="বিবাহ" style="display:block;width:${w}px;height:${h}px;border:0;outline:none;">`;
 };
 const header = (branding) => `
   <tr><td style="background:${C.teal};padding:22px 32px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:middle;"><a href="${exports.SITE_URL}" style="text-decoration:none;">${branding.logo_url
-    ? `<img src="${(0, exports.escapeHtml)(branding.logo_url)}" alt="বিয়ে" height="44" style="display:block;height:44px;width:auto;border:0;">`
-    : logo(true)}</a></td>
+    ? `<img src="${(0, exports.escapeHtml)(branding.logo_url)}" alt="বিবাহ" height="44" style="display:block;height:44px;width:auto;border:0;">`
+    : logo(true, 44)}</a></td>
       <td align="right" style="vertical-align:middle;font-family:${FONT};font-size:12px;line-height:18px;font-weight:500;color:#ffffff;opacity:0.85;padding-left:12px;">বাংলাদেশের বিশ্বস্ত<br>অনলাইন ম্যাট্রিমনি</td>
     </tr></table>
   </td></tr>
@@ -152,24 +155,23 @@ const footer = (branding, reason) => {
         return `<td style="padding:0 5px;">${body}</td>`;
     })
         .join("");
+    // TODO: admin-set footer links; site paths ("/privacy-policy") resolve against SITE_URL; unsubscribe always stays.
     const legal = [
-        ["গোপনীয়তা নীতিমালা", `${exports.SITE_URL}/privacy-policy`],
-        ["শর্তাবলি", `${exports.SITE_URL}/terms-and-condition`],
-        ["রিফান্ড নীতিমালা", `${exports.SITE_URL}/refund-policy`],
-        ["আনসাবস্ক্রাইব", `mailto:${support}?subject=unsubscribe`],
+        ...branding.footer_links.map((link) => [link.label, link.url.startsWith("/") ? `${exports.SITE_URL}${link.url}` : link.url]),
+        ["আনসাবস্ক্রাইব", `mailto:${branding.support_email}?subject=unsubscribe`],
     ]
-        .map(([label, href]) => `<a href="${href}" style="color:${C.teal};text-decoration:none;">${label}</a>`)
+        .map(([label, href]) => `<a href="${(0, exports.escapeHtml)(href)}" style="color:${C.teal};text-decoration:none;">${(0, exports.escapeHtml)(label)}</a>`)
         .join(" &nbsp;&nbsp;&bull;&nbsp;&nbsp; ");
     const caption = `font-family:${FONT};font-size:12px;line-height:18px;font-weight:500;`;
     return `<tr><td align="center" style="background:${C.surface};padding:32px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>${logo(false)}</td></tr></table>
+    <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>${logo(false, 40)}</td></tr></table>
     <div style="padding-top:16px;font-family:${FONT};font-size:14px;line-height:22px;font-weight:600;color:${C.ink900};">কোনো প্রশ্ন আছে? আমরা আপনার পাশে আছি</div>
     <div style="padding-top:12px;font-family:${FONT};font-size:14px;line-height:30px;color:${C.ink600};">${contact}</div>
     ${social ? `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin-top:16px;"><tr>${social}</tr></table>` : ""}
     <div style="margin-top:16px;height:1px;background:${C.line};font-size:0;line-height:1px;">&nbsp;</div>
     <div style="padding-top:16px;${caption}">${legal}</div>
     <div style="padding-top:16px;${caption}color:${C.ink400};">${(0, exports.escapeHtml)(reason)}</div>
-    <div style="padding-top:16px;${caption}color:${C.ink400};">&copy; ২০২৩–${(0, exports.toBanglaDigits)(new Date().getFullYear())} বিয়ে &middot; বাংলাদেশী ম্যাট্রিমনি প্ল্যাটফর্ম &middot; ঢাকা, বাংলাদেশ</div>
+    <div style="padding-top:16px;${caption}color:${C.ink400};">&copy; ২০২৩–${(0, exports.toBanglaDigits)(new Date().getFullYear())} বিবাহ &middot; বাংলাদেশী ম্যাট্রিমনি প্ল্যাটফর্ম &middot; ঢাকা, বাংলাদেশ</div>
   </td></tr>`;
 };
 const infoTable = (title, rows, total) => {
@@ -334,14 +336,14 @@ const renderEmail = (content, branding = email_settings_model_1.DEFAULT_EMAIL_SE
     const sections = [
         salutation && renderBlock({ type: "text", html: salutation }),
         ...body.map(renderBlock),
-        `<div style="font-family:${FONT};font-size:16px;line-height:28px;"><div style="color:${C.ink600};">শুভকামনায়,</div><div style="color:${C.ink900};font-weight:600;">টিম বিয়ে</div></div>`,
+        `<div style="font-family:${FONT};font-size:16px;line-height:28px;"><div style="color:${C.ink600};">শুভকামনায়,</div><div style="color:${C.ink900};font-weight:600;">টিম বিবাহ</div></div>`,
     ].filter(Boolean);
     return `<!DOCTYPE html>
 <html lang="bn">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="x-apple-disable-message-reformatting">
 <title>${(0, exports.escapeHtml)(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Montserrat:wght@600;700&family=Noto+Serif+Bengali:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
 <style>@media (max-width:620px){.bb-pad{padding:32px 20px!important}.bb-title{font-size:24px!important;line-height:34px!important}}</style>
 </head>
 <body style="margin:0;padding:0;background:#eef3f3;">
@@ -365,18 +367,26 @@ const renderEmail = (content, branding = email_settings_model_1.DEFAULT_EMAIL_SE
 };
 exports.renderEmail = renderEmail;
 // TODO: fire-and-forget so slow or failing Gmail never delays or breaks the request.
+const isDisabled = (branding, content) => !!content.template && branding.disabled_templates.includes(content.template);
+const sendOptions = (branding) => ({ replyTo: branding.support_email, fromName: branding.sender_name });
 const mailUser = (to, subject, content) => {
     if (!to)
         return;
     email_settings_service_1.EmailSettingsService.get()
-        .then((branding) => (0, SendEmail_1.default)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), { replyTo: branding.support_email }))
+        .then((branding) => {
+        if (isDisabled(branding, content))
+            return;
+        return (0, SendEmail_1.default)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), sendOptions(branding));
+    })
         .catch((error) => console.error("Email send failed:", error));
 };
 exports.mailUser = mailUser;
-// TODO: awaited version of mailUser that rejects when the email could not be sent.
+// TODO: awaited version of mailUser that rejects when the email could not be sent, including when its type is switched off.
 const mailUserNow = (to, subject, content) => __awaiter(void 0, void 0, void 0, function* () {
     const branding = yield email_settings_service_1.EmailSettingsService.get();
-    yield (0, SendEmail_1.deliverEmail)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), { replyTo: branding.support_email });
+    if (isDisabled(branding, content))
+        throw new Error("This email type is turned off in the admin panel");
+    yield (0, SendEmail_1.deliverEmail)(to, `${subject} | Bibaho`, (0, exports.renderEmail)(content, branding), sendOptions(branding));
 });
 exports.mailUserNow = mailUserNow;
 const mailAdmins = (subject, content) => {

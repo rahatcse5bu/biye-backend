@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BlogService = exports.slugify = void 0;
 const crypto_1 = require("crypto");
 const blog_model_1 = __importDefault(require("./blog.model"));
-const publicFields = "title slug excerpt cover_image author published_at";
+const publicFields = "title slug excerpt cover_image author tags published_at";
 // TODO: keeps Unicode letters and marks so Bangla titles produce readable slugs; "admin" is reserved by the route.
 const slugify = (value) => value
     .toLowerCase()
@@ -61,7 +61,7 @@ exports.BlogService = {
     }),
     getPublishedBySlug: (slug) => __awaiter(void 0, void 0, void 0, function* () {
         return blog_model_1.default.findOne({ slug, status: "published" })
-            .select(`${publicFields} content updatedAt`)
+            .select(`${publicFields} content seo_title seo_description updatedAt`)
             .lean();
     }),
     listAll: () => __awaiter(void 0, void 0, void 0, function* () { return blog_model_1.default.find().sort({ createdAt: -1 }).lean(); }),

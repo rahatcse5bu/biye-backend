@@ -52,10 +52,15 @@ const getNextUserId = () => __awaiter(void 0, void 0, void 0, function* () {
     const lastItem = yield user_info_model_1.UserInfoModel.findOne().sort({ user_id: -1 });
     return lastItem ? lastItem.user_id + 1 : 2000;
 });
-const createAppToken = (user) => jwtHelpers_1.jwtHelpers.createToken({
-    _id: user._id,
-    user_role: user.user_role,
-}, config_1.default.jwt_secret, "30d");
+const createAppToken = (user) => {
+    if (user.user_status === "banned") {
+        throw new ApiError_1.default(403, "Your account is banned");
+    }
+    return jwtHelpers_1.jwtHelpers.createToken({
+        _id: user._id,
+        user_role: user.user_role,
+    }, config_1.default.jwt_secret, "30d");
+};
 const sanitizeUser = (user) => {
     const sanitizedUser = (user === null || user === void 0 ? void 0 : user.toObject) ? user.toObject() : Object.assign({}, user);
     delete sanitizedUser.password_hash;
@@ -69,7 +74,7 @@ const sendWelcomeNotification = (user) => {
         recipient: String(user._id),
         audience: "user",
         type: "system",
-        title: "বিয়েতে স্বাগতম!",
+        title: "বিবাহ-তে স্বাগতম!",
         message: `${user.username ? `${user.username}, ` : ""}আপনার অ্যাকাউন্ট তৈরি হয়েছে। এখনই আপনার বায়োডাটা তৈরি করে জীবনসঙ্গী খোঁজা শুরু করুন।`,
         link: "/user/account/edit-biodata",
     });
@@ -111,7 +116,7 @@ exports.UserInfoService = {
             .select("_id user_id")
             .lean();
     }),
-    getUserInfoByIdWithSession: (id, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    getUserInfoByIdWithSession: (id_1, ...args_1) => __awaiter(void 0, [id_1, ...args_1], void 0, function* (id, options = {}) {
         const { session } = options;
         return user_info_model_1.UserInfoModel.findById(id).session(session).exec();
     }),
