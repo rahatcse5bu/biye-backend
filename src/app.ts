@@ -1,3 +1,5 @@
+// TODO: pulls in the req.user augmentation for any entry Vercel type-checks from (api/index.ts, src/server.ts, src/app.ts).
+/// <reference path="./interfaces/index.d.ts" />
 import express, { Request, Response } from "express";
 import morgan from "morgan";
 import userRouter from "./app/modules/user_info/user_info.route";

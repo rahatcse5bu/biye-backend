@@ -28,23 +28,23 @@ jobs:
       - name: 🚚 Get latest code
         uses: actions/checkout@v4
 
-      # TODO: google-auth-library needs Node 22+; keep in sync with "engines" in package.json.
-      - name: 🟢 Use Node.js 22
+      # TODO: version comes from "packageManager" in package.json.
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v4
+
+      # TODO: Node 24 for require(esm) (sanitize-html loads ESM-only htmlparser2); keep in sync with "engines" in package.json.
+      - name: 🟢 Use Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: npm
-
-      # TODO: lockfile is written by npm 11; npm 10 (bundled with Node 22) rejects it over mongodb's optional gcp-metadata peer.
-      - name: 📦 Use npm 11
-        run: npm install --global npm@11
+          node-version: "24"
+          cache: pnpm
 
       - name: 📦 Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       # TODO: tsc fails the job on type errors, so broken code never deploys.
       - name: 🔍 Type check
-        run: npm run build
+        run: pnpm run build
 
       - name: ▲ Install Vercel CLI
         run: npm install --global vercel@latest
