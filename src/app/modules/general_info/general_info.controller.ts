@@ -348,14 +348,15 @@ const getGeneralInfo = catchAsync(async (req: Request, res: Response) => {
       : "createdAt";
   const sortDirection =
     firstQueryValue(sortOrder)?.toLowerCase() === "asc" ? 1 : -1;
-  const sortSpec: Record<string, 1 | -1> = { [sortField]: sortDirection };
+  // TODO: featured biodatas that match the filters lead the results, like a promoted listing.
+  const sortSpec: Record<string, 1 | -1> = isFeatured ? {} : { isFeatured: -1 };
+  sortSpec[sortField] = sortDirection;
   if (sortField !== "_id") {
     sortSpec._id = sortDirection;
   }
 
-  // Parse isFeatured to boolean
+  await expireFeaturedBiodatas();
   if (isFeatured) {
-    await expireFeaturedBiodatas();
     const isFeaturedBool = isFeatured === "true";
     andConditions.push({
       isFeatured: isFeaturedBool,

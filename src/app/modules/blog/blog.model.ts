@@ -9,6 +9,9 @@ export interface IBlog extends Document {
   content: string;
   cover_image: string;
   author: string;
+  seo_title: string;
+  seo_description: string;
+  tags: string[];
   status: BlogStatus;
   published_at: Date | null;
 }
@@ -21,6 +24,10 @@ const BlogSchema = new Schema<IBlog>(
     content: { type: String, required: true },
     cover_image: { type: String, default: "", trim: true },
     author: { type: String, default: "", trim: true },
+    // TODO: optional search-engine overrides; the page falls back to title and excerpt when empty.
+    seo_title: { type: String, default: "", trim: true },
+    seo_description: { type: String, default: "", trim: true },
+    tags: { type: [String], default: [] },
     status: { type: String, enum: ["draft", "published"], default: "draft" },
     published_at: { type: Date, default: null },
   },
@@ -28,6 +35,7 @@ const BlogSchema = new Schema<IBlog>(
 );
 
 BlogSchema.index({ status: 1, published_at: -1 });
+BlogSchema.index({ tags: 1 });
 
 const Blog = mongoose.model<IBlog>("Blog", BlogSchema);
 

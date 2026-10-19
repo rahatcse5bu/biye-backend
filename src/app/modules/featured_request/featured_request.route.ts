@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
 import httpStatus from "http-status";
 import { auth } from "../../middlewares/auth";
+import authCheck from "../../middlewares/authCheck";
 import catchAsync from "../../../shared/catchAsync";
 import { FeaturedRequestService } from "./featured_request.service";
 
@@ -39,14 +40,25 @@ router.get(
   }),
 );
 
+// TODO: authCheck loads the bKash base URL and token; without it a cold serverless instance calls "undefined/checkout/create".
 router.post(
   "/checkout",
   auth("user", "admin"),
+  authCheck,
   catchAsync(async (req: Request, res: Response) => {
     res.status(httpStatus.OK).json({
       success: true,
       data: await FeaturedRequestService.startCheckout(String(req.user?._id), req.body?.callbackURL),
     });
+  }),
+);
+
+// TODO: public so anonymous visitors count too; the service caps ids and only credits running paid periods.
+router.post(
+  "/track",
+  catchAsync(async (req: Request, res: Response) => {
+    await FeaturedRequestService.track(req.body?.biodata_ids, req.body?.event);
+    res.status(httpStatus.NO_CONTENT).end();
   }),
 );
 

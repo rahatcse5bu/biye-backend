@@ -42,9 +42,22 @@ const parseInput = (
   if (cover && !/^https:\/\//.test(cover)) {
     return { error: "Cover image must be an https URL" };
   }
-  for (const key of ["slug", "excerpt", "author", "cover_image"] as const) {
+  for (const key of ["slug", "excerpt", "author", "cover_image", "seo_title", "seo_description"] as const) {
     const value = optionalString(body[key]);
     if (value !== undefined) data[key] = value;
+  }
+  if ((data.seo_title?.length ?? 0) > 120) return { error: "SEO title must be 120 characters or fewer" };
+  if ((data.seo_description?.length ?? 0) > 320) return { error: "SEO description must be 320 characters or fewer" };
+  if (body.tags !== undefined) {
+    const raw = Array.isArray(body.tags) ? body.tags : typeof body.tags === "string" ? body.tags.split(",") : null;
+    if (!raw) return { error: "Tags must be a list" };
+    // TODO: trimmed, de-duplicated case-insensitively, capped at 20 tags of 50 chars.
+    const seen = new Set<string>();
+    data.tags = raw
+      .filter((tag: unknown): tag is string => typeof tag === "string")
+      .map((tag: string) => tag.trim().replace(/^#/, "").slice(0, 50))
+      .filter((tag: string) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()))
+      .slice(0, 20);
   }
 
   return { data };

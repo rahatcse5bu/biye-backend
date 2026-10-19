@@ -77,7 +77,7 @@ const getMine = async (userId: string) => {
   const requests = await FeaturedRequest.find({ user: userId })
     .sort({ createdAt: -1 })
     .limit(10)
-    .select("status amount duration_days transaction_id admin_note refunded reviewed_at featured_until createdAt")
+    .select("status amount duration_days transaction_id admin_note refunded reviewed_at featured_until impressions clicks createdAt")
     .lean();
   const reason = blockReason(settings, user, biodata, pending);
   return {
@@ -181,6 +181,25 @@ const recordPayment = async (userId: string, email: string, paymentID: string, r
     ],
   });
   return { alreadyRecorded: false, request };
+};
+
+// TODO: credits impressions/clicks to the running paid period of each biodata; admin-featured biodatas have none and are skipped.
+const track = async (biodataIds: unknown, event: unknown) => {
+  if (event !== "impression" && event !== "click") throw new ApiError(400, "Invalid event");
+  const ids = [...new Set(Array.isArray(biodataIds) ? biodataIds : [])]
+    .filter((id): id is string => typeof id === "string" && isValidObjectId(id))
+    .slice(0, 24);
+  const field = event === "click" ? "clicks" : "impressions";
+  const now = new Date();
+  await Promise.all(
+    ids.map((id) =>
+      FeaturedRequest.findOneAndUpdate(
+        { biodata: id, status: "approved", featured_until: { $gt: now } },
+        { $inc: { [field]: 1 } },
+        { sort: { featured_until: 1 } },
+      ),
+    ),
+  );
 };
 
 const listAll = async (status: unknown, page: unknown, limit: unknown) => {
@@ -287,6 +306,7 @@ export const FeaturedRequestService = {
   getMine,
   startCheckout,
   recordPayment,
+  track,
   listAll,
   approve,
   reject,

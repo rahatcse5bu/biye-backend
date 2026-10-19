@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import Blog, { IBlog } from "./blog.model";
 
-const publicFields = "title slug excerpt cover_image author published_at";
+const publicFields = "title slug excerpt cover_image author tags published_at";
 
 // TODO: keeps Unicode letters and marks so Bangla titles produce readable slugs; "admin" is reserved by the route.
 export const slugify = (value: string) =>
@@ -51,7 +51,7 @@ export const BlogService = {
 
   getPublishedBySlug: async (slug: string) =>
     Blog.findOne({ slug, status: "published" })
-      .select(`${publicFields} content updatedAt`)
+      .select(`${publicFields} content seo_title seo_description updatedAt`)
       .lean(),
 
   listAll: async () => Blog.find().sort({ createdAt: -1 }).lean(),

@@ -192,7 +192,7 @@ export const generatePhotocardSVG = (
   <rect x="${PADDING}" y="${PADDING}" width="${WIDTH - 2 * PADDING}" height="100" fill="rgba(255,255,255,0.1)" rx="10"/>
   <circle cx="${PADDING + 50}" cy="${PADDING + 50}" r="35" fill="white" opacity="0.3"/>
   <text x="${PADDING + 70}" y="${PADDING + 50}" class="bn-heavy" font-size="48" fill="white">
-    বিয়ে.ইনফো
+    bibaho.org
   </text>
   <text x="${PADDING + 70}" y="${PADDING + 75}" class="bn-text" font-size="18" fill="rgba(255,255,255,0.8)">
     Matrimony Platform
@@ -292,7 +292,7 @@ export const generatePhotocardSVG = (
 
   <!-- Bottom branding -->
   <text x="${WIDTH / 2}" y="${HEIGHT - PADDING - 10}" font-family="'Noto Sans Bengali', Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">
-    Made with ❤️ by বিয়ে.ইনফো
+    Made with ❤️ by bibaho.org
   </text>
 </svg>`;
 

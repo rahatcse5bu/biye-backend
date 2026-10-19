@@ -36,6 +36,8 @@ export interface IFeaturedRequest extends Document {
   admin_note?: string;
   reviewed_at?: Date;
   featured_until?: Date;
+  impressions: number;
+  clicks: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,8 +58,13 @@ const FeaturedRequestSchema = new Schema<IFeaturedRequest>(
     admin_note: { type: String, default: "" },
     reviewed_at: { type: Date },
     featured_until: { type: Date },
+    // TODO: counted only while this paid period is running, from featured slots (homepage + top of search).
+    impressions: { type: Number, default: 0 },
+    clicks: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+
+FeaturedRequestSchema.index({ biodata: 1, status: 1, featured_until: 1 });
 
 export const FeaturedRequest = mongoose.model<IFeaturedRequest>("FeaturedRequest", FeaturedRequestSchema);
