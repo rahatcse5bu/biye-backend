@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hasText = exports.sanitizeBlogHtml = void 0;
-const sanitize_html_1 = __importDefault(require("sanitize-html"));
+const sanitize_html_cjs_1 = __importDefault(require("../../../../vendor/sanitize-html.cjs"));
 // TODO: whitelist matches the admin editor's toolbar; anything else (scripts, styles, event handlers) is dropped.
 const options = {
     allowedTags: [
@@ -29,9 +29,9 @@ const options = {
         },
     },
 };
-const sanitizeBlogHtml = (html) => (0, sanitize_html_1.default)(html, options).trim();
+const sanitizeBlogHtml = (html) => (0, sanitize_html_cjs_1.default)(html, options).trim();
 exports.sanitizeBlogHtml = sanitizeBlogHtml;
 // TODO: an editor-emptied body is "<p></p>", which has no readable text.
-const hasText = (html) => (0, sanitize_html_1.default)(html, { allowedTags: [], allowedAttributes: {} }).trim().length > 0 ||
+const hasText = (html) => (0, sanitize_html_cjs_1.default)(html, { allowedTags: [], allowedAttributes: {} }).trim().length > 0 ||
     /<img\s/i.test(html);
 exports.hasText = hasText;

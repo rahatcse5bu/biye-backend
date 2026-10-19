@@ -4,6 +4,8 @@ Authorization reads the current database role and rejects banned accounts. Token
 
 Rate limits use atomic MongoDB counters shared across instances. Expired counters are removed by the `RateLimitBucket.expires_at` TTL index. Forwarded IPs are trusted only when `VERCEL=1`; direct Node deployments use the socket IP. A different reverse proxy requires an explicit trusted-proxy configuration.
 
+The build bundles the patched HTML sanitizer as CommonJS because Vercel's runtime cannot synchronously require its ESM parser. The runtime smoke test disables Node's `require(esm)` support to catch this before deployment. Always run the build before starting the compiled server; Vercel's explicit build command generates the same bundle.
+
 Run the checks against a disposable local MongoDB database:
 
 ```sh

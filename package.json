@@ -5,8 +5,10 @@
   "license": "MIT",
   "packageManager": "pnpm@12.4.2",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "dev": "pnpm run build:sanitizer && tsx watch src/server.ts",
+    "build:sanitizer": "node scripts/build-sanitizer.cjs",
+    "build": "pnpm run build:sanitizer && tsc && pnpm run test:runtime",
+    "test:runtime": "node --test tests/runtime.test.cjs",
     "test:accounts": "pnpm run build && node tests/accounts.test.cjs",
     "test:accounts:integration": "pnpm run build && node tests/accounts.integration.cjs",
     "test:security": "pnpm run build && node --test --test-concurrency=1 tests/auth.test.cjs tests/rateLimit.test.cjs tests/photocard.test.cjs",
@@ -51,6 +53,7 @@
     "@types/nodemailer": "^6.4.15",
     "@types/sanitize-html": "2.16.2",
     "@types/uuid": "^9.0.4",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

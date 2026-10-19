@@ -1,4 +1,4 @@
-import sanitizeHtml from "sanitize-html";
+import sanitizeHtml from "../../../../vendor/sanitize-html.cjs";
 
 // TODO: whitelist matches the admin editor's toolbar; anything else (scripts, styles, event handlers) is dropped.
 const options: sanitizeHtml.IOptions = {

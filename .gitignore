@@ -8,3 +8,5 @@ text.ts
 
 config/serviceAccountKey.json
 .vercel
+
+/vendor/sanitize-html.cjs

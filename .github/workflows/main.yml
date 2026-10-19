@@ -32,7 +32,7 @@ jobs:
       - name: 📦 Install pnpm
         uses: pnpm/action-setup@v4
 
-      # TODO: Node 24 for require(esm) (sanitize-html loads ESM-only htmlparser2); keep in sync with "engines" in package.json.
+      # TODO: keep Node in sync with package.json engines and the sanitizer bundle target.
       - name: 🟢 Use Node.js 24
         uses: actions/setup-node@v4
         with:
